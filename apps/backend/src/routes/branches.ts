@@ -1,0 +1,74 @@
+import { Router, Response } from 'express';
+import { prisma } from '../index';
+import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import { qs } from '../utils/query';
+
+const router = Router();
+
+router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const facilityType = qs(req.query.facilityType);
+    const active = qs(req.query.active);
+    const where: any = {};
+    if (facilityType) where.facilityType = facilityType;
+    if (active !== undefined) where.isActive = active === 'true';
+
+    const branches = await prisma.branch.findMany({
+      where,
+      include: { manager: { select: { id: true, fullName: true } } },
+      orderBy: { name: 'asc' },
+    });
+    res.json(branches);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const branch = await prisma.branch.findUnique({
+      where: { id: req.params.id as string },
+      include: {
+        manager: { select: { id: true, fullName: true } },
+        inspections: {
+          take: 10,
+          orderBy: { createdAt: 'desc' },
+          select: { id: true, scorePercentage: true, status: true, createdAt: true },
+        },
+      },
+    });
+    if (!branch) return res.status(404).json({ error: 'Şube bulunamadı' });
+    res.json(branch);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res: Response) => {
+  try {
+    const branch = await prisma.branch.create({ data: req.body });
+    res.status(201).json(branch);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/:id', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res: Response) => {
+  try {
+    const branch = await prisma.branch.update({ where: { id: req.params.id as string }, data: req.body });
+    res.json(branch);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    await prisma.branch.delete({ where: { id: req.params.id as string } });
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+export default router;

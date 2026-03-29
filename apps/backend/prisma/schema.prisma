@@ -1,0 +1,276 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  manager
+  inspector
+}
+
+enum FacilityType {
+  magaza
+  kesimhane
+  ahir
+  yufka
+  depo
+}
+
+enum InspectionStatus {
+  scheduled
+  draft
+  in_progress
+  completed
+  reviewed
+}
+
+enum SeverityLevel {
+  critical
+  major
+  minor
+  observation
+}
+
+enum ChecklistItemType {
+  boolean
+  score
+  text
+  photo_required
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  fullName  String   @map("full_name")
+  phone     String?
+  role      UserRole @default(inspector)
+  avatarUrl String?  @map("avatar_url")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  managedBranches      Branch[]             @relation("BranchManager")
+  inspections          Inspection[]         @relation("Inspector")
+  reviewedInspections  Inspection[]         @relation("Reviewer")
+  createdTemplates     ChecklistTemplate[]
+  assignedActions      CorrectiveAction[]
+  assignedSchedules    InspectionSchedule[]
+  notifications        Notification[]
+  pushTokens           PushToken[]
+
+  @@map("users")
+}
+
+model Branch {
+  id                   String       @id @default(uuid())
+  name                 String
+  facilityType         FacilityType @map("facility_type")
+  address              String?
+  city                 String       @default("Konya")
+  latitude             Float?
+  longitude            Float?
+  geofenceRadiusMeters Int          @default(200) @map("geofence_radius_meters")
+  managerId            String?      @map("manager_id")
+  isActive             Boolean      @default(true) @map("is_active")
+  createdAt            DateTime     @default(now()) @map("created_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
+
+  manager     User?                @relation("BranchManager", fields: [managerId], references: [id])
+  inspections Inspection[]
+  schedules   InspectionSchedule[]
+
+  @@map("branches")
+}
+
+model ChecklistTemplate {
+  id            String       @id @default(uuid())
+  facilityType  FacilityType @map("facility_type")
+  name          String
+  version       Int          @default(1)
+  isActive      Boolean      @default(true) @map("is_active")
+  totalMaxScore Int          @default(100) @map("total_max_score")
+  createdById   String?      @map("created_by")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  createdBy   User?                @relation(fields: [createdById], references: [id])
+  categories  ChecklistCategory[]
+  inspections Inspection[]
+  schedules   InspectionSchedule[]
+
+  @@map("checklist_templates")
+}
+
+model ChecklistCategory {
+  id         String   @id @default(uuid())
+  templateId String   @map("template_id")
+  name       String
+  sortOrder  Int      @default(0) @map("sort_order")
+  weight     Decimal  @default(1.0) @db.Decimal(5, 2)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  template ChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  items    ChecklistItem[]
+
+  @@map("checklist_categories")
+}
+
+model ChecklistItem {
+  id            String            @id @default(uuid())
+  categoryId    String            @map("category_id")
+  questionText  String            @map("question_text")
+  itemType      ChecklistItemType @default(boolean) @map("item_type")
+  maxScore      Int               @default(10) @map("max_score")
+  isCritical    Boolean           @default(false) @map("is_critical")
+  photoRequired Boolean           @default(false) @map("photo_required")
+  helpText      String?           @map("help_text")
+  sortOrder     Int               @default(0) @map("sort_order")
+  createdAt     DateTime          @default(now()) @map("created_at")
+
+  category  ChecklistCategory    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  responses InspectionResponse[]
+
+  @@map("checklist_items")
+}
+
+model Inspection {
+  id               String           @id @default(uuid())
+  branchId         String           @map("branch_id")
+  inspectorId      String           @map("inspector_id")
+  templateId       String           @map("template_id")
+  status           InspectionStatus @default(draft)
+  totalScore       Decimal?         @map("total_score") @db.Decimal(5, 2)
+  maxPossibleScore Int?             @map("max_possible_score")
+  scorePercentage  Decimal?         @map("score_percentage") @db.Decimal(5, 2)
+  scheduledDate    DateTime?        @map("scheduled_date") @db.Date
+  startedAt        DateTime?        @map("started_at")
+  completedAt      DateTime?        @map("completed_at")
+  reviewedById     String?          @map("reviewed_by")
+  reviewedAt       DateTime?        @map("reviewed_at")
+  reviewerNotes    String?          @map("reviewer_notes")
+  latitude         Float?
+  longitude        Float?
+  locationVerified Boolean          @default(false) @map("location_verified")
+  deviceInfo       Json?            @map("device_info")
+  syncedAt         DateTime?        @map("synced_at")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  branch     Branch               @relation(fields: [branchId], references: [id])
+  inspector  User                 @relation("Inspector", fields: [inspectorId], references: [id])
+  template   ChecklistTemplate    @relation(fields: [templateId], references: [id])
+  reviewedBy User?                @relation("Reviewer", fields: [reviewedById], references: [id])
+  responses  InspectionResponse[]
+  photos     InspectionPhoto[]
+  actions    CorrectiveAction[]
+
+  @@map("inspections")
+}
+
+model InspectionResponse {
+  id              String         @id @default(uuid())
+  inspectionId    String         @map("inspection_id")
+  checklistItemId String         @map("checklist_item_id")
+  score           Int?
+  passed          Boolean?
+  textResponse    String?        @map("text_response")
+  notes           String?
+  severity        SeverityLevel?
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  inspection    Inspection       @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  checklistItem ChecklistItem    @relation(fields: [checklistItemId], references: [id])
+  photos        InspectionPhoto[]
+
+  @@unique([inspectionId, checklistItemId])
+  @@map("inspection_responses")
+}
+
+model InspectionPhoto {
+  id            String   @id @default(uuid())
+  inspectionId  String   @map("inspection_id")
+  responseId    String?  @map("response_id")
+  storagePath   String   @map("storage_path")
+  thumbnailPath String?  @map("thumbnail_path")
+  latitude      Float?
+  longitude     Float?
+  caption       String?
+  takenAt       DateTime @default(now()) @map("taken_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  inspection Inspection          @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  response   InspectionResponse? @relation(fields: [responseId], references: [id], onDelete: SetNull)
+
+  @@map("inspection_photos")
+}
+
+model CorrectiveAction {
+  id                  String    @id @default(uuid())
+  inspectionId        String    @map("inspection_id")
+  responseId          String?   @map("response_id")
+  description         String
+  assignedToId        String?   @map("assigned_to")
+  dueDate             DateTime? @map("due_date") @db.Date
+  completedAt         DateTime? @map("completed_at")
+  completionPhotoPath String?   @map("completion_photo_path")
+  completionNotes     String?   @map("completion_notes")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  inspection Inspection @relation(fields: [inspectionId], references: [id])
+  assignedTo User?      @relation(fields: [assignedToId], references: [id])
+
+  @@map("corrective_actions")
+}
+
+model InspectionSchedule {
+  id                 String    @id @default(uuid())
+  branchId           String    @map("branch_id")
+  templateId         String    @map("template_id")
+  inspectorId        String?   @map("inspector_id")
+  frequencyDays      Int       @default(30) @map("frequency_days")
+  lastInspectionDate DateTime? @map("last_inspection_date") @db.Date
+  nextDueDate        DateTime  @map("next_due_date") @db.Date
+  isActive           Boolean   @default(true) @map("is_active")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  branch    Branch            @relation(fields: [branchId], references: [id])
+  template  ChecklistTemplate @relation(fields: [templateId], references: [id])
+  inspector User?             @relation(fields: [inspectorId], references: [id])
+
+  @@map("inspection_schedules")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String
+  body      String
+  data      Json?
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model PushToken {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  expoPushToken  String   @map("expo_push_token")
+  deviceInfo     Json?    @map("device_info")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, expoPushToken])
+  @@map("push_tokens")
+}

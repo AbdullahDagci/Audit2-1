@@ -1,0 +1,11 @@
+{
+  "name": "ertansa-audit",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build:web": "cd apps/web && npm run build",
+    "build:backend": "cd apps/backend && npm run build",
+    "start:web": "cd apps/web && npm start -- -p 3001",
+    "start:backend": "cd apps/backend && npm start"
+  }
+}

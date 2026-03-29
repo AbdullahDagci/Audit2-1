@@ -1,0 +1,9 @@
+export const Config = {
+  GEOFENCE_RADIUS_METERS: 200,
+  PHOTO_MAX_WIDTH: 1920,
+  PHOTO_MAX_HEIGHT: 1080,
+  PHOTO_QUALITY: 0.7,
+  SYNC_INTERVAL_MS: 30000,
+  MAX_RETRY_COUNT: 3,
+  API_URL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000',
+};
