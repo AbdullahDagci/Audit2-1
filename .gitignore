@@ -19,12 +19,6 @@ out/
 *.orig.*
 web-build/
 
-# Environment
-.env
-.env.local
-.env.production
-.env.*.local
-
 # IDE
 .vscode/
 .idea/
