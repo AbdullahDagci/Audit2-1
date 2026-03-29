@@ -15,17 +15,20 @@ import {
   Settings,
   Bell,
   LogOut,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/manager", label: "Şube Paneli", icon: Building2, roles: ["manager"] },
   { href: "/dashboard/inspections", label: "Denetimler", icon: ClipboardCheck },
   { href: "/dashboard/branches", label: "Şubeler", icon: Building2 },
   { href: "/dashboard/reports", label: "Raporlar", icon: BarChart3 },
   { href: "/dashboard/users", label: "Kullanıcılar", icon: Users },
   { href: "/dashboard/templates", label: "Şablonlar", icon: FileText },
   { href: "/dashboard/schedules", label: "Takvim", icon: Calendar },
+  { href: "/dashboard/activity-logs", label: "Aktivite Kayıtları", icon: History, roles: ["admin"] },
   { href: "/dashboard/notifications", label: "Bildirimler", icon: Bell },
   { href: "/dashboard/settings", label: "Ayarlar", icon: Settings },
 ];
@@ -55,36 +58,44 @@ export default function Sidebar() {
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-primary-900 text-white flex flex-col z-50">
-      <div className="p-6 border-b border-white/10">
-        <h1 className="text-2xl font-bold tracking-tight">ERTANSA</h1>
-        <p className="text-xs text-primary-300 mt-0.5 uppercase tracking-widest">
-          Denetim Sistemi
-        </p>
+      <div className="p-6 border-b border-white/10 flex items-center gap-3">
+        <img src="/logo.png" alt="ERTANSA" className="h-10 w-10 rounded" />
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">ERTANSA</h1>
+          <p className="text-xs text-primary-300 mt-0.5 uppercase tracking-widest">
+            Denetim Sistemi
+          </p>
+        </div>
       </div>
 
       <nav className="flex-1 py-4 overflow-y-auto scrollbar-thin">
         <ul className="space-y-1 px-3">
-          {navItems.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href !== "/dashboard" && pathname.startsWith(item.href));
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-primary-600 text-white"
-                      : "text-primary-100 hover:bg-white/10"
-                  )}
-                >
-                  <item.icon size={20} />
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
+          {navItems
+            .filter((item) => {
+              if (!('roles' in item) || !item.roles) return true;
+              return user?.role && item.roles.includes(user.role);
+            })
+            .map((item) => {
+              const isActive =
+                pathname === item.href ||
+                (item.href !== "/dashboard" && pathname.startsWith(item.href));
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-primary-600 text-white"
+                        : "text-primary-100 hover:bg-white/10"
+                    )}
+                  >
+                    <item.icon size={20} />
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
         </ul>
       </nav>
 
@@ -94,7 +105,7 @@ export default function Sidebar() {
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{user?.fullName || 'Kullanici'}</p>
+            <p className="text-sm font-medium truncate">{user?.fullName || 'Kullanıcı'}</p>
             <p className="text-xs text-primary-300 truncate">{ROLE_LABELS[user?.role] || user?.role || ''}</p>
           </div>
         </div>

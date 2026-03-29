@@ -19,12 +19,12 @@ interface Branch {
   manager?: { id: string; fullName: string } | null;
 }
 
-const facilityTypes = ["Tümü", "Magaza", "Kesimhane", "Ahir", "Yufka", "Depo"];
+const facilityTypes = ["Tümü", "Mağaza", "Kesimhane", "Ahır", "Yufka", "Depo"];
 
 const facilityTypeLabels: Record<string, string> = {
-  Magaza: "Magaza",
+  Magaza: "Mağaza",
   Kesimhane: "Kesimhane",
-  Ahir: "Ahir",
+  Ahir: "Ahır",
   Yufka: "Yufka",
   Depo: "Depo",
 };
@@ -50,7 +50,7 @@ export default function BranchesPage() {
         const data = await api.getBranches(facilityParam);
         setBranches(data);
       } catch (err: any) {
-        setError(err.message || "Subeler yuklenirken hata olustu");
+        setError(err.message || "Şubeler yüklenirken hata oluştu");
       } finally {
         setLoading(false);
       }
@@ -78,14 +78,14 @@ export default function BranchesPage() {
         </div>
         <button className="flex items-center gap-2 px-4 py-2 bg-primary-800 text-white rounded-lg text-sm font-medium hover:bg-primary-900 transition-colors">
           <Plus size={16} />
-          Yeni Sube
+          Yeni Şube
         </button>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="animate-spin text-primary-800" size={32} />
-          <span className="ml-3 text-gray-500 text-sm">Subeler yukleniyor...</span>
+          <span className="ml-3 text-gray-500 text-sm">Şubeler yükleniyor...</span>
         </div>
       ) : error ? (
         <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
@@ -93,17 +93,17 @@ export default function BranchesPage() {
         </div>
       ) : branches.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
-          <p className="text-gray-500 text-sm">Bu kategoride sube bulunamadi.</p>
+          <p className="text-gray-500 text-sm">Bu kategoride şube bulunamadı.</p>
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">Sube Adi</th>
+                <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">Şube Adı</th>
                 <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">Tesis Tipi</th>
                 <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">Adres</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">Sehir</th>
+                <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">Şehir</th>
                 <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">Sorumlu</th>
                 <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">Durum</th>
               </tr>

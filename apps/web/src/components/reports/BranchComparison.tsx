@@ -23,7 +23,7 @@ export default function BranchComparison({ branches }: BranchComparisonProps) {
   if (branches.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-500">
-        Karsilastirilacak sube verisi bulunamadi.
+        Karşılaştırılacak şube verisi bulunamadı.
       </div>
     );
   }

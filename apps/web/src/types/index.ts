@@ -64,7 +64,7 @@ export interface Inspection {
   template_id: string;
   inspector_id: string;
   inspector_name: string;
-  status: "draft" | "in_progress" | "completed" | "approved";
+  status: "draft" | "in_progress" | "completed" | "pending_action" | "approved";
   overall_score: number;
   started_at: string;
   completed_at?: string;
@@ -95,12 +95,31 @@ export interface CorrectiveAction {
   inspection_id: string;
   response_id: string;
   description: string;
-  assigned_to: string;
-  due_date: string;
-  status: "open" | "in_progress" | "completed" | "overdue";
-  priority: "low" | "medium" | "high" | "critical";
+  status: 'pending' | 'evidence_uploaded' | 'completed';
+  is_critical: boolean;
+  created_by: string;
+  evidence_photo_path: string | null;
+  evidence_notes: string | null;
+  evidence_uploaded_at: string | null;
   created_at: string;
-  completed_at?: string;
+  updated_at: string;
+  createdBy?: { id: string; fullName: string };
+  response?: { checklistItem: { questionText: string; isCritical: boolean; categoryId: string } };
+}
+
+export interface Deficiency {
+  responseId: string;
+  checklistItemId: string;
+  questionText: string;
+  categoryName: string;
+  isCritical: boolean;
+  itemType: string;
+  score: number | null;
+  maxScore: number;
+  passed: boolean | null;
+  notes: string | null;
+  hasCorrectiveAction: boolean;
+  correctiveAction: CorrectiveAction | null;
 }
 
 export interface Schedule {

@@ -4,6 +4,8 @@ import type {
   InspectionStatus,
   SeverityLevel,
   ChecklistItemType,
+  CorrectiveActionStatus,
+  TutanakStatus,
 } from './enums';
 
 export interface Profile {
@@ -117,15 +119,40 @@ export interface InspectionPhoto {
 export interface CorrectiveAction {
   id: string;
   inspection_id: string;
-  response_id: string | null;
+  response_id: string;
   description: string;
-  assigned_to: string | null;
-  due_date: string | null;
-  completed_at: string | null;
-  completion_photo_path: string | null;
-  completion_notes: string | null;
+  status: CorrectiveActionStatus;
+  is_critical: boolean;
+  created_by: string;
+  evidence_photo_path: string | null;
+  evidence_notes: string | null;
+  evidence_uploaded_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface Tutanak {
+  id: string;
+  inspection_id: string;
+  created_by: string;
+  title: string;
+  content: Record<string, unknown>;
+  status: TutanakStatus;
+  pdf_path: string | null;
+  sent_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  user_id: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  details: Record<string, unknown> | null;
+  ip_address: string | null;
+  created_at: string;
 }
 
 export interface InspectionSchedule {

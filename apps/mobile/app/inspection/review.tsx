@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator, Image, Modal as RNModal, Dimensions } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Image, Modal as RNModal, Dimensions } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
@@ -28,8 +28,9 @@ function calcDistance(lat1: number, lon1: number, lat2: number, lon2: number): n
 function statusLabel(s: string) {
   switch (s) {
     case 'scheduled': return { text: 'Planlanmış', bg: '#E3F2FD', color: '#1565C0' };
-    case 'completed': return { text: 'Onay Bekliyor', bg: '#FFF3E0', color: '#E65100' };
-    case 'reviewed': return { text: 'Onaylandı', bg: '#E8F5E9', color: '#2E7D32' };
+    case 'completed': return { text: 'Gönderildi', bg: '#FFF3E0', color: '#E65100' };
+    case 'pending_action': return { text: 'İşlem Bekliyor', bg: '#FFF3E0', color: '#E65100' };
+    case 'reviewed': return { text: 'Tamamlandı', bg: '#E8F5E9', color: '#2E7D32' };
     case 'in_progress': return { text: 'Devam Ediyor', bg: '#E3F2FD', color: '#1565C0' };
     case 'draft': return { text: 'Taslak', bg: '#F5F5F5', color: '#666' };
     default: return { text: s, bg: '#F5F5F5', color: '#666' };
@@ -46,11 +47,10 @@ export default function InspectionReviewScreen() {
 
   const [inspection, setInspection] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [notes, setNotes] = useState('');
-  const [saving, setSaving] = useState(false);
   const [starting, setStarting] = useState(false);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
   const [viewPhoto, setViewPhoto] = useState<string | null>(null);
+  const [correctiveActions, setCorrectiveActions] = useState<any[]>([]);
 
   const photoUrl = (path: string) => {
     if (path.startsWith('http')) return path;
@@ -66,56 +66,20 @@ export default function InspectionReviewScreen() {
     try {
       const data = await api.getInspection(id!);
       setInspection(data);
+      // Düzeltici faaliyetleri de çek
+      try {
+        const actions = await api.getCorrectiveActions(id!);
+        setCorrectiveActions(Array.isArray(actions) ? actions : []);
+      } catch {
+        setCorrectiveActions([]);
+      }
     } catch (err: any) {
       Alert.alert('Hata', err.message);
     }
     setLoading(false);
   };
 
-  const handleApprove = () => {
-    Alert.alert('Denetimi Onayla', 'Bu denetimi onaylamak istediğinize emin misiniz?', [
-      { text: 'İptal', style: 'cancel' },
-      {
-        text: 'Onayla',
-        onPress: async () => {
-          setSaving(true);
-          try {
-            await api.approveInspection(id!, notes || undefined);
-            Alert.alert('Başarılı', 'Denetim onaylandı', [{ text: 'Tamam', onPress: () => router.back() }]);
-          } catch (err: any) {
-            Alert.alert('Hata', err.message);
-          }
-          setSaving(false);
-        },
-      },
-    ]);
-  };
-
-  const handleReject = () => {
-    if (!notes.trim()) {
-      Alert.alert('Uyari', 'Reddetmek için bir sebep yazmanız gerekir.');
-      return;
-    }
-    Alert.alert('Denetimi Reddet', 'Bu denetimi reddetmek istediğinize emin misiniz? Denetçi tekrar denetim yapmak zorunda kalacak.', [
-      { text: 'İptal', style: 'cancel' },
-      {
-        text: 'Reddet',
-        style: 'destructive',
-        onPress: async () => {
-          setSaving(true);
-          try {
-            await api.rejectInspection(id!, notes);
-            Alert.alert('Reddedildi', 'Denetim reddedildi, denetçiye bildirim gönderildi.', [{ text: 'Tamam', onPress: () => router.back() }]);
-          } catch (err: any) {
-            Alert.alert('Hata', err.message);
-          }
-          setSaving(false);
-        },
-      },
-    ]);
-  };
-
-  // Planlanan denetimi başlat (sadece denetci)
+  // Planlanan denetimi başlat (sadece denetçi)
   const handleStartScheduled = async () => {
     if (!inspection) return;
 
@@ -127,11 +91,11 @@ export default function InspectionReviewScreen() {
       today.setHours(0, 0, 0, 0);
       const dateStr = scheduled.toLocaleDateString('tr-TR');
       if (today < scheduled) {
-        Alert.alert('Erken Başlatılamaz', `Bu denetim ${dateStr} tarihine planlanmıştır. Planlanan tarihten önce başlatilamaz.`);
+        Alert.alert('Erken Başlatılamaz', `Bu denetim ${dateStr} tarihine planlanmıştır. Planlanan tarihten önce başlatılamaz.`);
         return;
       }
       if (today > scheduled) {
-        Alert.alert('Süresi Geçmiş', `Bu denetimin tarihi (${dateStr}) gecmistir. Denetim artık başlatilamaz.`);
+        Alert.alert('Süresi Geçmiş', `Bu denetimin tarihi (${dateStr}) geçmiştir. Denetim artık başlatılamaz.`);
         return;
       }
     }
@@ -147,7 +111,7 @@ export default function InspectionReviewScreen() {
     let lon = location?.longitude ?? null;
 
     if (!location) {
-      Alert.alert('Konum Alinamadi', 'Denetim başlatmak için konum izni vermeniz gerekir.');
+      Alert.alert('Konum Alınamadı', 'Denetim başlatmak için konum izni vermeniz gerekir.');
       setStarting(false);
       return;
     }
@@ -158,7 +122,7 @@ export default function InspectionReviewScreen() {
       verified = distance <= radius;
 
       if (!verified) {
-        Alert.alert('Konum Doğrulanamadı', `Subeye ${formatDistance(distance)} uzaktasınız. Denetim başlatmak için subenin yakınında olmanız gerekir.`);
+        Alert.alert('Konum Doğrulanamadı', `Şubeye ${formatDistance(distance)} uzaktasınız. Denetim başlatmak için şubenin yakınında olmanız gerekir.`);
         setStarting(false);
         return;
       }
@@ -198,11 +162,15 @@ export default function InspectionReviewScreen() {
 
   if (!inspection) {
     return <View style={styles.center}><Text style={{ color: '#999' }}>Denetim bulunamadı</Text></View>;
+
   }
 
   const score = Number(inspection.scorePercentage || 0);
   const status = statusLabel(inspection.status);
-  const canApprove = inspection.status === 'completed' && (user?.role === 'admin' || user?.role === 'manager');
+  const isManager = user?.role === 'admin' || user?.role === 'manager';
+  const isInspector = user?.role === 'inspector';
+  const showCorrectiveBtn = isManager && (inspection.status === 'completed' || inspection.status === 'pending_action');
+  const showEvidenceBtn = isInspector && correctiveActions.length > 0;
 
   // Tarih kontrolu
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -262,7 +230,7 @@ export default function InspectionReviewScreen() {
       )}
 
       {/* Detayli Maddeler */}
-      <Text style={styles.sectionTitle}>Denetim Detaylari</Text>
+      <Text style={styles.sectionTitle}>Denetim Detayları</Text>
       {inspection.template?.categories?.sort((a: any, b: any) => a.sortOrder - b.sortOrder).map((cat: any) => {
         const catResponses = inspection.responses?.filter((r: any) => cat.items.some((i: any) => i.id === r.checklistItemId)) || [];
         const catPassed = catResponses.filter((r: any) => r.passed === true).length;
@@ -311,15 +279,15 @@ export default function InspectionReviewScreen() {
         );
       })}
 
-      {/* Suresi gecmis uyarisi */}
+      {/* Süresi geçmiş uyarısı */}
       {isExpired && (inspection.status === 'scheduled' || inspection.status === 'draft') && (
         <View style={styles.expiredBanner}>
           <MaterialIcons name="event-busy" size={22} color="#C62828" />
-          <Text style={styles.expiredText}>Bu denetimin süresi geçmiştir. Artık başlatilamaz ve devam ettirilemez.</Text>
+          <Text style={styles.expiredText}>Bu denetimin süresi geçmiştir. Artık başlatılamaz ve devam ettirilemez.</Text>
         </View>
       )}
 
-      {/* Erken uyarisi */}
+      {/* Erken uyarısı */}
       {isEarly && (inspection.status === 'scheduled' || inspection.status === 'draft') && (
         <View style={styles.earlyBanner}>
           <MaterialIcons name="schedule" size={22} color="#1565C0" />
@@ -327,13 +295,13 @@ export default function InspectionReviewScreen() {
         </View>
       )}
 
-      {/* Denetime Başla (planlanan denetim icin) */}
+      {/* Denetime Başla (planlanan denetim için) */}
       {canStart && (
         <View style={styles.startSection}>
           <View style={styles.startInfo}>
             <MaterialIcons name="event" size={20} color="#1565C0" />
             <Text style={styles.startInfoText}>
-              Bu denetim {inspection.scheduledDate ? new Date(inspection.scheduledDate).toLocaleDateString('tr-TR') : ''} tarihine planlanmis.
+              Bu denetim {inspection.scheduledDate ? new Date(inspection.scheduledDate).toLocaleDateString('tr-TR') : ''} tarihine planlanmış.
             </Text>
           </View>
           <TouchableOpacity style={styles.startBtn} onPress={handleStartScheduled} disabled={starting} activeOpacity={0.8}>
@@ -352,39 +320,45 @@ export default function InspectionReviewScreen() {
         </View>
       )}
 
-      {/* Onay Alani */}
-      {canApprove && (
+      {/* Düzeltici Faaliyetler - Müdür/Admin */}
+      {showCorrectiveBtn && (
         <View style={styles.approvalSection}>
-          <Text style={styles.sectionTitle}>Onay / Red</Text>
-          <TextInput
-            style={styles.notesInput}
-            placeholder="Not ekleyin (red için zorunlu)..."
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-          />
-          <View style={styles.approvalBtns}>
-            <TouchableOpacity style={styles.rejectBtn} onPress={handleReject} disabled={saving}>
-              <MaterialIcons name="close" size={20} color="#FFF" />
-              <Text style={styles.btnText}>Reddet</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.approveBtn} onPress={handleApprove} disabled={saving}>
-              {saving ? <ActivityIndicator size="small" color="#FFF" /> : (
-                <>
-                  <MaterialIcons name="check" size={20} color="#FFF" />
-                  <Text style={styles.btnText}>Onayla</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.correctiveBtn}
+            onPress={() => router.push(`/inspection/corrective-actions?inspectionId=${id}`)}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="build" size={22} color="#FFF" />
+            <Text style={styles.btnText}>Düzeltici Faaliyetler</Text>
+            {correctiveActions.length > 0 && (
+              <View style={styles.countBadge}>
+                <Text style={styles.countBadgeText}>{correctiveActions.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
       )}
 
-      {/* Onaylanmis */}
+      {/* Kanıtları Gör - Denetçi */}
+      {showEvidenceBtn && (
+        <View style={styles.approvalSection}>
+          <TouchableOpacity
+            style={styles.evidenceBtn}
+            onPress={() => router.push(`/inspection/corrective-actions?inspectionId=${id}`)}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="photo-library" size={22} color="#FFF" />
+            <Text style={styles.btnText}>Kanıtları Gör</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Tamamlandı */}
       {inspection.status === 'reviewed' && (
         <View style={styles.approvedBanner}>
           <MaterialIcons name="verified" size={24} color="#2E7D32" />
-          <Text style={styles.approvedText}>Bu denetim onaylanmistir</Text>
+          <Text style={styles.approvedText}>Tamamlandı</Text>
+
         </View>
       )}
 
@@ -402,7 +376,7 @@ export default function InspectionReviewScreen() {
           </View>
         </View>
       )}
-      {/* Tam ekran fotograf goruntuleme */}
+      {/* Tam ekran fotoğraf görüntüleme */}
       <RNModal visible={!!viewPhoto} transparent animationType="fade" onRequestClose={() => setViewPhoto(null)}>
         <View style={styles.photoModal}>
           <TouchableOpacity style={styles.photoModalClose} onPress={() => setViewPhoto(null)}>
@@ -444,10 +418,10 @@ const styles = StyleSheet.create({
   critTagText: { fontSize: 9, fontWeight: '700', color: '#E65100' },
   noteText: { fontSize: 11, color: '#999', fontStyle: 'italic', marginTop: 2 },
   approvalSection: { marginTop: 8 },
-  notesInput: { backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 10, padding: 14, fontSize: 14, minHeight: 80, textAlignVertical: 'top', marginBottom: 12 },
-  approvalBtns: { flexDirection: 'row', gap: 12 },
-  rejectBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#F44336', borderRadius: 12, paddingVertical: 14 },
-  approveBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#2E7D32', borderRadius: 12, paddingVertical: 14 },
+  correctiveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#E65100', borderRadius: 14, paddingVertical: 16, shadowColor: '#E65100', shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
+  evidenceBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#1565C0', borderRadius: 14, paddingVertical: 16, shadowColor: '#1565C0', shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
+  countBadge: { backgroundColor: '#FFF', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2, marginLeft: 4 },
+  countBadgeText: { fontSize: 12, fontWeight: '700', color: '#E65100' },
   btnText: { fontSize: 16, fontWeight: '600', color: '#FFF' },
   approvedBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#E8F5E9', borderRadius: 12, padding: 16, marginTop: 16 },
   approvedText: { fontSize: 16, fontWeight: '600', color: '#2E7D32' },

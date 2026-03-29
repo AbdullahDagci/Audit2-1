@@ -55,7 +55,7 @@ export default function ScheduleScreen() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // 1. Tum denetimleri cek
+      // 1. Tüm denetimleri çek
       try {
         const params: Record<string, string> = {};
         if (selectedType !== 'all') params.facilityType = selectedType;
@@ -125,7 +125,7 @@ export default function ScheduleScreen() {
   useEffect(() => { setLoading(true); fetchData(); }, [fetchData]);
   const onRefresh = () => { setRefreshing(true); fetchData(); };
 
-  const selectedTypeLabel = selectedType === 'all' ? 'Tum Tipler' : facilityTypes.find((t: any) => t.key === selectedType)?.label || selectedType;
+  const selectedTypeLabel = selectedType === 'all' ? 'Tüm Tipler' : facilityTypes.find((t: any) => t.key === selectedType)?.label || selectedType;
   const hasFilter = selectedType !== 'all' || startDate || endDate;
   const formatD = (d: Date) => d.toLocaleDateString('tr-TR');
   const clearFilters = () => { setSelectedType('all'); setStartDate(null); setEndDate(null); };
@@ -205,7 +205,7 @@ export default function ScheduleScreen() {
           <View style={S.pickerCard}>
             <Text style={S.pickerTitle}>Tesis Tipi Secin</Text>
             <TouchableOpacity style={[S.pickerItem, selectedType === 'all' && S.pickerItemOn]} onPress={() => { setSelectedType('all'); setShowTypePicker(false); }}>
-              <Text style={[S.pickerItemText, selectedType === 'all' && S.pickerItemTextOn]}>Tum Tipler</Text>
+              <Text style={[S.pickerItemText, selectedType === 'all' && S.pickerItemTextOn]}>Tüm Tipler</Text>
               {selectedType === 'all' && <MaterialIcons name="check" size={20} color="#2E7D32" />}
             </TouchableOpacity>
             {facilityTypes.map((t: any) => (

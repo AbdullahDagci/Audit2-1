@@ -9,6 +9,8 @@ export type {
   InspectionResponse,
   InspectionPhoto,
   CorrectiveAction,
+  Tutanak,
+  ActivityLog,
   InspectionSchedule,
   Notification,
   PushToken,
@@ -23,6 +25,8 @@ export type {
   InspectionStatus,
   SeverityLevel,
   ChecklistItemType,
+  CorrectiveActionStatus,
+  TutanakStatus,
 } from './types/enums';
 
 export {
@@ -30,6 +34,8 @@ export {
   InspectionStatusLabels,
   SeverityLabels,
   UserRoleLabels,
+  CorrectiveActionStatusLabels,
+  TutanakStatusLabels,
 } from './types/enums';
 
 // Utils

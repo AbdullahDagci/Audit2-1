@@ -13,6 +13,8 @@ const pageTitles: Record<string, string> = {
   "/dashboard/templates": "Şablonlar",
   "/dashboard/schedules": "Takvim",
   "/dashboard/settings": "Ayarlar",
+  "/dashboard/manager": "Şube Paneli",
+  "/dashboard/activity-logs": "Aktivite Kayıtları",
 };
 
 export default function DashboardLayout({

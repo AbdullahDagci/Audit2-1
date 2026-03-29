@@ -33,6 +33,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <div className="text-center mb-8">
+            <img src="/logo.png" alt="ERTANSA" className="h-16 w-16 mx-auto mb-3 rounded" />
             <h1 className="text-3xl font-bold text-primary-900 tracking-tight">
               ERTANSA
             </h1>

@@ -19,6 +19,11 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Plus,
+  Upload,
+  FileWarning,
+  History,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 import Badge from "@/components/ui/Badge";
@@ -36,15 +41,19 @@ function photoUrl(path: string) {
 function getStatusBadge(status: string) {
   switch (status) {
     case "completed":
-      return <Badge variant="success">Tamamlandi</Badge>;
+      return <Badge variant="info">Gönderildi</Badge>;
+    case "pending_action":
+      return <Badge variant="warning">İşlem Bekliyor</Badge>;
+    case "reviewed":
+      return <Badge variant="success">Tamamlandı</Badge>;
     case "approved":
-      return <Badge variant="success">Onaylandi</Badge>;
+      return <Badge variant="success">Onaylandı</Badge>;
     case "rejected":
       return <Badge variant="danger">Reddedildi</Badge>;
     case "in_progress":
       return <Badge variant="warning">Devam Ediyor</Badge>;
     case "scheduled":
-      return <Badge variant="info">Planlanmis</Badge>;
+      return <Badge variant="info">Planlanmış</Badge>;
     default:
       return <Badge variant="neutral">{status}</Badge>;
   }
@@ -55,11 +64,11 @@ function getSeverityBadge(severity: string | null | undefined) {
     case "critical":
       return <Badge variant="danger">Kritik</Badge>;
     case "high":
-      return <Badge variant="danger">Yuksek</Badge>;
+      return <Badge variant="danger">Yüksek</Badge>;
     case "medium":
       return <Badge variant="warning">Orta</Badge>;
     case "low":
-      return <Badge variant="info">Dusuk</Badge>;
+      return <Badge variant="info">Düşük</Badge>;
     default:
       return null;
   }
@@ -70,11 +79,11 @@ function getPriorityBadge(priority: string) {
     case "critical":
       return <Badge variant="danger">Kritik</Badge>;
     case "high":
-      return <Badge variant="danger">Yuksek</Badge>;
+      return <Badge variant="danger">Yüksek</Badge>;
     case "medium":
       return <Badge variant="warning">Orta</Badge>;
     case "low":
-      return <Badge variant="info">Dusuk</Badge>;
+      return <Badge variant="info">Düşük</Badge>;
     default:
       return <Badge variant="neutral">{priority}</Badge>;
   }
@@ -97,8 +106,8 @@ function formatDate(dateStr: string | null | undefined): string {
 
 function getAnswerLabel(value: string | number | boolean | null | undefined): string {
   if (value === true || value === "yes" || value === "evet") return "Evet";
-  if (value === false || value === "no" || value === "hayir") return "Hayir";
-  if (value === "partial" || value === "kismi") return "Kismi";
+  if (value === false || value === "no" || value === "hayir") return "Hayır";
+  if (value === "partial" || value === "kismi") return "Kısmi";
   if (value === "na" || value === "n/a") return "U/D";
   if (value != null) return String(value);
   return "-";
@@ -186,11 +195,22 @@ export default function InspectionDetailPage() {
 
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
-  // Approval state
-  const [reviewNotes, setReviewNotes] = useState("");
-  const [approving, setApproving] = useState(false);
-  const [rejecting, setRejecting] = useState(false);
+  // Tutanak state
+  const [tutanaklar, setTutanaklar] = useState<any[]>([]);
+  const [loadingTutanaklar, setLoadingTutanaklar] = useState(false);
+
+  // Corrective action state
+  const [deficiencies, setDeficiencies] = useState<any[]>([]);
+  const [correctiveActions, setCorrectiveActions] = useState<any[]>([]);
+  const [newActionDesc, setNewActionDesc] = useState<Record<string, string>>({});
+  const [newActionFiles, setNewActionFiles] = useState<Record<string, File | null>>({});
+  const [uploadingEvidence, setUploadingEvidence] = useState<string | null>(null);
+  const [creatingAction, setCreatingAction] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [previousFindings, setPreviousFindings] = useState<any[]>([]);
+  const [showPreviousFindings, setShowPreviousFindings] = useState(false);
+  const [loadingFindings, setLoadingFindings] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   // Photo viewer
   const [viewerPhotos, setViewerPhotos] = useState<string[] | null>(null);
@@ -207,7 +227,7 @@ export default function InspectionDetailPage() {
         setExpandedCategories(new Set([data.template.categories[0].id]));
       }
     } catch (err: any) {
-      setError(err.message || "Denetim yuklenemedi");
+      setError(err.message || "Denetim yüklenemedi");
     } finally {
       setLoading(false);
     }
@@ -217,6 +237,41 @@ export default function InspectionDetailPage() {
     fetchInspection();
   }, [fetchInspection]);
 
+  // Load current user from localStorage
+  useEffect(() => {
+    try {
+      const u = localStorage.getItem("user");
+      if (u) setCurrentUser(JSON.parse(u));
+    } catch {}
+  }, []);
+
+  // Fetch deficiencies when inspection is completed or pending_action
+  useEffect(() => {
+    if (!inspection) return;
+    const s = inspection.status;
+    if (s === "completed" || s === "pending_action" || s === "reviewed") {
+      api
+        .getDeficiencies(inspectionId)
+        .then((data) => setDeficiencies(data || []))
+        .catch(() => setDeficiencies([]));
+      api
+        .getCorrectiveActions(inspectionId)
+        .then((data) => setCorrectiveActions(data || []))
+        .catch(() => setCorrectiveActions([]));
+    }
+  }, [inspection?.status, inspectionId]);
+
+  // Fetch tutanaklar
+  useEffect(() => {
+    if (!inspection) return;
+    setLoadingTutanaklar(true);
+    api
+      .getTutanaklar(inspectionId)
+      .then((data) => setTutanaklar(data || []))
+      .catch(() => setTutanaklar([]))
+      .finally(() => setLoadingTutanaklar(false));
+  }, [inspection?.id, inspectionId]);
+
   const toggleCategory = (catId: string) => {
     const next = new Set(expandedCategories);
     if (next.has(catId)) next.delete(catId);
@@ -224,33 +279,89 @@ export default function InspectionDetailPage() {
     setExpandedCategories(next);
   };
 
-  const handleApprove = async () => {
-    try {
-      setApproving(true);
-      setActionError(null);
-      await api.approveInspection(inspectionId, reviewNotes || undefined);
-      router.push("/dashboard/inspections");
-    } catch (err: any) {
-      setActionError(err.message || "Onaylama basarisiz oldu");
-    } finally {
-      setApproving(false);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!reviewNotes.trim()) {
-      setActionError("Reddetme icin not yazmak zorunludur");
+  const handleCreateAction = async (responseId: string) => {
+    const desc = newActionDesc[responseId]?.trim();
+    if (!desc) {
+      setActionError("Açıklama alanı zorunludur");
       return;
     }
     try {
-      setRejecting(true);
+      setCreatingAction(responseId);
       setActionError(null);
-      await api.rejectInspection(inspectionId, reviewNotes);
-      router.push("/dashboard/inspections");
+      const created = await api.createCorrectiveAction({
+        inspectionId,
+        responseId,
+        description: desc,
+      });
+      setCorrectiveActions((prev) => [...prev, created]);
+      setDeficiencies((prev) =>
+        prev.map((d) =>
+          d.responseId === responseId
+            ? { ...d, hasCorrectiveAction: true, correctiveAction: created }
+            : d
+        )
+      );
+      setNewActionDesc((prev) => {
+        const next = { ...prev };
+        delete next[responseId];
+        return next;
+      });
     } catch (err: any) {
-      setActionError(err.message || "Reddetme basarisiz oldu");
+      setActionError(err.message || "Düzeltici faaliyet oluşturulamadı");
     } finally {
-      setRejecting(false);
+      setCreatingAction(null);
+    }
+  };
+
+  const handleUploadEvidence = async (actionId: string, responseId: string) => {
+    const file = newActionFiles[responseId];
+    if (!file) {
+      setActionError("Lütfen bir fotoğraf seçin");
+      return;
+    }
+    try {
+      setUploadingEvidence(actionId);
+      setActionError(null);
+      const notes = newActionDesc[`evidence_${actionId}`] || undefined;
+      const updated = await api.uploadEvidence(actionId, file, notes);
+      setCorrectiveActions((prev) =>
+        prev.map((a) => (a.id === actionId ? updated : a))
+      );
+      setDeficiencies((prev) =>
+        prev.map((d) =>
+          d.correctiveAction?.id === actionId
+            ? { ...d, correctiveAction: updated }
+            : d
+        )
+      );
+      setNewActionFiles((prev) => {
+        const next = { ...prev };
+        delete next[responseId];
+        return next;
+      });
+    } catch (err: any) {
+      setActionError(err.message || "Kanıt yüklenemedi");
+    } finally {
+      setUploadingEvidence(null);
+    }
+  };
+
+  const handleFetchPreviousFindings = async () => {
+    if (previousFindings.length > 0) {
+      setShowPreviousFindings(!showPreviousFindings);
+      return;
+    }
+    if (!inspection?.branch?.id) return;
+    try {
+      setLoadingFindings(true);
+      const data = await api.getPreviousFindings(inspection.branch.id);
+      setPreviousFindings(data || []);
+      setShowPreviousFindings(true);
+    } catch {
+      setPreviousFindings([]);
+      setShowPreviousFindings(true);
+    } finally {
+      setLoadingFindings(false);
     }
   };
 
@@ -265,7 +376,7 @@ export default function InspectionDetailPage() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <Loader2 size={40} className="animate-spin text-primary-800 mx-auto" />
-          <p className="mt-3 text-gray-500">Denetim yukleniyor...</p>
+          <p className="mt-3 text-gray-500">Denetim yükleniyor...</p>
         </div>
       </div>
     );
@@ -277,13 +388,13 @@ export default function InspectionDetailPage() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <AlertTriangle size={40} className="text-red-400 mx-auto" />
-          <p className="mt-3 text-red-600 font-medium">{error || "Denetim bulunamadi"}</p>
+          <p className="mt-3 text-red-600 font-medium">{error || "Denetim bulunamadı"}</p>
           <Link
             href="/dashboard/inspections"
             className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-primary-800 text-white rounded-lg text-sm hover:bg-primary-700 transition-colors"
           >
             <ArrowLeft size={16} />
-            Denetimlere Don
+            Denetimlere Dön
           </Link>
         </div>
       </div>
@@ -352,7 +463,9 @@ export default function InspectionDetailPage() {
     });
   });
 
-  const canReview = status === "completed";
+  const isManagerOrAdmin = currentUser?.role === "manager" || currentUser?.role === "admin";
+  const showCorrectiveSection =
+    isManagerOrAdmin && (status === "completed" || status === "pending_action" || status === "reviewed");
 
   return (
     <div className="space-y-6">
@@ -437,7 +550,7 @@ export default function InspectionDetailPage() {
 
         {/* Category bars */}
         <div className="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Kategori Puanlari</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Kategori Puanları</h3>
           {categories.length > 0 ? (
             <ScoreBreakdown categories={categories} />
           ) : (
@@ -452,12 +565,12 @@ export default function InspectionDetailPage() {
         {locationVerified ? (
           <div className="flex items-center gap-1.5">
             <CheckCircle size={18} className="text-green-500" />
-            <span className="text-sm text-green-600 font-medium">Konum Dogrulandi</span>
+            <span className="text-sm text-green-600 font-medium">Konum Doğrulandı</span>
           </div>
         ) : (
           <div className="flex items-center gap-1.5">
             <XCircle size={18} className="text-red-400" />
-            <span className="text-sm text-red-500 font-medium">Konum Dogrulanmadi</span>
+            <span className="text-sm text-red-500 font-medium">Konum Doğrulanmadı</span>
           </div>
         )}
       </div>
@@ -466,7 +579,7 @@ export default function InspectionDetailPage() {
       {template?.categories && template.categories.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100">
           <div className="p-6 border-b border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900">Detayli Yanitlar</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Detaylı Yanıtlar</h3>
           </div>
           {template.categories.map((cat: any) => {
             const isExpanded = expandedCategories.has(cat.id);
@@ -527,7 +640,7 @@ export default function InspectionDetailPage() {
                                   </>
                                 ) : (
                                   <span className="text-sm text-gray-400 italic">
-                                    Yanitlanmamis
+                                    Yanıtlanmamış
                                   </span>
                                 )}
                               </div>
@@ -577,7 +690,7 @@ export default function InspectionDetailPage() {
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Camera size={20} />
-            Tum Fotograflar ({allPhotoUrls.length})
+            Tüm Fotoğraflar ({allPhotoUrls.length})
           </h3>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
             {allPhotoUrls.map((url, idx) => (
@@ -604,43 +717,463 @@ export default function InspectionDetailPage() {
         </div>
       )}
 
-      {/* -------- Corrective Actions -------- */}
-      {actions.length > 0 && (
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Duzeltici Faaliyetler</h3>
-          <div className="space-y-3">
-            {actions.map((action: any) => (
-              <div key={action.id} className="border border-gray-100 rounded-lg p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-medium text-gray-900">{action.description}</p>
-                  {action.priority && getPriorityBadge(action.priority)}
-                </div>
-                <div className="flex flex-wrap items-center gap-4 mt-2 text-xs text-gray-500">
-                  {action.assignedTo && <span>Atanan: {action.assignedTo}</span>}
-                  {action.dueDate && <span>Termin: {formatDate(action.dueDate)}</span>}
-                  {action.status && (
-                    <Badge
-                      variant={
-                        action.status === "completed"
-                          ? "success"
-                          : action.status === "overdue"
-                          ? "danger"
-                          : "warning"
-                      }
-                    >
-                      {action.status === "open"
-                        ? "Acik"
-                        : action.status === "completed"
-                        ? "Tamamlandi"
-                        : action.status === "overdue"
-                        ? "Gecikti"
-                        : action.status}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            ))}
+      {/* -------- Corrective Actions / Deficiencies Section -------- */}
+      {showCorrectiveSection && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <div className="p-6 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <FileWarning size={20} className="text-primary-800" />
+              Düzeltici Faaliyetler
+            </h3>
           </div>
+
+          {/* Reviewed status indicator */}
+          {status === "reviewed" && (
+            <div className="mx-6 mt-4 flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+              <CheckCircle size={18} className="text-green-600" />
+              <span className="text-sm font-medium text-green-700">
+                Tamamlandı - Rapor Gönderildi
+              </span>
+            </div>
+          )}
+
+          {/* No critical deficiencies message */}
+          {deficiencies.length === 0 && (status === "completed" || status === "pending_action") && (
+            <div className="mx-6 mt-4 flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+              <CheckCircle size={18} className="text-green-600" />
+              <span className="text-sm text-green-700">
+                Kritik eksik bulunmamaktadır. Denetim otomatik tamamlanmıştır.
+              </span>
+            </div>
+          )}
+
+          {/* Error message */}
+          {actionError && (
+            <div className="mx-6 mt-4 flex items-center gap-2 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+              <AlertTriangle size={16} />
+              {actionError}
+            </div>
+          )}
+
+          {/* Deficiency list */}
+          {deficiencies.length > 0 && (
+            <div className="p-6 space-y-4">
+              {deficiencies.map((def: any) => {
+                const existingAction = def.correctiveAction;
+                const isMandatory = def.isCritical;
+
+                return (
+                  <div
+                    key={def.responseId}
+                    className={`border rounded-lg p-4 ${
+                      def.isCritical
+                        ? "border-red-200 bg-red-50/50"
+                        : "border-gray-200 bg-gray-50/50"
+                    }`}
+                  >
+                    {/* Deficiency header */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">
+                          {def.questionText}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                          <span className="text-xs text-gray-500">{def.categoryName}</span>
+                          {def.isCritical && (
+                            <Badge variant="danger">Kritik</Badge>
+                          )}
+                          {def.score !== null && (
+                            <span className="text-xs text-gray-500">
+                              Puan: {def.score}/{def.maxScore}
+                            </span>
+                          )}
+                          {def.passed === false && (
+                            <Badge variant="danger">Başarısız</Badge>
+                          )}
+                        </div>
+                        {def.notes && (
+                          <p className="text-xs text-gray-500 mt-1">{def.notes}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Existing corrective action */}
+                    {existingAction && (
+                      <div className="mt-3 border-t border-gray-200 pt-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-700">{existingAction.description}</p>
+                            {existingAction.createdBy && (
+                              <p className="text-xs text-gray-400 mt-1">
+                                Oluşturan: {existingAction.createdBy.fullName}
+                              </p>
+                            )}
+                          </div>
+                          <Badge
+                            variant={
+                              existingAction.status === "completed"
+                                ? "success"
+                                : existingAction.status === "evidence_uploaded"
+                                ? "info"
+                                : "warning"
+                            }
+                          >
+                            {existingAction.status === "completed"
+                              ? "Tamamlandı"
+                              : existingAction.status === "evidence_uploaded"
+                              ? "Kanıt Yüklendi"
+                              : "Beklemede"}
+                          </Badge>
+                        </div>
+
+                        {/* Evidence image */}
+                        {existingAction.evidence_photo_path && (
+                          <div className="mt-2">
+                            <button
+                              onClick={() =>
+                                openPhotoViewer(
+                                  [photoUrl(existingAction.evidence_photo_path)],
+                                  0
+                                )
+                              }
+                              className="inline-block rounded-lg overflow-hidden bg-gray-200 hover:opacity-80 transition-opacity"
+                            >
+                              <img
+                                src={photoUrl(existingAction.evidence_photo_path)}
+                                alt="Kanit"
+                                className="h-24 w-auto object-cover rounded-lg"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = "none";
+                                }}
+                              />
+                            </button>
+                            {existingAction.evidence_notes && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                {existingAction.evidence_notes}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Upload evidence form (if action exists but no evidence yet) */}
+                        {!existingAction.evidence_photo_path && status !== "reviewed" && (
+                          <div className="mt-3 flex items-end gap-2 flex-wrap">
+                            <div className="flex-1 min-w-[200px]">
+                              <label className="block text-xs text-gray-500 mb-1">
+                                Kanıt Fotoğrafı
+                              </label>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0] || null;
+                                  setNewActionFiles((prev) => ({
+                                    ...prev,
+                                    [def.responseId]: file,
+                                  }));
+                                }}
+                                className="block w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-[200px]">
+                              <label className="block text-xs text-gray-500 mb-1">
+                                Not (isteğe bağlı)
+                              </label>
+                              <input
+                                type="text"
+                                value={newActionDesc[`evidence_${existingAction.id}`] || ""}
+                                onChange={(e) =>
+                                  setNewActionDesc((prev) => ({
+                                    ...prev,
+                                    [`evidence_${existingAction.id}`]: e.target.value,
+                                  }))
+                                }
+                                placeholder="Kanıt notu..."
+                                className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                              />
+                            </div>
+                            <button
+                              onClick={() =>
+                                handleUploadEvidence(existingAction.id, def.responseId)
+                              }
+                              disabled={
+                                uploadingEvidence === existingAction.id ||
+                                !newActionFiles[def.responseId]
+                              }
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-800 text-white rounded-lg text-xs font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {uploadingEvidence === existingAction.id ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <Upload size={14} />
+                              )}
+                              Yükle
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Create corrective action form */}
+                    {!existingAction && status !== "reviewed" && (
+                      <div className="mt-3 border-t border-gray-200 pt-3">
+                        {isMandatory ? (
+                          /* Mandatory form for critical deficiencies */
+                          <div>
+                            <p className="text-xs font-medium text-red-600 mb-2">
+                              Kritik eksiklik - Düzeltici faaliyet zorunludur
+                            </p>
+                            <textarea
+                              rows={2}
+                              value={newActionDesc[def.responseId] || ""}
+                              onChange={(e) =>
+                                setNewActionDesc((prev) => ({
+                                  ...prev,
+                                  [def.responseId]: e.target.value,
+                                }))
+                              }
+                              placeholder="Düzeltici faaliyet açıklaması yazın..."
+                              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors resize-none"
+                            />
+                            <button
+                              onClick={() => handleCreateAction(def.responseId)}
+                              disabled={
+                                creatingAction === def.responseId ||
+                                !newActionDesc[def.responseId]?.trim()
+                              }
+                              className="mt-2 flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {creatingAction === def.responseId ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <Plus size={14} />
+                              )}
+                              Düzeltici Faaliyet Oluştur
+                            </button>
+                          </div>
+                        ) : (
+                          /* Optional button for non-critical deficiencies */
+                          <div>
+                            {newActionDesc[def.responseId] !== undefined ? (
+                              <div>
+                                <textarea
+                                  rows={2}
+                                  value={newActionDesc[def.responseId] || ""}
+                                  onChange={(e) =>
+                                    setNewActionDesc((prev) => ({
+                                      ...prev,
+                                      [def.responseId]: e.target.value,
+                                    }))
+                                  }
+                                  placeholder="Düzeltici faaliyet açıklaması yazın..."
+                                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors resize-none"
+                                />
+                                <div className="flex items-center gap-2 mt-2">
+                                  <button
+                                    onClick={() => handleCreateAction(def.responseId)}
+                                    disabled={
+                                      creatingAction === def.responseId ||
+                                      !newActionDesc[def.responseId]?.trim()
+                                    }
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-primary-800 text-white rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                  >
+                                    {creatingAction === def.responseId ? (
+                                      <Loader2 size={14} className="animate-spin" />
+                                    ) : (
+                                      <Plus size={14} />
+                                    )}
+                                    Oluştur
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      setNewActionDesc((prev) => {
+                                        const next = { ...prev };
+                                        delete next[def.responseId];
+                                        return next;
+                                      })
+                                    }
+                                    className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                                  >
+                                    İptal
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() =>
+                                  setNewActionDesc((prev) => ({
+                                    ...prev,
+                                    [def.responseId]: "",
+                                  }))
+                                }
+                                className="flex items-center gap-1.5 text-sm text-primary-800 hover:text-primary-600 font-medium transition-colors"
+                              >
+                                <Plus size={14} />
+                                Düzeltici Faaliyet Ekle
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* -------- Tutanaklar Section -------- */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="p-6 border-b border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <FileText size={20} className="text-primary-800" />
+            Tutanaklar
+          </h3>
+        </div>
+        <div className="p-6">
+          {loadingTutanaklar ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 size={24} className="animate-spin text-gray-400" />
+            </div>
+          ) : tutanaklar.length === 0 ? (
+            <p className="text-sm text-gray-400 italic text-center py-4">
+              Bu denetim için henüz tutanak oluşturulmamış.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {tutanaklar.map((tutanak: any) => (
+                <div
+                  key={tutanak.id}
+                  className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-medium text-gray-900 text-sm">
+                          {tutanak.title || "Tutanak"}
+                        </h4>
+                        <Badge
+                          variant={tutanak.status === "sent" ? "success" : "warning"}
+                        >
+                          {tutanak.status === "sent" ? "Gönderildi" : "Taslak"}
+                        </Badge>
+                      </div>
+                      {tutanak.createdBy && (
+                        <p className="text-xs text-gray-400 mb-2">
+                          Oluşturan: {tutanak.createdBy.fullName} -{" "}
+                          {formatDate(tutanak.createdAt)}
+                        </p>
+                      )}
+                      {tutanak.sentAt && (
+                        <p className="text-xs text-gray-400 mb-2">
+                          Gönderilme: {formatDate(tutanak.sentAt)}
+                        </p>
+                      )}
+                      {/* Content preview */}
+                      {tutanak.content && Array.isArray(tutanak.content) && (
+                        <div className="space-y-1 mt-2">
+                          {tutanak.content.slice(0, 3).map((item: any, idx: number) => (
+                            <div key={idx} className="text-xs text-gray-600">
+                              <span className="font-medium text-gray-700">{item.label}:</span>{" "}
+                              {(item.value || "").substring(0, 100)}
+                              {(item.value || "").length > 100 ? "..." : ""}
+                            </div>
+                          ))}
+                          {tutanak.content.length > 3 && (
+                            <p className="text-xs text-gray-400 italic">
+                              +{tutanak.content.length - 3} alan daha
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* -------- Previous Findings Section -------- */}
+      {inspection?.branch?.id && showCorrectiveSection && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <button
+            onClick={handleFetchPreviousFindings}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <span className="flex items-center gap-2 font-semibold text-gray-900">
+              <History size={20} className="text-primary-800" />
+              Önceki Denetim Bulguları
+            </span>
+            {loadingFindings ? (
+              <Loader2 size={18} className="animate-spin text-gray-400" />
+            ) : showPreviousFindings ? (
+              <ChevronUp size={20} className="text-gray-400" />
+            ) : (
+              <ChevronDown size={20} className="text-gray-400" />
+            )}
+          </button>
+          {showPreviousFindings && (
+            <div className="px-6 pb-4">
+              {previousFindings.length === 0 ? (
+                <p className="text-sm text-gray-400 italic">
+                  Bu şube için önceki denetim bulguları bulunamadı.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {previousFindings.map((finding: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className="border border-gray-100 rounded-lg p-3"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            {finding.questionText || finding.description || "-"}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            {finding.categoryName && (
+                              <span className="text-xs text-gray-500">
+                                {finding.categoryName}
+                              </span>
+                            )}
+                            {finding.isCritical && (
+                              <Badge variant="danger">Kritik</Badge>
+                            )}
+                            {finding.inspectionDate && (
+                              <span className="text-xs text-gray-400">
+                                {formatDate(finding.inspectionDate)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {finding.status && (
+                          <Badge
+                            variant={
+                              finding.status === "completed"
+                                ? "success"
+                                : finding.status === "evidence_uploaded"
+                                ? "info"
+                                : "warning"
+                            }
+                          >
+                            {finding.status === "completed"
+                              ? "Tamamlandı"
+                              : finding.status === "evidence_uploaded"
+                              ? "Kanıt Yüklendi"
+                              : "Beklemede"}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -666,71 +1199,6 @@ export default function InspectionDetailPage() {
                 <span className="text-gray-700">{reviewerNotes}</span>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* -------- Approval / Rejection Section -------- */}
-      {canReview && (
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Shield size={20} />
-            Denetim Degerlendirmesi
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <label
-                htmlFor="review-notes"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Degerlendirme Notlari
-                <span className="text-gray-400 font-normal ml-1">
-                  (reddetme icin zorunlu)
-                </span>
-              </label>
-              <textarea
-                id="review-notes"
-                rows={3}
-                value={reviewNotes}
-                onChange={(e) => setReviewNotes(e.target.value)}
-                placeholder="Degerlendirme notlarinizi buraya yazin..."
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors resize-none"
-              />
-            </div>
-
-            {actionError && (
-              <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
-                <AlertTriangle size={16} />
-                {actionError}
-              </div>
-            )}
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleApprove}
-                disabled={approving || rejecting}
-                className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {approving ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <CheckCircle size={16} />
-                )}
-                Onayla
-              </button>
-              <button
-                onClick={handleReject}
-                disabled={approving || rejecting}
-                className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {rejecting ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <XCircle size={16} />
-                )}
-                Reddet
-              </button>
-            </div>
           </div>
         </div>
       )}

@@ -52,6 +52,8 @@ export default function RootLayout() {
         <Stack.Screen name="inspection/[id]" options={{ title: 'Denetim' }} />
         <Stack.Screen name="inspection/summary" options={{ title: 'Denetim Ozeti' }} />
         <Stack.Screen name="inspection/review" options={{ title: 'Denetim Inceleme', presentation: 'card' }} />
+        <Stack.Screen name="inspection/corrective-actions" options={{ title: 'Düzeltici Faaliyetler', headerShown: false }} />
+        <Stack.Screen name="inspection/tutanak" options={{ title: 'Tutanak', headerShown: false }} />
         <Stack.Screen name="template/[id]" options={{ title: 'Denetim Maddeleri' }} />
         <Stack.Screen name="notifications" options={{ title: 'Bildirimler' }} />
         <Stack.Screen name="settings" options={{ title: 'Ayarlar' }} />

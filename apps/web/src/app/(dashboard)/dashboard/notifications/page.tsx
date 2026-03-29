@@ -60,7 +60,7 @@ export default function NotificationsPage() {
         setNotifications(data as Notification[]);
       })
       .catch((err) => {
-        setError(err.message || "Bildirimler yuklenirken hata olustu");
+        setError(err.message || "Bildirimler yüklenirken hata oluştu");
       })
       .finally(() => {
         setLoading(false);
@@ -119,7 +119,7 @@ export default function NotificationsPage() {
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
               />
             </svg>
-            <span className="text-sm">Bildirimler yukleniyor...</span>
+            <span className="text-sm">Bildirimler yükleniyor...</span>
           </div>
         </div>
       </div>

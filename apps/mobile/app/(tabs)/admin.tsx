@@ -19,9 +19,9 @@ const ROLES = [
 ];
 
 const FACILITY_TYPES = [
-  { value: 'magaza', label: 'Magaza' },
+  { value: 'magaza', label: 'Mağaza' },
   { value: 'kesimhane', label: 'Kesimhane' },
-  { value: 'ahir', label: 'Ahir' },
+  { value: 'ahir', label: 'Ahır' },
   { value: 'yufka', label: 'Yufka' },
   { value: 'depo', label: 'Depo' },
 ];
@@ -51,6 +51,9 @@ export default function AdminScreen() {
 
   return (
     <View style={S.container}>
+      {/* Bekleyen Denetimler - Müdür için */}
+      {(user?.role === 'manager' || user?.role === 'admin') && <PendingInspectionsSection />}
+
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={S.tabScroll} contentContainerStyle={S.tabRow}>
         {tabs.map(t => (
           <TouchableOpacity key={t.key} style={[S.tabBtn, tab === t.key && S.tabActive]} onPress={() => setTab(t.key)}>
@@ -65,6 +68,85 @@ export default function AdminScreen() {
       {tab === 'branches' && <BranchesTab />}
       {tab === 'schedules' && <SchedulesTab />}
       {tab === 'types' && <FacilityTypesTab />}
+    </View>
+  );
+}
+
+// ===================== BEKLEYEN DENETIMLER =====================
+function PendingInspectionsSection() {
+  const router = useRouter();
+  const [inspections, setInspections] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+
+  const fetch = useCallback(async () => {
+    try {
+      const [completed, pendingAction] = await Promise.all([
+        api.getInspections({ status: 'completed' }).catch(() => ({ data: [] })),
+        api.getInspections({ status: 'pending_action' }).catch(() => ({ data: [] })),
+      ]);
+      const all = [...(completed.data || []), ...(pendingAction.data || [])];
+      setInspections(all);
+    } catch {}
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetch(); }, [fetch]);
+
+  if (loading || inspections.length === 0) return null;
+
+  return (
+    <View style={S.pendingSection}>
+      <TouchableOpacity style={S.pendingHeader} onPress={() => setExpanded(!expanded)}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+          <MaterialIcons name="assignment-late" size={22} color="#E65100" />
+          <Text style={S.pendingTitle}>Bekleyen Denetimler</Text>
+          <View style={S.pendingCountBadge}>
+            <Text style={S.pendingCountText}>{inspections.length}</Text>
+          </View>
+        </View>
+        <MaterialIcons name={expanded ? 'keyboard-arrow-up' : 'keyboard-arrow-down'} size={24} color="#E65100" />
+      </TouchableOpacity>
+
+      {expanded && inspections.map((insp: any) => {
+        const criticalCount = insp.responses?.filter((r: any) => {
+          const item = insp.template?.categories
+            ?.flatMap((c: any) => c.items || [])
+            ?.find((i: any) => i.id === r.checklistItemId);
+          return item?.isCritical && r.passed === false;
+        }).length || 0;
+
+        const statusColor = insp.status === 'pending_action' ? '#E65100' : '#1565C0';
+        const statusText = insp.status === 'pending_action' ? 'İşlem Bekliyor' : 'Gönderildi';
+
+        return (
+          <TouchableOpacity
+            key={insp.id}
+            style={S.pendingCard}
+            onPress={() => router.push(`/inspection/corrective-actions?inspectionId=${insp.id}`)}
+            activeOpacity={0.7}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={S.pendingCardTitle}>{insp.branch?.name || 'Şube'}</Text>
+              <Text style={S.pendingCardSub}>
+                {new Date(insp.completedAt || insp.createdAt).toLocaleDateString('tr-TR')}
+                {' · '}Puan: {Math.round(Number(insp.scorePercentage || 0))}%
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
+                <View style={[S.tag, { backgroundColor: '#FFF3E0' }]}>
+                  <Text style={[S.tagText, { color: statusColor }]}>{statusText}</Text>
+                </View>
+                {criticalCount > 0 && (
+                  <View style={[S.tag, { backgroundColor: '#FFEBEE' }]}>
+                    <Text style={[S.tagText, { color: '#C62828' }]}>{criticalCount} kritik</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+            <MaterialIcons name="chevron-right" size={22} color="#999" />
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }
@@ -111,7 +193,7 @@ function UsersTab() {
     setSaving(true);
     try {
       if (modal === 'add') {
-        if (!form.fullName || !form.email || !form.password) { Alert.alert('Hata', 'Tum alanlari doldurun'); setSaving(false); return; }
+        if (!form.fullName || !form.email || !form.password) { Alert.alert('Hata', 'Tüm alanları doldurun'); setSaving(false); return; }
         if (form.role === 'manager' && selectedBranchIds.length === 0) { Alert.alert('Hata', 'Müdür için en az bir şube seçin'); setSaving(false); return; }
         await api.register({ ...form, branchIds: form.role === 'manager' ? selectedBranchIds : undefined });
       } else {
@@ -119,7 +201,7 @@ function UsersTab() {
         if (form.role === 'manager') {
           payload.branchIds = selectedBranchIds;
         } else {
-          payload.branchIds = []; // Mudur degilse atamalari kaldir
+          payload.branchIds = []; // Müdür değilse atamaları kaldır
         }
         await api.updateUser(editTarget.id, payload);
       }
@@ -798,4 +880,13 @@ const S = StyleSheet.create({
   selectBoxText: { flex: 1, fontSize: 14, color: '#333' },
   selectedTag: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#E3F2FD', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
   selectedTagText: { fontSize: 12, fontWeight: '600', color: '#1565C0' },
+  // Pending inspections
+  pendingSection: { backgroundColor: '#FFF3E0', borderBottomWidth: 1, borderBottomColor: '#FFE0B2' },
+  pendingHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14 },
+  pendingTitle: { fontSize: 15, fontWeight: '700', color: '#E65100' },
+  pendingCountBadge: { backgroundColor: '#E65100', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 },
+  pendingCountText: { fontSize: 12, fontWeight: '700', color: '#FFF' },
+  pendingCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', marginHorizontal: 12, marginBottom: 8, borderRadius: 10, padding: 12, gap: 10, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
+  pendingCardTitle: { fontSize: 14, fontWeight: '600', color: '#212121' },
+  pendingCardSub: { fontSize: 12, color: '#999', marginTop: 2 },
 });

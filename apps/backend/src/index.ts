@@ -11,6 +11,9 @@ import scheduleRoutes from './routes/schedules';
 import notificationRoutes from './routes/notifications';
 import reportRoutes from './routes/reports';
 import facilityTypeRoutes from './routes/facility-types';
+import correctiveActionRoutes from './routes/corrective-actions';
+import tutanakRoutes from './routes/tutanak';
+import activityLogRoutes from './routes/activity-logs';
 
 export const prisma = new PrismaClient();
 const app = express();
@@ -33,6 +36,9 @@ app.use('/api/schedules', scheduleRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/facility-types', facilityTypeRoutes);
+app.use('/api/corrective-actions', correctiveActionRoutes);
+app.use('/api/tutanak', tutanakRoutes);
+app.use('/api/activity-logs', activityLogRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {

@@ -157,8 +157,8 @@ export default function ReportsScreen() {
       {/* Branch Comparison Bar Chart */}
       {branchChartData && branchChartData.datasets[0].data.some((d: number) => d > 0) && (
         <View style={styles.chartCard}>
-          <Text style={styles.chartTitle}>Sube Karsilastirmasi</Text>
-          <Text style={styles.chartSubtitle}>Ortalama puanlara gore siralama</Text>
+          <Text style={styles.chartTitle}>Şube Karşılaştırması</Text>
+          <Text style={styles.chartSubtitle}>Ortalama puanlara göre sıralama</Text>
           <BarChart
             data={branchChartData}
             width={screenWidth}
@@ -180,7 +180,7 @@ export default function ReportsScreen() {
       {/* Branch Ranking List */}
       {sortedBranches.length > 0 && (
         <View style={styles.chartCard}>
-          <Text style={styles.chartTitle}>Sube Siralamasi</Text>
+          <Text style={styles.chartTitle}>Şube Sıralaması</Text>
           {sortedBranches.map((b, idx) => {
             const scoreRaw = b.avgScore || 0;
             const score = Number(formatScore(scoreRaw));

@@ -76,7 +76,7 @@ export default function HomeScreen() {
 
   useEffect(() => { setLoading(true); fetchData(); }, [fetchData]);
 
-  const selectedLabel = selectedFacility === 'all' ? 'Tum Tesisler' : facilityTypes.find((t: any) => t.key === selectedFacility)?.label || selectedFacility;
+  const selectedLabel = selectedFacility === 'all' ? 'Tüm Tesisler' : facilityTypes.find((t: any) => t.key === selectedFacility)?.label || selectedFacility;
   const onRefresh = () => { setRefreshing(true); fetchData(); };
 
   if (loading) {
@@ -104,7 +104,7 @@ export default function HomeScreen() {
     };
     const pendingApprovals = inspections.filter(i => i.status === 'completed').length;
 
-    // Sube performans grafik verisi
+    // Şube performans grafik verisi
     const branchChartData = branches.length > 0 ? {
       labels: branches.slice(0, 6).map((b: any) => b.name.length > 8 ? b.name.slice(0, 7) + '.' : b.name),
       datasets: [{ data: branches.slice(0, 6).map((b: any) => Math.ceil(b.avgScore || 0)) }],
@@ -139,7 +139,7 @@ export default function HomeScreen() {
               <View style={styles.pickerCard}>
                 <Text style={styles.pickerTitle}>Tesis Tipi Secin</Text>
                 <TouchableOpacity style={[styles.pickerItem, selectedFacility === 'all' && styles.pickerItemOn]} onPress={() => { setSelectedFacility('all'); setShowPicker(false); }}>
-                  <Text style={[styles.pickerItemText, selectedFacility === 'all' && styles.pickerItemTextOn]}>Tum Tesisler</Text>
+                  <Text style={[styles.pickerItemText, selectedFacility === 'all' && styles.pickerItemTextOn]}>Tüm Tesisler</Text>
                   {selectedFacility === 'all' && <MaterialIcons name="check" size={20} color="#2E7D32" />}
                 </TouchableOpacity>
                 {facilityTypes.map((t: any) => (

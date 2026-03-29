@@ -6,25 +6,25 @@ const alerts = [
   {
     type: "critical",
     branch: "Adana Seyhan",
-    message: "Hijyen puani kritik seviyenin altinda (45/100)",
+    message: "Hijyen puanı kritik seviyenin altında (45/100)",
     time: "2 saat önce",
   },
   {
     type: "critical",
     branch: "Trabzon Merkez",
-    message: "Yangin guvenligi eksiklikleri tespit edildi",
+    message: "Yangın güvenliği eksiklikleri tespit edildi",
     time: "5 saat önce",
   },
   {
     type: "warning",
-    branch: "Eskisehir",
-    message: "Personel egitim sertifikalari suresi dolmus",
+    branch: "Eskişehir",
+    message: "Personel eğitim sertifikaları süresi dolmuş",
     time: "1 gün önce",
   },
   {
     type: "warning",
-    branch: "Bursa Nilufer",
-    message: "Duzeltici faaliyet suresi yaklasıyor",
+    branch: "Bursa Nilüfer",
+    message: "Düzeltici faaliyet süresi yaklaşıyor",
     time: "2 gün önce",
   },
 ];
@@ -33,7 +33,7 @@ export default function CriticalAlerts() {
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        Kritik Uyarilar
+        Kritik Uyarılar
       </h3>
       <div className="space-y-3">
         {alerts.map((alert, idx) => (

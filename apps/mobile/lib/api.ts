@@ -29,7 +29,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ error: 'Sunucu hatasi' }));
+    const error = await res.json().catch(() => ({ error: 'Sunucu hatası' }));
     throw new Error(error.error || `HTTP ${res.status}`);
   }
 
@@ -123,18 +123,44 @@ export const api = {
     return request<any>(`/api/inspections/${inspectionId}/complete`, { method: 'POST' });
   },
 
-  async approveInspection(inspectionId: string, notes?: string) {
-    return request<any>(`/api/inspections/${inspectionId}/approve`, {
+  // Corrective Actions
+  async getDeficiencies(inspectionId: string) {
+    return request<any[]>(`/api/corrective-actions/inspection/${inspectionId}/deficiencies`);
+  },
+
+  async getCorrectiveActions(inspectionId: string) {
+    return request<any[]>(`/api/corrective-actions/inspection/${inspectionId}`);
+  },
+
+  async createCorrectiveAction(data: { inspectionId: string; responseId: string; description: string }) {
+    return request<any>('/api/corrective-actions', {
       method: 'POST',
-      body: JSON.stringify({ notes }),
+      body: JSON.stringify(data),
     });
   },
 
-  async rejectInspection(inspectionId: string, notes: string) {
-    return request<any>(`/api/inspections/${inspectionId}/reject`, {
+  async uploadEvidence(actionId: string, photoUri: string, notes?: string) {
+    const token = await getToken();
+    const formData = new FormData();
+    formData.append('photo', {
+      uri: photoUri,
+      name: 'evidence.jpg',
+      type: 'image/jpeg',
+    } as any);
+    if (notes) formData.append('notes', notes);
+
+    const res = await fetch(`${API_URL}/api/corrective-actions/${actionId}/evidence`, {
       method: 'POST',
-      body: JSON.stringify({ notes }),
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
     });
+
+    if (!res.ok) throw new Error('Kanıt yüklenemedi');
+    return res.json();
+  },
+
+  async getPreviousFindings(branchId: string) {
+    return request<any[]>(`/api/inspections/previous-findings/${branchId}`);
   },
 
   async uploadPhoto(inspectionId: string, photoUri: string, responseId?: string) {
@@ -153,7 +179,7 @@ export const api = {
       body: formData,
     });
 
-    if (!res.ok) throw new Error('Fotograf yuklenemedi');
+    if (!res.ok) throw new Error('Fotoğraf yüklenemedi');
     return res.json();
   },
 
@@ -287,5 +313,28 @@ export const api = {
 
   async updateFacilityType(key: string, data: any) {
     return request<any>(`/api/facility-types/${key}`, { method: 'PUT', body: JSON.stringify(data) });
+  },
+
+  // Tutanak
+  async getTutanaklar(inspectionId: string) {
+    return request<any[]>(`/api/tutanak/inspection/${inspectionId}`);
+  },
+
+  async createTutanak(data: { inspectionId: string; title?: string; content: any }) {
+    return request<any>('/api/tutanak', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updateTutanak(id: string, data: { title?: string; content?: any }) {
+    return request<any>(`/api/tutanak/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async sendTutanak(id: string) {
+    return request<any>(`/api/tutanak/${id}/send`, { method: 'POST' });
   },
 };

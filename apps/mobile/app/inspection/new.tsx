@@ -9,9 +9,9 @@ import { useAuthStore } from '@/stores/auth-store';
 import { api } from '@/lib/api';
 
 const facilityTypes = [
-  { key: 'magaza', label: 'Magaza', icon: 'store' as const },
+  { key: 'magaza', label: 'Mağaza', icon: 'store' as const },
   { key: 'kesimhane', label: 'Kesimhane', icon: 'restaurant' as const },
-  { key: 'ahir', label: 'Ahir', icon: 'pets' as const },
+  { key: 'ahir', label: 'Ahır', icon: 'pets' as const },
   { key: 'yufka', label: 'Yufka', icon: 'bakery-dining' as const },
   { key: 'depo', label: 'Depo', icon: 'warehouse' as const },
 ];

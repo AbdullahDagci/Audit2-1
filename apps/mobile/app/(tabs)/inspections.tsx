@@ -92,7 +92,7 @@ export default function InspectionsScreen() {
   useEffect(() => { setLoading(true); fetchInspections(); }, [fetchInspections]);
   const onRefresh = () => { setRefreshing(true); fetchInspections(); };
 
-  const selectedTypeLabel = selectedType === 'all' ? 'Tum Tipler' : facilityTypes.find((t: any) => t.key === selectedType)?.label || selectedType;
+  const selectedTypeLabel = selectedType === 'all' ? 'Tüm Tipler' : facilityTypes.find((t: any) => t.key === selectedType)?.label || selectedType;
   const hasDateFilter = startDate || endDate;
 
   const clearFilters = () => {
@@ -133,8 +133,8 @@ export default function InspectionsScreen() {
   };
 
   const handleDelete = (item: any) => {
-    Alert.alert('Denetimi Sil', `${item.branch?.name || 'Sube'} denetimini silmek istediginize emin misiniz?`, [
-      { text: 'Iptal', style: 'cancel' },
+    Alert.alert('Denetimi Sil', `${item.branch?.name || 'Şube'} denetimini silmek istediğinize emin misiniz?`, [
+      { text: 'İptal', style: 'cancel' },
       {
         text: 'Sil', style: 'destructive',
         onPress: async () => {
@@ -158,12 +158,12 @@ export default function InspectionsScreen() {
 
   return (
     <View style={S.container}>
-      {/* Arama alani */}
+      {/* Arama alanı */}
       <View style={S.searchBar}>
         <MaterialIcons name="search" size={20} color="#999" style={S.searchIcon} />
         <TextInput
           style={S.searchInput}
-          placeholder="Sube ara..."
+          placeholder="Şube ara..."
           placeholderTextColor="#999"
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -269,7 +269,7 @@ export default function InspectionsScreen() {
           <View style={S.modalCard}>
             <Text style={S.modalTitle}>Tesis Tipi Secin</Text>
             <TouchableOpacity style={[S.modalItem, selectedType === 'all' && S.modalItemOn]} onPress={() => { setSelectedType('all'); setShowTypePicker(false); }}>
-              <Text style={[S.modalItemText, selectedType === 'all' && S.modalItemTextOn]}>Tum Tipler</Text>
+              <Text style={[S.modalItemText, selectedType === 'all' && S.modalItemTextOn]}>Tüm Tipler</Text>
               {selectedType === 'all' && <MaterialIcons name="check" size={20} color="#2E7D32" />}
             </TouchableOpacity>
             {facilityTypes.map((t: any) => (

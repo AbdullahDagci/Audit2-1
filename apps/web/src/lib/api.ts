@@ -109,18 +109,6 @@ export const api = {
 
   getInspection: (id: string) => request<any>(`/api/inspections/${id}`),
 
-  approveInspection: (id: string, notes?: string) =>
-    request<any>(`/api/inspections/${id}/approve`, {
-      method: 'POST',
-      body: JSON.stringify({ notes }),
-    }),
-
-  rejectInspection: (id: string, notes: string) =>
-    request<any>(`/api/inspections/${id}/reject`, {
-      method: 'POST',
-      body: JSON.stringify({ notes }),
-    }),
-
   deleteInspection: (id: string) =>
     request<any>(`/api/inspections/${id}`, { method: 'DELETE' }),
 
@@ -157,4 +145,70 @@ export const api = {
     if (endDate) params.set('endDate', endDate);
     return request<any[]>(`/api/reports/branch-comparison?${params}`);
   },
+
+  // Corrective Actions
+  getDeficiencies: (inspectionId: string) =>
+    request<any[]>(`/api/corrective-actions/inspection/${inspectionId}/deficiencies`),
+
+  getCorrectiveActions: (inspectionId: string) =>
+    request<any[]>(`/api/corrective-actions/inspection/${inspectionId}`),
+
+  createCorrectiveAction: (data: { inspectionId: string; responseId: string; description: string }) =>
+    request<any>('/api/corrective-actions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  uploadEvidence: async (actionId: string, photo: File, notes?: string) => {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append('photo', photo);
+    if (notes) formData.append('notes', notes);
+
+    const res = await fetch(`${API_URL}/api/corrective-actions/${actionId}/evidence`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ error: 'Sunucu hatasi' }));
+      throw new Error(error.error || `HTTP ${res.status}`);
+    }
+
+    return res.json();
+  },
+
+  getPreviousFindings: (branchId: string) =>
+    request<any[]>(`/api/inspections/previous-findings/${branchId}`),
+
+  // Tutanak
+  getTutanaklar: (inspectionId: string) =>
+    request<any[]>(`/api/tutanak/inspection/${inspectionId}`),
+
+  getTutanak: (id: string) => request<any>(`/api/tutanak/${id}`),
+
+  createTutanak: (data: { inspectionId: string; title?: string; content: any }) =>
+    request<any>('/api/tutanak', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateTutanak: (id: string, data: { title?: string; content?: any }) =>
+    request<any>(`/api/tutanak/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  sendTutanak: (id: string) =>
+    request<any>(`/api/tutanak/${id}/send`, { method: 'POST' }),
+
+  // Activity Logs
+  getActivityLogs: (params?: Record<string, string>) => {
+    const query = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request<{ data: any[]; total: number; page: number; limit: number; totalPages: number }>(`/api/activity-logs${query}`);
+  },
+
+  getActivityLogStats: () =>
+    request<{ action: string; count: number }[]>('/api/activity-logs/stats'),
 };

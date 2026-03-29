@@ -95,8 +95,8 @@ export default function ReportsPage() {
         // Keep as placeholder since category-level data requires template-level scores
         setCategoryData([]);
       } catch (err: any) {
-        console.error("Rapor verileri yuklenirken hata:", err);
-        setError(err.message || "Veriler yuklenirken bir hata olustu");
+        console.error("Rapor verileri yüklenirken hata:", err);
+        setError(err.message || "Veriler yüklenirken bir hata oluştu");
       } finally {
         setLoading(false);
       }
@@ -106,7 +106,7 @@ export default function ReportsPage() {
   }, []);
 
   const tabs: { key: TabType; label: string }[] = [
-    { key: "comparison", label: "Sube Karsilastirma" },
+    { key: "comparison", label: "Şube Karşılaştırma" },
     { key: "trend", label: "Trend Analizi" },
     { key: "category", label: "Kategori Analizi" },
   ];
@@ -115,7 +115,7 @@ export default function ReportsPage() {
     return (
       <div className="flex items-center justify-center h-96">
         <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
-        <span className="ml-3 text-gray-600">Rapor verileri yukleniyor...</span>
+        <span className="ml-3 text-gray-600">Rapor verileri yükleniyor...</span>
       </div>
     );
   }
@@ -189,7 +189,7 @@ export default function ReportsPage() {
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
         {activeTab === "comparison" && (
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Sube Karsilastirma</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Şube Karşılaştırma</h3>
             <BranchComparison branches={branches} />
           </div>
         )}

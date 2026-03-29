@@ -81,9 +81,9 @@ export default function SettingsScreen() {
               Storage.clearSync();
               // Restore settings after clearing everything
               Storage.setItemSync(STORAGE_KEY, JSON.stringify(settings));
-              Alert.alert('Basarili', 'Onbellek temizlendi.');
+              Alert.alert('Başarılı', 'Önbellek temizlendi.');
             } catch {
-              Alert.alert('Hata', 'Onbellek temizlenirken bir hata olustu.');
+              Alert.alert('Hata', 'Önbellek temizlenirken bir hata oluştu.');
             }
           },
         },

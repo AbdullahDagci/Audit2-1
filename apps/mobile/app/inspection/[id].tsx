@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/colors';
 import { Button } from '@/components/ui/Button';
 import { CategorySection } from '@/components/inspection/CategorySection';
@@ -21,8 +22,10 @@ export default function InspectionFormScreen() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [previousFindings, setPreviousFindings] = useState<any[]>([]);
+  const [findingsExpanded, setFindingsExpanded] = useState(false);
 
-  // Denetim ve sablon verilerini API'den cek
+  // Denetim ve şablon verilerini API'den çek
   const fetchData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
@@ -30,7 +33,17 @@ export default function InspectionFormScreen() {
       const insp = await api.getInspection(id);
       setInspection(insp);
 
-      // Sablon kategorileri ve maddelerini ayarla
+      // Önceki bulguları çek
+      if (insp.branchId) {
+        try {
+          const findings = await api.getPreviousFindings(insp.branchId);
+          setPreviousFindings(Array.isArray(findings) ? findings : []);
+        } catch {
+          setPreviousFindings([]);
+        }
+      }
+
+      // Şablon kategorileri ve maddelerini ayarla
       if (insp.template?.categories) {
         const cats = insp.template.categories
           .sort((a: any, b: any) => a.sortOrder - b.sortOrder)
@@ -52,7 +65,7 @@ export default function InspectionFormScreen() {
           }));
         setCategories(cats);
 
-        // Eger onceden kaydedilmis yanitlar varsa store'a yukle
+        // Eğer önceden kaydedilmiş yanıtlar varsa store'a yükle
         if (insp.responses && insp.responses.length > 0) {
           const { updateResponse } = useInspectionStore.getState();
           insp.responses.forEach((r: any) => {
@@ -65,7 +78,7 @@ export default function InspectionFormScreen() {
         }
       }
     } catch (err: any) {
-      Alert.alert('Hata', err.message || 'Denetim yuklenemedi.');
+      Alert.alert('Hata', err.message || 'Denetim yüklenemedi.');
     }
     setLoading(false);
   }, [id]);
@@ -85,7 +98,7 @@ export default function InspectionFormScreen() {
   const totalAnswered = categoryScores.reduce((sum, cs) => sum + cs.answeredCount, 0);
   const totalItems = categories.reduce((sum, cat) => sum + cat.items.length, 0);
 
-  // Tum sorulari ve foto zorunluluklarini dogrula
+  // Tüm soruları ve foto zorunluluklarını doğrula
   const validate = (): { valid: boolean; errors: string[] } => {
     const errors: string[] = [];
     let unansweredCount = 0;
@@ -95,7 +108,7 @@ export default function InspectionFormScreen() {
       for (const item of cat.items) {
         const resp = responses.get(item.id);
 
-        // Soru cevaplanmis mi?
+        // Soru cevaplanmış mı?
         if (!resp) {
           unansweredCount++;
           continue;
@@ -111,7 +124,7 @@ export default function InspectionFormScreen() {
           continue;
         }
 
-        // Fotograf zorunlu mu?
+        // Fotoğraf zorunlu mu?
         if (item.photo_required) {
           const itemPhotos = photos.get(item.id) || [];
           if (itemPhotos.length === 0) {
@@ -122,16 +135,16 @@ export default function InspectionFormScreen() {
     }
 
     if (unansweredCount > 0) {
-      errors.push(`${unansweredCount} soru cevaplanmamis.`);
+      errors.push(`${unansweredCount} soru cevaplanmamış.`);
     }
     if (missingPhotoCount > 0) {
-      errors.push(`${missingPhotoCount} maddede zorunlu fotograf eksik.`);
+      errors.push(`${missingPhotoCount} maddede zorunlu fotoğraf eksik.`);
     }
 
     return { valid: errors.length === 0, errors };
   };
 
-  // Yanitlari backend formatina cevir
+  // Yanıtları backend formatına çevir
   const buildResponsePayload = () => {
     const payload: any[] = [];
     for (const cat of categories) {
@@ -156,7 +169,7 @@ export default function InspectionFormScreen() {
   const handleSaveDraft = () => {
     const payload = buildResponsePayload();
     if (payload.length === 0) {
-      Alert.alert('Uyari', 'Henuz hicbir soru cevaplanmamis. En az bir soruyu cevaplayin.');
+      Alert.alert('Uyarı', 'Henüz hiçbir soru cevaplanmamış. En az bir soruyu cevaplayın.');
       return;
     }
 
@@ -178,14 +191,14 @@ export default function InspectionFormScreen() {
 
   // Gönder
   const handleSubmit = () => {
-    // Tarih kontrolu - suresi gecmis denetim gonderilemez
+    // Tarih kontrolü - süresi geçmiş denetim gönderilemez
     if (inspection?.scheduledDate) {
       const scheduled = new Date(inspection.scheduledDate);
       scheduled.setHours(0, 0, 0, 0);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       if (today > scheduled) {
-        Alert.alert('Süresi Geçmiş', 'Bu denetimin tarihi gecmistir. Denetim tamamlanamaz.');
+        Alert.alert('Süresi Geçmiş', 'Bu denetimin tarihi geçmiştir. Denetim tamamlanamaz.');
         return;
       }
     }
@@ -195,7 +208,7 @@ export default function InspectionFormScreen() {
     if (!valid) {
       Alert.alert(
         'Eksik Maddeler',
-        errors.join('\n') + '\n\nTum sorulari cevaplayin ve zorunlu fotograflari ekleyin.',
+        errors.join('\n') + '\n\nTüm soruları cevaplayın ve zorunlu fotoğrafları ekleyin.',
       );
       return;
     }
@@ -213,18 +226,19 @@ export default function InspectionFormScreen() {
 
             api.saveResponses(id!, payload)
               .then(async () => {
-                // Fotoğraflari yukle
+                // Fotoğrafları yükle
                 for (const [, itemPhotos] of photos.entries()) {
                   for (const photo of itemPhotos) {
                     try {
                       await api.uploadPhoto(id!, photo.uri, undefined);
                     } catch {
-                      // Foto yuklenemezse devam et
+                      // Foto yüklenemezse devam et
                     }
                   }
                 }
 
                 // Denetimi tamamla
+
                 return api.completeInspection(id!);
               })
               .then(() => {
@@ -236,7 +250,7 @@ export default function InspectionFormScreen() {
                 );
               })
               .catch((err: any) => {
-                Alert.alert('Hata', err.message || 'Denetim gonderilemedi.');
+                Alert.alert('Hata', err.message || 'Denetim gönderilemedi.');
               })
               .finally(() => {
                 setSubmitting(false);
@@ -251,7 +265,7 @@ export default function InspectionFormScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ color: '#999', marginTop: 12 }}>Denetim formu yukleniyor...</Text>
+        <Text style={{ color: '#999', marginTop: 12 }}>Denetim formu yükleniyor...</Text>
       </View>
     );
   }
@@ -260,6 +274,7 @@ export default function InspectionFormScreen() {
     return (
       <View style={styles.center}>
         <Text style={{ color: '#999', fontSize: 16 }}>Denetim formu bulunamadı</Text>
+
       </View>
     );
   }
@@ -277,9 +292,45 @@ export default function InspectionFormScreen() {
       <View style={styles.progressBar}>
         <View style={[styles.progressFill, { width: `${totalItems > 0 ? (totalAnswered / totalItems) * 100 : 0}%` }]} />
       </View>
-      <Text style={styles.progressText}>{totalAnswered}/{totalItems} madde tamamlandi</Text>
+      <Text style={styles.progressText}>{totalAnswered}/{totalItems} madde tamamlandı</Text>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {/* Önceki denetim bulguları */}
+        {previousFindings.length > 0 && (
+          <View style={styles.findingsBanner}>
+            <View style={styles.findingsHeader}>
+              <MaterialIcons name="warning" size={20} color="#E65100" />
+              <Text style={styles.findingsHeaderText}>
+                Önceki denetimden {previousFindings.length} kritik bulgu var
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.findingsToggle}
+              onPress={() => setFindingsExpanded(!findingsExpanded)}
+            >
+              <Text style={styles.findingsToggleText}>
+                {findingsExpanded ? 'Gizle' : 'Bulguları Göster'}
+              </Text>
+              <MaterialIcons
+                name={findingsExpanded ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                size={20}
+                color="#E65100"
+              />
+            </TouchableOpacity>
+            {findingsExpanded && previousFindings.map((finding: any, idx: number) => (
+              <View key={idx} style={styles.findingItem}>
+                <MaterialIcons name="error" size={16} color="#F44336" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.findingQuestion}>{finding.questionText}</Text>
+                  {finding.notes && (
+                    <Text style={styles.findingNotes}>Not: {finding.notes}</Text>
+                  )}
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
         {categories.map((category, idx) => (
           <CategorySection
             key={category.id}
@@ -306,6 +357,13 @@ export default function InspectionFormScreen() {
           style={{ flex: 1 }}
         />
       </View>
+      <TouchableOpacity
+        style={styles.tutanakBtn}
+        onPress={() => router.push({ pathname: '/inspection/tutanak', params: { inspectionId: id } })}
+      >
+        <MaterialIcons name="description" size={18} color="#2E7D32" />
+        <Text style={styles.tutanakBtnText}>Tutanak</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -328,8 +386,22 @@ const styles = StyleSheet.create({
   progressText: { fontSize: 12, color: Colors.textSecondary, textAlign: 'center', marginTop: 4, marginBottom: 8 },
   scrollView: { flex: 1 },
   scrollContent: { padding: 12, paddingBottom: 100 },
+  findingsBanner: { backgroundColor: '#FFF3E0', borderWidth: 1, borderColor: '#FFE0B2', borderRadius: 12, padding: 14, marginBottom: 12 },
+  findingsHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  findingsHeaderText: { flex: 1, fontSize: 13, fontWeight: '600', color: '#E65100' },
+  findingsToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 8, paddingVertical: 6 },
+  findingsToggleText: { fontSize: 13, fontWeight: '600', color: '#E65100' },
+  findingItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#FFE0B2' },
+  findingQuestion: { fontSize: 13, color: '#333', fontWeight: '500', lineHeight: 18 },
+  findingNotes: { fontSize: 11, color: '#999', fontStyle: 'italic', marginTop: 2 },
   bottomBar: {
-    flexDirection: 'row', gap: 12, padding: 16,
+    flexDirection: 'row', gap: 12, padding: 16, paddingBottom: 8,
     backgroundColor: Colors.surface, borderTopWidth: 1, borderTopColor: Colors.border,
   },
+  tutanakBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: Colors.surface, paddingVertical: 10, paddingBottom: 16,
+    borderTopWidth: 0,
+  },
+  tutanakBtnText: { fontSize: 14, fontWeight: '600', color: '#2E7D32' },
 });

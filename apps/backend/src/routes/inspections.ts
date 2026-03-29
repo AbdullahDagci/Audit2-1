@@ -3,6 +3,8 @@ import { prisma } from '../index';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { upload } from '../middleware/upload';
 import { qs } from '../utils/query';
+import { handleInspectionCompleted } from '../services/inspection-flow';
+import { logActivity } from '../services/activity-logger';
 
 const router = Router();
 
@@ -57,7 +59,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
         template: { include: { categories: { orderBy: { sortOrder: 'asc' }, include: { items: { orderBy: { sortOrder: 'asc' } } } } } },
         responses: { include: { checklistItem: true, photos: true } },
         photos: true,
-        actions: { include: { assignedTo: { select: { id: true, fullName: true } } } },
+        actions: { include: { createdBy: { select: { id: true, fullName: true } }, response: { include: { checklistItem: true } } } },
       },
     });
     if (!inspection) return res.status(404).json({ error: 'Denetim bulunamadı' });
@@ -219,60 +221,17 @@ router.post('/:id/complete', authenticate, async (req: AuthRequest, res: Respons
       },
     });
 
-    // Kritik bulgu varsa admin'lere bildirim
-    const criticalFailures = inspData.responses.filter((r: any) => {
-      const item = inspData.template.categories
-        .flatMap((c: any) => c.items)
-        .find((i: any) => i.id === r.checklistItemId);
-      return item?.isCritical && r.passed === false;
+    await logActivity({
+      userId: req.userId,
+      action: 'INSPECTION_COMPLETED',
+      entityType: 'inspection',
+      entityId: req.params.id as string,
+      details: { scorePercentage: percentage, totalEarned, totalMax },
+      ipAddress: req.ip,
     });
 
-    if (criticalFailures.length > 0) {
-      const admins = await prisma.user.findMany({
-        where: { role: 'admin', isActive: true },
-        select: { id: true },
-      });
-
-      await prisma.notification.createMany({
-        data: admins.map((admin) => ({
-          userId: admin.id,
-          title: 'Kritik Bulgu!',
-          body: `Denetimde ${criticalFailures.length} kritik bulgu tespit edildi. Puan: %${percentage}`,
-          data: { inspectionId: req.params.id as string, type: 'critical' },
-        })),
-      });
-    }
-
-    // Şube müdürune bildirim gönder
-    const branch = await prisma.branch.findUnique({
-      where: { id: inspection.branchId },
-      select: { name: true, managerId: true },
-    });
-
-    if (branch?.managerId) {
-      await prisma.notification.create({
-        data: {
-          userId: branch.managerId,
-          title: 'Denetim Tamamlandı',
-          body: `${branch.name} şubesinde denetim tamamlandı. Puan: %${percentage}. Onayınız bekleniyor.`,
-          data: { inspectionId: req.params.id as string, type: 'approval_needed' },
-        },
-      });
-    }
-
-    // Tum admin'lere de bildirim
-    const allAdmins = await prisma.user.findMany({
-      where: { role: 'admin', isActive: true },
-      select: { id: true },
-    });
-    await prisma.notification.createMany({
-      data: allAdmins.map((a) => ({
-        userId: a.id,
-        title: 'Denetim Tamamlandı',
-        body: `${branch?.name || 'Şube'} denetimi tamamlandı. Puan: %${percentage}`,
-        data: { inspectionId: req.params.id as string, type: 'inspection_completed' },
-      })),
-    });
+    // Yeni akış: kritik eksik yoksa otomatik tamamla, varsa şube sorumlusuna bildir
+    await handleInspectionCompleted(req.params.id as string);
 
     res.json(updated);
   } catch (err: any) {
@@ -369,93 +328,52 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// POST /api/inspections/:id/approve - Şube müdüru veya admin onayi
-router.post('/:id/approve', authenticate, async (req: AuthRequest, res: Response) => {
+// GET /api/inspections/previous-findings/:branchId - Önceki denetimin kritik eksiklikleri
+router.get('/previous-findings/:branchId', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const inspection = await prisma.inspection.findUnique({
-      where: { id: req.params.id as string },
-      include: { branch: { select: { managerId: true, name: true } } },
+    const lastInspection = await prisma.inspection.findFirst({
+      where: {
+        branchId: req.params.branchId as string,
+        status: { in: ['completed', 'pending_action', 'reviewed'] },
+      },
+      orderBy: { completedAt: 'desc' },
+      include: {
+        responses: {
+          include: {
+            checklistItem: {
+              include: { category: true },
+            },
+          },
+        },
+      },
     });
 
-    if (!inspection) return res.status(404).json({ error: 'Denetim bulunamadı' });
-
-    // Sadece şube müdüru veya admin onaylayabilir
-    const isManager = inspection.branch.managerId === req.userId;
-    const isAdmin = req.userRole === 'admin';
-
-    if (!isManager && !isAdmin) {
-      return res.status(403).json({ error: 'Bu denetimi onaylama yetkiniz yok' });
+    if (!lastInspection) {
+      return res.json({ findings: [], inspectionId: null, inspectionDate: null });
     }
 
-    if (inspection.status !== 'completed') {
-      return res.status(400).json({ error: 'Sadece tamamlanmış denetimler onaylanabilir' });
-    }
-
-    const updated = await prisma.inspection.update({
-      where: { id: req.params.id as string },
-      data: {
-        status: 'reviewed',
-        reviewedById: req.userId,
-        reviewedAt: new Date(),
-        reviewerNotes: req.body.notes || null,
-      },
+    const criticalFailures = lastInspection.responses.filter(r => {
+      const item = r.checklistItem;
+      if (!item.isCritical) return false;
+      if (item.itemType === 'boolean' && r.passed === false) return true;
+      if (item.itemType === 'score' && r.score !== null && r.score < item.maxScore * 0.5) return true;
+      return false;
     });
 
-    // Denetçiye bildirim gönder
-    await prisma.notification.create({
-      data: {
-        userId: inspection.inspectorId,
-        title: 'Denetim Onaylandı',
-        body: `${inspection.branch.name} şubesindeki denetiminiz onaylandı.`,
-        data: { inspectionId: req.params.id as string, type: 'approved' },
-      },
+    const findings = criticalFailures.map(r => ({
+      itemId: r.checklistItem.id,
+      questionText: r.checklistItem.questionText,
+      categoryName: r.checklistItem.category.name,
+      notes: r.notes,
+      score: r.score,
+      passed: r.passed,
+    }));
+
+    res.json({
+      findings,
+      inspectionId: lastInspection.id,
+      inspectionDate: lastInspection.completedAt,
     });
-
-    res.json(updated);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// POST /api/inspections/:id/reject - Denetimi reddet
-router.post('/:id/reject', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    const inspection = await prisma.inspection.findUnique({
-      where: { id: req.params.id as string },
-      include: { branch: { select: { managerId: true, name: true } } },
-    });
-
-    if (!inspection) return res.status(404).json({ error: 'Denetim bulunamadı' });
-
-    const isManager = inspection.branch.managerId === req.userId;
-    const isAdmin = req.userRole === 'admin';
-
-    if (!isManager && !isAdmin) {
-      return res.status(403).json({ error: 'Bu denetimi reddetme yetkiniz yok' });
-    }
-
-    // Durumu in_progress'e geri al (tekrar denetim yapilmali)
-    const updated = await prisma.inspection.update({
-      where: { id: req.params.id as string },
-      data: {
-        status: 'in_progress',
-        reviewedById: req.userId,
-        reviewedAt: new Date(),
-        reviewerNotes: req.body.notes || 'Denetim reddedildi',
-      },
-    });
-
-    // Denetçiye bildirim
-    await prisma.notification.create({
-      data: {
-        userId: inspection.inspectorId,
-        title: 'Denetim Reddedildi',
-        body: `${inspection.branch.name} denetiminiz reddedildi. Sebep: ${req.body.notes || 'Belirtilmedi'}`,
-        data: { inspectionId: req.params.id as string, type: 'rejected' },
-      },
-    });
-
-    res.json(updated);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

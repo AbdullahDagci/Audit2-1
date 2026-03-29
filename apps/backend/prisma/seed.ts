@@ -34,12 +34,26 @@ async function main() {
     },
   });
 
+  // Şube sorumlusu (manager) kullanıcı
+  const managerPassword = await bcrypt.hash('mudur123', 10);
+  const manager = await prisma.user.upsert({
+    where: { email: 'mudur@ertansa.com' },
+    update: {},
+    create: {
+      email: 'mudur@ertansa.com',
+      password: managerPassword,
+      fullName: 'Mehmet Demir',
+      role: 'manager',
+      phone: '05005551234',
+    },
+  });
+
   console.log('Kullanıcılar oluşturuldu');
 
   // Subeler
   const branches = await Promise.all([
-    prisma.branch.create({ data: { name: 'Merkez Mağaza', facilityType: 'magaza', address: 'Konya Merkez', city: 'Konya', latitude: 37.8746, longitude: 32.4932, managerId: admin.id } }),
-    prisma.branch.create({ data: { name: 'Şube 2 Mağaza', facilityType: 'magaza', address: 'Selcuklu', city: 'Konya', latitude: 37.8850, longitude: 32.4800 } }),
+    prisma.branch.create({ data: { name: 'Merkez Mağaza', facilityType: 'magaza', address: 'Konya Merkez', city: 'Konya', latitude: 37.8746, longitude: 32.4932, managerId: manager.id } }),
+    prisma.branch.create({ data: { name: 'Şube 2 Mağaza', facilityType: 'magaza', address: 'Selcuklu', city: 'Konya', latitude: 37.8850, longitude: 32.4800, managerId: manager.id } }),
     prisma.branch.create({ data: { name: 'Kesimhane', facilityType: 'kesimhane', address: 'Organize Sanayi', city: 'Konya', latitude: 37.9100, longitude: 32.5200 } }),
     prisma.branch.create({ data: { name: 'Ahir - Merkez', facilityType: 'ahir', address: 'Cihanbeyli Yolu', city: 'Konya', latitude: 37.8500, longitude: 32.4500 } }),
     prisma.branch.create({ data: { name: 'Yufka Üretim', facilityType: 'yufka', address: 'Karatay', city: 'Konya', latitude: 37.8600, longitude: 32.5100 } }),
@@ -186,8 +200,9 @@ async function main() {
   console.log('Şablonlar oluşturuldu');
   console.log('---');
   console.log('Giriş bilgileri:');
-  console.log('  Admin:   admin@ertansa.com / admin123');
-  console.log('  Denetçi: denetci@ertansa.com / denetci123');
+  console.log('  Admin:    admin@ertansa.com / admin123');
+  console.log('  Müdür:    mudur@ertansa.com / mudur123');
+  console.log('  Denetçi:  denetci@ertansa.com / denetci123');
 }
 
 main()

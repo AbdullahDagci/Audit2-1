@@ -8,19 +8,20 @@ import { api } from "@/lib/api";
 
 // Map API status values to Turkish display labels
 const STATUS_MAP: Record<string, string> = {
-  all: "Tumu",
-  scheduled: "Planlanmis",
+  all: "Tümü",
+  scheduled: "Planlanmış",
   draft: "Taslak",
   in_progress: "Devam Ediyor",
-  completed: "Onay Bekliyor",
-  reviewed: "Onaylandi",
+  completed: "Gönderildi",
+  pending_action: "İşlem Bekliyor",
+  reviewed: "Onaylandı",
 };
 
 const STATUS_CHIPS = Object.entries(STATUS_MAP);
 
 // Map API facilityType values to Turkish labels
 const FACILITY_TYPES: Record<string, string> = {
-  all: "Tum Turler",
+  all: "Tüm Türler",
   restaurant: "Restoran",
   cafe: "Kafe",
   hotel: "Otel",
@@ -42,6 +43,8 @@ function getStatusBadge(status: string) {
       return <Badge variant="success">{label}</Badge>;
     case "completed":
       return <Badge variant="info">{label}</Badge>;
+    case "pending_action":
+      return <Badge variant="warning">{label}</Badge>;
     case "in_progress":
       return <Badge variant="warning">{label}</Badge>;
     case "scheduled":
@@ -101,7 +104,7 @@ export default function InspectionsPage() {
       setInspections(result.data);
       setTotal(result.total);
     } catch (err) {
-      console.error("Denetimler yuklenirken hata olustu:", err);
+      console.error("Denetimler yüklenirken hata oluştu:", err);
       setInspections([]);
       setTotal(0);
     } finally {
@@ -124,13 +127,13 @@ export default function InspectionsPage() {
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!confirm("Bu denetimi silmek istediginizden emin misiniz?")) return;
+    if (!confirm("Bu denetimi silmek istediğinizden emin misiniz?")) return;
     setDeleting(id);
     try {
       await api.deleteInspection(id);
       await fetchInspections();
     } catch (err) {
-      console.error("Denetim silinirken hata olustu:", err);
+      console.error("Denetim silinirken hata oluştu:", err);
       alert("Denetim silinemedi.");
     } finally {
       setDeleting(null);
@@ -153,7 +156,7 @@ export default function InspectionsPage() {
             />
             <input
               type="text"
-              placeholder="Sube ara..."
+              placeholder="Şube ara..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
@@ -179,7 +182,7 @@ export default function InspectionsPage() {
 
         <button className="flex items-center gap-2 px-4 py-2 bg-primary-800 text-white rounded-lg text-sm font-medium hover:bg-primary-900 transition-colors">
           <Download size={16} />
-          Disari Aktar
+          Dışarı Aktar
         </button>
       </div>
 
@@ -208,11 +211,11 @@ export default function InspectionsPage() {
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 size={32} className="animate-spin text-primary-800" />
-            <span className="ml-3 text-sm text-gray-500">Yukleniyor...</span>
+            <span className="ml-3 text-sm text-gray-500">Yükleniyor...</span>
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex items-center justify-center py-20">
-            <span className="text-sm text-gray-500">Denetim bulunamadi.</span>
+            <span className="text-sm text-gray-500">Denetim bulunamadı.</span>
           </div>
         ) : (
           <>
@@ -223,13 +226,13 @@ export default function InspectionsPage() {
                     Tarih
                   </th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">
-                    Sube
+                    Şube
                   </th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">
-                    Denetci
+                    Denetçi
                   </th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">
-                    Sablon
+                    Şablon
                   </th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">
                     Puan
@@ -238,7 +241,7 @@ export default function InspectionsPage() {
                     Durum
                   </th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">
-                    Islem
+                    İşlem
                   </th>
                 </tr>
               </thead>
@@ -298,9 +301,9 @@ export default function InspectionsPage() {
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
                 <p className="text-sm text-gray-500">
-                  Toplam {total} kayittan{" "}
+                  Toplam {total} kayıttan{" "}
                   {(page - 1) * pageSize + 1}-
-                  {Math.min(page * pageSize, total)} arasi
+                  {Math.min(page * pageSize, total)} arası
                 </p>
                 <div className="flex items-center gap-1">
                   <button

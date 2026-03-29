@@ -46,7 +46,7 @@ export default function TemplateDetailScreen() {
         setExpandedCat(data.categories[0].id);
       }
     } catch (err: any) {
-      Alert.alert('Hata', err.message || 'Sablon yuklenemedi');
+      Alert.alert('Hata', err.message || 'Şablon yüklenemedi');
     }
     setLoading(false);
   }, [id]);
@@ -173,7 +173,7 @@ export default function TemplateDetailScreen() {
     return (
       <View style={S.center}>
         <MaterialIcons name="error-outline" size={48} color="#E0E0E0" />
-        <Text style={{ color: '#999', marginTop: 12 }}>Sablon bulunamadi</Text>
+        <Text style={{ color: '#999', marginTop: 12 }}>Şablon bulunamadı</Text>
       </View>
     );
   }

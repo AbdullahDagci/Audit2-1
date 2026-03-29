@@ -26,6 +26,7 @@ enum InspectionStatus {
   draft
   in_progress
   completed
+  pending_action
   reviewed
 }
 
@@ -41,6 +42,17 @@ enum ChecklistItemType {
   score
   text
   photo_required
+}
+
+enum CorrectiveActionStatus {
+  pending
+  evidence_uploaded
+  completed
+}
+
+enum TutanakStatus {
+  draft
+  sent
 }
 
 model User {
@@ -59,10 +71,12 @@ model User {
   inspections          Inspection[]         @relation("Inspector")
   reviewedInspections  Inspection[]         @relation("Reviewer")
   createdTemplates     ChecklistTemplate[]
-  assignedActions      CorrectiveAction[]
+  createdActions       CorrectiveAction[]   @relation("ActionCreator")
   assignedSchedules    InspectionSchedule[]
   notifications        Notification[]
   pushTokens           PushToken[]
+  tutanaklar           Tutanak[]            @relation("TutanakCreator")
+  activityLogs         ActivityLog[]
 
   @@map("users")
 }
@@ -169,6 +183,7 @@ model Inspection {
   responses  InspectionResponse[]
   photos     InspectionPhoto[]
   actions    CorrectiveAction[]
+  tutanaklar Tutanak[]
 
   @@map("inspections")
 }
@@ -184,9 +199,10 @@ model InspectionResponse {
   severity        SeverityLevel?
   createdAt       DateTime       @default(now()) @map("created_at")
 
-  inspection    Inspection       @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
-  checklistItem ChecklistItem    @relation(fields: [checklistItemId], references: [id])
+  inspection    Inspection         @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  checklistItem ChecklistItem      @relation(fields: [checklistItemId], references: [id])
   photos        InspectionPhoto[]
+  actions       CorrectiveAction[]
 
   @@unique([inspectionId, checklistItemId])
   @@map("inspection_responses")
@@ -211,22 +227,60 @@ model InspectionPhoto {
 }
 
 model CorrectiveAction {
-  id                  String    @id @default(uuid())
-  inspectionId        String    @map("inspection_id")
-  responseId          String?   @map("response_id")
+  id                  String                 @id @default(uuid())
+  inspectionId        String                 @map("inspection_id")
+  responseId          String                 @map("response_id")
   description         String
-  assignedToId        String?   @map("assigned_to")
-  dueDate             DateTime? @map("due_date") @db.Date
-  completedAt         DateTime? @map("completed_at")
-  completionPhotoPath String?   @map("completion_photo_path")
-  completionNotes     String?   @map("completion_notes")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
+  status              CorrectiveActionStatus @default(pending)
+  isCritical          Boolean                @default(false) @map("is_critical")
+  createdById         String                 @map("created_by")
+  evidencePhotoPath   String?                @map("evidence_photo_path")
+  evidenceNotes       String?                @map("evidence_notes")
+  evidenceUploadedAt  DateTime?              @map("evidence_uploaded_at")
+  createdAt           DateTime               @default(now()) @map("created_at")
+  updatedAt           DateTime               @updatedAt @map("updated_at")
 
-  inspection Inspection @relation(fields: [inspectionId], references: [id])
-  assignedTo User?      @relation(fields: [assignedToId], references: [id])
+  inspection Inspection         @relation(fields: [inspectionId], references: [id])
+  response   InspectionResponse @relation(fields: [responseId], references: [id])
+  createdBy  User               @relation("ActionCreator", fields: [createdById], references: [id])
 
   @@map("corrective_actions")
+}
+
+model Tutanak {
+  id           String        @id @default(uuid())
+  inspectionId String        @map("inspection_id")
+  createdById  String        @map("created_by")
+  title        String        @default("Tutanak")
+  content      Json
+  status       TutanakStatus @default(draft)
+  pdfPath      String?       @map("pdf_path")
+  sentAt       DateTime?     @map("sent_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  inspection Inspection @relation(fields: [inspectionId], references: [id])
+  createdBy  User       @relation("TutanakCreator", fields: [createdById], references: [id])
+
+  @@map("tutanaklar")
+}
+
+model ActivityLog {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  details    Json?
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("activity_logs")
 }
 
 model InspectionSchedule {
