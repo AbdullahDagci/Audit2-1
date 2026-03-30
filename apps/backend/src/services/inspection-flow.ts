@@ -2,8 +2,25 @@ import { PrismaClient } from '@prisma/client';
 import { generateInspectionPdfBuffer } from './pdf-generator';
 import { sendEmail, getManagementEmails } from './email';
 import { logActivity } from './activity-logger';
+import { createAndPushNotification } from './push-notification';
 
 const prisma = new PrismaClient();
+
+// Tek fonksiyon: Kritik eksiklikleri tespit et (duplicated kod birleşti)
+function detectCriticalDeficiencies(responses: any[]): any[] {
+  return responses.filter(r => {
+    const item = r.checklistItem;
+    if (!item || !item.isCritical) return false;
+    // Boolean: passed === false veya yanıtsız (passed === null)
+    if (item.itemType === 'boolean' && (r.passed === false || r.passed === null)) return true;
+    // Score: %50'nin altında veya yanıtsız
+    if (item.itemType === 'score') {
+      if (r.score === null || r.score === undefined) return true;
+      if (r.score < item.maxScore * 0.5) return true;
+    }
+    return false;
+  });
+}
 
 export async function checkAndFinalizeInspection(inspectionId: string): Promise<boolean> {
   const inspection = await prisma.inspection.findUnique({
@@ -36,42 +53,23 @@ export async function checkAndFinalizeInspection(inspectionId: string): Promise<
 
   if (!inspection) return false;
 
-  const criticalDeficiencies = inspection.responses.filter(r => {
-    const item = r.checklistItem;
-    if (!item.isCritical) return false;
-    if (item.itemType === 'boolean' && r.passed === false) return true;
-    if (item.itemType === 'score' && r.score !== null && r.score < item.maxScore * 0.5) return true;
-    return false;
-  });
+  const criticalDeficiencies = detectCriticalDeficiencies(inspection.responses);
 
-  if (criticalDeficiencies.length === 0) {
-    return true;
+  // Kritik eksik varsa ve hepsi kapatılmamışsa bekle
+  if (criticalDeficiencies.length > 0) {
+    const allCriticalsCovered = criticalDeficiencies.every(deficiency => {
+      const action = inspection.actions.find(a => a.responseId === deficiency.id);
+      return action && action.evidencePhotoPath;
+    });
+    if (!allCriticalsCovered) {
+      return false;
+    }
   }
 
-  const allCriticalsCovered = criticalDeficiencies.every(deficiency => {
-    const action = inspection.actions.find(a => a.responseId === deficiency.id);
-    return action && action.evidencePhotoPath;
-  });
+  // Buraya geldi = ya kritik yok ya da hepsi kapatıldı -> finalize et
 
-  if (!allCriticalsCovered) {
-    return false;
-  }
-
-  await prisma.inspection.update({
-    where: { id: inspectionId },
-    data: {
-      status: 'reviewed',
-      reviewedAt: new Date(),
-    },
-  });
-
-  await logActivity({
-    action: 'INSPECTION_FINALIZED',
-    entityType: 'inspection',
-    entityId: inspectionId,
-    details: { branchName: inspection.branch.name, scorePercentage: inspection.scorePercentage },
-  });
-
+  // PDF oluştur ve mail gönder - başarısız olursa reviewed yapma
+  let pdfSuccess = true;
   const categories = await prisma.checklistCategory.findMany({
     where: { templateId: inspection.templateId },
     orderBy: { sortOrder: 'asc' },
@@ -89,7 +87,7 @@ export async function checkAndFinalizeInspection(inspectionId: string): Promise<
     };
 
     const pdfBuffer = await generateInspectionPdfBuffer(pdfData);
-    const managementEmails = getManagementEmails();
+    const managementEmails = await getManagementEmails();
 
     if (managementEmails.length > 0) {
       const completedDate = inspection.completedAt
@@ -123,18 +121,39 @@ export async function checkAndFinalizeInspection(inspectionId: string): Promise<
     }
   } catch (error) {
     console.error('Rapor oluşturma/gönderme hatası:', error);
+    pdfSuccess = false;
+    // PDF başarısız olsa bile denetimi reviewed yap - rapor sonra tekrar oluşturulabilir
   }
 
+  // Denetimi reviewed olarak işaretle
+  await prisma.inspection.update({
+    where: { id: inspectionId },
+    data: {
+      status: 'reviewed',
+      reviewedAt: new Date(),
+    },
+  });
+
+  await logActivity({
+    action: 'INSPECTION_FINALIZED',
+    entityType: 'inspection',
+    entityId: inspectionId,
+    details: {
+      branchName: inspection.branch.name,
+      scorePercentage: inspection.scorePercentage,
+      pdfGenerated: pdfSuccess,
+    },
+  });
+
+  // Admin bildirim + push
   const admins = await prisma.user.findMany({ where: { role: 'admin', isActive: true } });
   for (const admin of admins) {
-    await prisma.notification.create({
-      data: {
-        userId: admin.id,
-        title: 'Denetim Süreci Tamamlandı',
-        body: `${inspection.branch.name} şubesindeki denetim süreci tamamlandı. Rapor üst yönetime gönderildi.`,
-        data: { inspectionId, type: 'flow_completed' },
-      },
-    });
+    await createAndPushNotification(
+      admin.id,
+      'Denetim Süreci Tamamlandı',
+      `${inspection.branch.name} şubesindeki denetim süreci tamamlandı.${pdfSuccess ? ' Rapor üst yönetime gönderildi.' : ' Rapor oluşturulamadı.'}`,
+      { inspectionId, type: 'flow_completed' },
+    );
   }
 
   return true;
@@ -145,48 +164,56 @@ export async function handleInspectionCompleted(inspectionId: string): Promise<v
     where: { id: inspectionId },
     include: {
       branch: { include: { manager: true } },
+      inspector: { select: { id: true, fullName: true } },
       responses: {
-        include: {
-          checklistItem: true,
-        }
+        include: { checklistItem: true },
       },
     },
   });
 
   if (!inspection) return;
 
-  const criticalDeficiencies = inspection.responses.filter(r => {
-    const item = r.checklistItem;
-    if (!item.isCritical) return false;
-    if (item.itemType === 'boolean' && r.passed === false) return true;
-    if (item.itemType === 'score' && r.score !== null && r.score < item.maxScore * 0.5) return true;
-    return false;
-  });
+  // Denetçiye "denetiminiz gönderildi" bildirimi
+  if (inspection.inspectorId) {
+    await createAndPushNotification(
+      inspection.inspectorId,
+      'Denetiminiz Gönderildi',
+      `${inspection.branch.name} şubesindeki denetiminiz başarıyla gönderildi. Puan: %${Math.round(Number(inspection.scorePercentage || 0))}`,
+      { inspectionId, type: 'inspection_submitted' },
+    );
+  }
+
+  const criticalDeficiencies = detectCriticalDeficiencies(inspection.responses);
 
   if (criticalDeficiencies.length === 0) {
+    // Kritik eksik yok -> hemen finalize et
     await checkAndFinalizeInspection(inspectionId);
   } else {
+    // Durumu pending_action yap
+    await prisma.inspection.update({
+      where: { id: inspectionId },
+      data: { status: 'pending_action' },
+    });
+
+    // Şube müdürüne bildirim + push
     if (inspection.branch.managerId) {
-      await prisma.notification.create({
-        data: {
-          userId: inspection.branch.managerId,
-          title: 'Yeni Denetim - Düzeltici Faaliyet Gerekli',
-          body: `${inspection.branch.name} şubesinde ${criticalDeficiencies.length} kritik eksik tespit edildi. Düzeltici faaliyet eklemeniz gerekmektedir.`,
-          data: { inspectionId, type: 'corrective_action_required', criticalCount: criticalDeficiencies.length },
-        },
-      });
+      await createAndPushNotification(
+        inspection.branch.managerId,
+        'Yeni Denetim - Düzeltici Faaliyet Gerekli',
+        `${inspection.branch.name} şubesinde ${criticalDeficiencies.length} kritik eksik tespit edildi. Düzeltici faaliyet eklemeniz gerekmektedir.`,
+        { inspectionId, type: 'corrective_action_required', criticalCount: criticalDeficiencies.length },
+      );
     }
 
+    // Admin bildirim + push
     const admins = await prisma.user.findMany({ where: { role: 'admin', isActive: true } });
     for (const admin of admins) {
-      await prisma.notification.create({
-        data: {
-          userId: admin.id,
-          title: 'Kritik Bulgular Tespit Edildi',
-          body: `${inspection.branch.name} şubesinde ${criticalDeficiencies.length} kritik bulgu tespit edildi.`,
-          data: { inspectionId, type: 'critical_findings', criticalCount: criticalDeficiencies.length },
-        },
-      });
+      await createAndPushNotification(
+        admin.id,
+        'Kritik Bulgular Tespit Edildi',
+        `${inspection.branch.name} şubesinde ${criticalDeficiencies.length} kritik bulgu tespit edildi.`,
+        { inspectionId, type: 'critical_findings', criticalCount: criticalDeficiencies.length },
+      );
     }
   }
 }

@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Seed başlatiyor...');
+  console.log('Seed başlatıyor...');
 
   // Admin kullanıcı oluştur
   const adminPassword = await bcrypt.hash('admin123', 10);
@@ -28,7 +28,7 @@ async function main() {
     create: {
       email: 'denetci@ertansa.com',
       password: inspectorPassword,
-      fullName: 'Ahmet Yilmaz',
+      fullName: 'Ahmet Yılmaz',
       role: 'inspector',
       phone: '05009876543',
     },
@@ -50,17 +50,17 @@ async function main() {
 
   console.log('Kullanıcılar oluşturuldu');
 
-  // Subeler
+  // Şubeler
   const branches = await Promise.all([
     prisma.branch.create({ data: { name: 'Merkez Mağaza', facilityType: 'magaza', address: 'Konya Merkez', city: 'Konya', latitude: 37.8746, longitude: 32.4932, managerId: manager.id } }),
     prisma.branch.create({ data: { name: 'Şube 2 Mağaza', facilityType: 'magaza', address: 'Selcuklu', city: 'Konya', latitude: 37.8850, longitude: 32.4800, managerId: manager.id } }),
     prisma.branch.create({ data: { name: 'Kesimhane', facilityType: 'kesimhane', address: 'Organize Sanayi', city: 'Konya', latitude: 37.9100, longitude: 32.5200 } }),
-    prisma.branch.create({ data: { name: 'Ahir - Merkez', facilityType: 'ahir', address: 'Cihanbeyli Yolu', city: 'Konya', latitude: 37.8500, longitude: 32.4500 } }),
+    prisma.branch.create({ data: { name: 'Ahır - Merkez', facilityType: 'ahir', address: 'Cihanbeyli Yolu', city: 'Konya', latitude: 37.8500, longitude: 32.4500 } }),
     prisma.branch.create({ data: { name: 'Yufka Üretim', facilityType: 'yufka', address: 'Karatay', city: 'Konya', latitude: 37.8600, longitude: 32.5100 } }),
     prisma.branch.create({ data: { name: 'Ana Depo', facilityType: 'depo', address: 'Organize Sanayi', city: 'Konya', latitude: 37.9050, longitude: 32.5150 } }),
   ]);
 
-  console.log('Subeler oluşturuldu');
+  console.log('Şubeler oluşturuldu');
 
   // MAGAZA SABLONU
   const magazaTemplate = await prisma.checklistTemplate.create({
@@ -71,22 +71,22 @@ async function main() {
       categories: {
         create: [
           {
-            name: 'Raf Duzeni', sortOrder: 1, weight: 1.0,
+            name: 'Raf Düzeni', sortOrder: 1, weight: 1.0,
             items: { create: [
-              { questionText: 'Raf etiketleri guncel mi?', maxScore: 10, sortOrder: 1 },
-              { questionText: 'Urunler duzenli yerlestirilmis mi?', maxScore: 10, photoRequired: true, sortOrder: 2 },
-              { questionText: 'Eksik urun var mi?', maxScore: 10, photoRequired: true, sortOrder: 3 },
-              { questionText: 'Raf temizligi yapilmis mi?', maxScore: 10, sortOrder: 4 },
-              { questionText: 'Urun gruplandirmasi dogru mu?', maxScore: 10, sortOrder: 5 },
+              { questionText: 'Raf etiketleri güncel mi?', maxScore: 10, sortOrder: 1 },
+              { questionText: 'Ürünler düzenli yerleştirilmiş mi?', maxScore: 10, photoRequired: true, sortOrder: 2 },
+              { questionText: 'Eksik ürün var mı?', maxScore: 10, photoRequired: true, sortOrder: 3 },
+              { questionText: 'Raf temizliği yapılmış mı?', maxScore: 10, sortOrder: 4 },
+              { questionText: 'Ürün gruplandırması doğru mu?', maxScore: 10, sortOrder: 5 },
             ]},
           },
           {
             name: 'Son Kullanma Tarihi', sortOrder: 2, weight: 1.5,
             items: { create: [
-              { questionText: 'SKT gecmis urun var mi?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 1 },
-              { questionText: 'SKT si yaklasan urunler ayrilmis mi?', maxScore: 10, sortOrder: 2 },
-              { questionText: 'SKT kontrol kaydi tutulmus mu?', maxScore: 10, sortOrder: 3 },
-              { questionText: 'Tezgah urunlerinin SKT kontrol edilmis mi?', maxScore: 10, sortOrder: 4 },
+              { questionText: 'SKT geçmiş ürün var mı?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 1 },
+              { questionText: 'SKT si yaklaşan ürünler ayrılmış mı?', maxScore: 10, sortOrder: 2 },
+              { questionText: 'SKT kontrol kaydı tutulmuş mu?', maxScore: 10, sortOrder: 3 },
+              { questionText: 'Tezgah ürünlerinin SKT kontrol edilmiş mi?', maxScore: 10, sortOrder: 4 },
             ]},
           },
           {
@@ -94,38 +94,38 @@ async function main() {
             items: { create: [
               { questionText: 'Zemin temiz mi?', maxScore: 10, photoRequired: true, sortOrder: 1 },
               { questionText: 'Tezgahlar temiz mi?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 2 },
-              { questionText: 'Cop kutulari bosaltilmis mi?', maxScore: 10, sortOrder: 3 },
-              { questionText: 'Sogutucu dolaplar temiz mi?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 4 },
+              { questionText: 'Çöp kutuları boşaltılmış mı?', maxScore: 10, sortOrder: 3 },
+              { questionText: 'Soğutucu dolaplar temiz mi?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 4 },
               { questionText: 'Tuvalet ve lavabo temiz mi?', maxScore: 10, photoRequired: true, sortOrder: 5 },
-              { questionText: 'Genel koku problemi var mi?', maxScore: 10, sortOrder: 6 },
+              { questionText: 'Genel koku problemi var mı?', maxScore: 10, sortOrder: 6 },
             ]},
           },
           {
             name: 'Fiyat Etiketi', sortOrder: 4, weight: 1.0,
             items: { create: [
-              { questionText: 'Tum urunlerde fiyat etiketi var mi?', maxScore: 10, sortOrder: 1 },
-              { questionText: 'Etiket fiyatlari kasa fiyatiyla uyumlu mu?', maxScore: 10, sortOrder: 2 },
-              { questionText: 'Kampanya etiketleri guncel mi?', maxScore: 10, sortOrder: 3 },
-              { questionText: 'Etiketler okunakli mi?', maxScore: 10, sortOrder: 4 },
+              { questionText: 'Tüm ürünlerde fiyat etiketi var mı?', maxScore: 10, sortOrder: 1 },
+              { questionText: 'Etiket fiyatları kasa fiyatıyla uyumlu mu?', maxScore: 10, sortOrder: 2 },
+              { questionText: 'Kampanya etiketleri güncel mi?', maxScore: 10, sortOrder: 3 },
+              { questionText: 'Etiketler okunaklı mı?', maxScore: 10, sortOrder: 4 },
             ]},
           },
           {
-            name: 'Kasa Sureci', sortOrder: 5, weight: 0.8,
+            name: 'Kasa Süreci', sortOrder: 5, weight: 0.8,
             items: { create: [
-              { questionText: 'Kasa alani duzenli mi?', maxScore: 10, sortOrder: 1 },
-              { questionText: 'Poset/canta stoku yeterli mi?', maxScore: 10, sortOrder: 2 },
-              { questionText: 'Para ustu hazir mi?', maxScore: 10, sortOrder: 3 },
-              { questionText: 'Musteri bekleme suresi uygun mu?', itemType: 'score', maxScore: 10, sortOrder: 4 },
+              { questionText: 'Kasa alanı düzenli mi?', maxScore: 10, sortOrder: 1 },
+              { questionText: 'Poşet/çanta stoku yeterli mi?', maxScore: 10, sortOrder: 2 },
+              { questionText: 'Para üstü hazır mı?', maxScore: 10, sortOrder: 3 },
+              { questionText: 'Müşteri bekleme süresi uygun mu?', itemType: 'score', maxScore: 10, sortOrder: 4 },
             ]},
           },
           {
             name: 'Personel', sortOrder: 6, weight: 1.2,
             items: { create: [
-              { questionText: 'Personel kiyafetleri uygun mu?', maxScore: 10, photoRequired: true, sortOrder: 1 },
-              { questionText: 'Isimlik takili mi?', maxScore: 10, sortOrder: 2 },
-              { questionText: 'Personel sayisi yeterli mi?', maxScore: 10, sortOrder: 3 },
-              { questionText: 'Personel hijyen kurallarina uyuyor mu?', maxScore: 10, sortOrder: 4 },
-              { questionText: 'Musteriye karsi tutum uygun mu?', itemType: 'score', maxScore: 10, sortOrder: 5 },
+              { questionText: 'Personel kıyafetleri uygun mu?', maxScore: 10, photoRequired: true, sortOrder: 1 },
+              { questionText: 'İsimlik takılı mı?', maxScore: 10, sortOrder: 2 },
+              { questionText: 'Personel sayısı yeterli mi?', maxScore: 10, sortOrder: 3 },
+              { questionText: 'Personel hijyen kurallarına uyuyor mu?', maxScore: 10, sortOrder: 4 },
+              { questionText: 'Müşteriye karşı tutum uygun mu?', itemType: 'score', maxScore: 10, sortOrder: 5 },
             ]},
           },
         ],
@@ -140,21 +140,21 @@ async function main() {
       categories: { create: [
         { name: 'Hijyen', sortOrder: 1, weight: 2.0, items: { create: [
           { questionText: 'Zemin temiz ve dezenfekte mi?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 1 },
-          { questionText: 'Ekipmanlar sterilize edilmis mi?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 2 },
-          { questionText: 'Calisma tezgahlari temiz mi?', maxScore: 10, isCritical: true, sortOrder: 3 },
-          { questionText: 'Lavabo ve el dezenfektani mevcut mu?', maxScore: 10, sortOrder: 4 },
-          { questionText: 'Atik alani hijyenik mi?', maxScore: 10, photoRequired: true, sortOrder: 5 },
+          { questionText: 'Ekipmanlar sterilize edilmiş mi?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 2 },
+          { questionText: 'Çalışma tezgahları temiz mi?', maxScore: 10, isCritical: true, sortOrder: 3 },
+          { questionText: 'Lavabo ve el dezenfektanı mevcut mu?', maxScore: 10, sortOrder: 4 },
+          { questionText: 'Atık alanı hijyenik mi?', maxScore: 10, photoRequired: true, sortOrder: 5 },
         ]}},
-        { name: 'Soguk Zincir', sortOrder: 2, weight: 2.0, items: { create: [
-          { questionText: 'Soguk hava deposu sicakligi uygun mu?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 1 },
-          { questionText: 'Sicaklik kayitlari tutuluyor mu?', maxScore: 10, isCritical: true, sortOrder: 2 },
-          { questionText: 'Et urunleri dogru sicaklikta muhafaza ediliyor mu?', maxScore: 10, photoRequired: true, sortOrder: 3 },
+        { name: 'Soğuk Zincir', sortOrder: 2, weight: 2.0, items: { create: [
+          { questionText: 'Soğuk hava deposu sıcaklığı uygun mu?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 1 },
+          { questionText: 'Sıcaklık kayıtları tutuluyor mu?', maxScore: 10, isCritical: true, sortOrder: 2 },
+          { questionText: 'Et ürünleri doğru sıcaklıkta muhafaza ediliyor mu?', maxScore: 10, photoRequired: true, sortOrder: 3 },
         ]}},
         { name: 'Koruyucu Ekipman', sortOrder: 3, weight: 1.5, items: { create: [
-          { questionText: 'Eldiven kullaniliyor mu?', maxScore: 10, photoRequired: true, sortOrder: 1 },
-          { questionText: 'Bone/kep takili mi?', maxScore: 10, photoRequired: true, sortOrder: 2 },
-          { questionText: 'Onluk giyilmis mi?', maxScore: 10, sortOrder: 3 },
-          { questionText: 'Cizme/galos kullaniliyor mu?', maxScore: 10, sortOrder: 4 },
+          { questionText: 'Eldiven kullanılıyor mu?', maxScore: 10, photoRequired: true, sortOrder: 1 },
+          { questionText: 'Bone/kep takılı mı?', maxScore: 10, photoRequired: true, sortOrder: 2 },
+          { questionText: 'Önlük giyilmiş mi?', maxScore: 10, sortOrder: 3 },
+          { questionText: 'Çizme/galoş kullanılıyor mu?', maxScore: 10, sortOrder: 4 },
         ]}},
       ]},
     },
@@ -165,30 +165,30 @@ async function main() {
     data: {
       facilityType: 'magaza', name: 'İş Sağlığı ve Güvenliği (ISG)', totalMaxScore: 300,
       categories: { create: [
-        { name: 'Yangin Guvenligi', sortOrder: 1, weight: 2.0, items: { create: [
-          { questionText: 'Yangin tupleri kontrol edilmis mi?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 1 },
-          { questionText: 'Tup son kontrol tarihi uygun mu?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 2 },
-          { questionText: 'Yangin alarm sistemi calisiyor mu?', maxScore: 10, sortOrder: 3 },
-          { questionText: 'Yangin tatbikati yapilmis mi?', maxScore: 10, sortOrder: 4 },
+        { name: 'Yangın Güvenliği', sortOrder: 1, weight: 2.0, items: { create: [
+          { questionText: 'Yangın tüpleri kontrol edilmiş mi?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 1 },
+          { questionText: 'Tüp son kontrol tarihi uygun mu?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 2 },
+          { questionText: 'Yangın alarm sistemi çalışıyor mu?', maxScore: 10, sortOrder: 3 },
+          { questionText: 'Yangın tatbikatı yapılmış mı?', maxScore: 10, sortOrder: 4 },
         ]}},
-        { name: 'Acil Cikislar', sortOrder: 2, weight: 2.0, items: { create: [
-          { questionText: 'Acil cikis yollari acik mi?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 1 },
-          { questionText: 'Acil cikis isaretleri aydinlatilmis mi?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 2 },
-          { questionText: 'Acil cikis kapilari kilitli degil mi?', maxScore: 10, photoRequired: true, sortOrder: 3 },
-          { questionText: 'Tahliye plani asili mi?', maxScore: 10, photoRequired: true, sortOrder: 4 },
+        { name: 'Acil Çıkışlar', sortOrder: 2, weight: 2.0, items: { create: [
+          { questionText: 'Acil çıkış yolları açık mı?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 1 },
+          { questionText: 'Acil çıkış işaretleri aydınlatılmış mı?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 2 },
+          { questionText: 'Acil çıkış kapıları kilitli değil mi?', maxScore: 10, photoRequired: true, sortOrder: 3 },
+          { questionText: 'Tahliye planı asılı mı?', maxScore: 10, photoRequired: true, sortOrder: 4 },
         ]}},
-        { name: 'Elektrik Guvenligi', sortOrder: 3, weight: 1.5, items: { create: [
-          { questionText: 'Elektrik panosu kapali ve kilitli mi?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 1 },
-          { questionText: 'Acikta kablo var mi?', maxScore: 10, photoRequired: true, sortOrder: 2 },
-          { questionText: 'Topraklama kontrol edilmis mi?', maxScore: 10, sortOrder: 3 },
+        { name: 'Elektrik Güvenliği', sortOrder: 3, weight: 1.5, items: { create: [
+          { questionText: 'Elektrik panosu kapalı ve kilitli mi?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 1 },
+          { questionText: 'Açıkta kablo var mı?', maxScore: 10, photoRequired: true, sortOrder: 2 },
+          { questionText: 'Topraklama kontrol edilmiş mi?', maxScore: 10, sortOrder: 3 },
         ]}},
-        { name: 'Kisisel Koruyucu Ekipman', sortOrder: 4, weight: 1.5, items: { create: [
-          { questionText: 'Personel uygun KKE kullaniyor mu?', maxScore: 10, photoRequired: true, sortOrder: 1 },
+        { name: 'Kişisel Koruyucu Ekipman', sortOrder: 4, weight: 1.5, items: { create: [
+          { questionText: 'Personel uygun KKE kullanıyor mu?', maxScore: 10, photoRequired: true, sortOrder: 1 },
           { questionText: 'KKE stoku yeterli mi?', maxScore: 10, sortOrder: 2 },
-          { questionText: 'KKE egitimi verilmis mi?', maxScore: 10, sortOrder: 3 },
+          { questionText: 'KKE eğitimi verilmiş mi?', maxScore: 10, sortOrder: 3 },
         ]}},
         { name: 'Genel ISG', sortOrder: 5, weight: 1.0, items: { create: [
-          { questionText: 'Ilk yardim cantasi mevcut ve dolu mu?', maxScore: 10, photoRequired: true, sortOrder: 1 },
+          { questionText: 'İlk yardım çantası mevcut ve dolu mu?', maxScore: 10, photoRequired: true, sortOrder: 1 },
           { questionText: 'İSG panosu güncel mi?', maxScore: 10, photoRequired: true, sortOrder: 2 },
           { questionText: 'Risk değerlendirmesi yapılmış mı?', maxScore: 10, sortOrder: 3 },
           { questionText: 'İş kazası kayıtları tutulmuş mu?', maxScore: 10, sortOrder: 4 },
@@ -198,6 +198,15 @@ async function main() {
   });
 
   console.log('Şablonlar oluşturuldu');
+
+  // Sistem ayarları - varsayılan management email
+  await prisma.systemSetting.upsert({
+    where: { key: 'management_emails' },
+    create: { key: 'management_emails', value: JSON.stringify(['abdullah.dagci@ertansa.com.tr']) },
+    update: {},
+  });
+  console.log('Sistem ayarları oluşturuldu');
+
   console.log('---');
   console.log('Giriş bilgileri:');
   console.log('  Admin:    admin@ertansa.com / admin123');

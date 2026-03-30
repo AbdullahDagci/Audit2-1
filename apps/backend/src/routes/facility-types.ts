@@ -1,61 +1,59 @@
 import { Router, Response } from 'express';
-import { prisma } from '../index';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-// GET /api/facility-types - Tum tesis tiplerini getir
+// Tesis tipleri enum'dan türetilmiş statik liste
+// Prisma schema'daki FacilityType enum'una karşılık gelir
+const FACILITY_TYPES = [
+  { key: 'magaza', label: 'Mağaza', is_active: true, sort_order: 1 },
+  { key: 'kesimhane', label: 'Kesimhane', is_active: true, sort_order: 2 },
+  { key: 'ahir', label: 'Ahır', is_active: true, sort_order: 3 },
+  { key: 'yufka', label: 'Yufka Üretim', is_active: true, sort_order: 4 },
+  { key: 'depo', label: 'Depo', is_active: true, sort_order: 5 },
+];
+
+// GET /api/facility-types
 router.get('/', authenticate, async (_req: AuthRequest, res: Response) => {
   try {
-    const types = await prisma.$queryRaw`SELECT id, key, label, is_active, sort_order FROM facility_types ORDER BY sort_order ASC`;
-    res.json(types);
+    res.json(FACILITY_TYPES);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST /api/facility-types - Yeni tesis tipi ekle (admin)
+// POST /api/facility-types (bilgilendirme amaçlı - enum'a runtime'da eklenemez)
 router.post('/', authenticate, requireRole('admin'), async (req: AuthRequest, res: Response) => {
   try {
     const { key, label } = req.body;
     if (!key || !label) return res.status(400).json({ error: 'key ve label gerekli' });
 
-    // Enum'a eklemeye calis (yoksa hata vermez)
-    try {
-      await prisma.$executeRawUnsafe(`ALTER TYPE "FacilityType" ADD VALUE IF NOT EXISTS '${key}'`);
-    } catch {}
+    // Zaten var mı kontrol et
+    const exists = FACILITY_TYPES.find(t => t.key === key);
+    if (exists) {
+      return res.status(409).json({ error: 'Bu tesis tipi zaten mevcut' });
+    }
 
-    const maxOrder: any = await prisma.$queryRaw`SELECT COALESCE(MAX(sort_order), 0) + 1 as next FROM facility_types`;
-    const nextOrder = maxOrder[0]?.next || 1;
-
-    await prisma.$executeRaw`INSERT INTO facility_types (key, label, sort_order) VALUES (${key}, ${label}, ${nextOrder}) ON CONFLICT (key) DO UPDATE SET label = ${label}`;
-
-    const result: any = await prisma.$queryRaw`SELECT id, key, label, is_active, sort_order FROM facility_types WHERE key = ${key}`;
-    res.status(201).json(result[0]);
+    // Yeni tip ekle (runtime - sunucu restart olana kadar geçerli)
+    FACILITY_TYPES.push({ key, label, is_active: true, sort_order: FACILITY_TYPES.length + 1 });
+    res.status(201).json(FACILITY_TYPES[FACILITY_TYPES.length - 1]);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// PUT /api/facility-types/:key - Tesis tipini güncelle (admin)
+// PUT /api/facility-types/:key
 router.put('/:key', authenticate, requireRole('admin'), async (req: AuthRequest, res: Response) => {
   try {
-    const { label, is_active, sort_order } = req.body;
     const key = req.params.key as string;
+    const item = FACILITY_TYPES.find(t => t.key === key);
+    if (!item) return res.status(404).json({ error: 'Tip bulunamadı' });
 
-    const sets: string[] = [];
-    const vals: any[] = [];
-    if (label !== undefined) { sets.push('label = $1'); vals.push(label); }
-    if (is_active !== undefined) { sets.push(`is_active = ${is_active}`); }
-    if (sort_order !== undefined) { sets.push(`sort_order = ${sort_order}`); }
+    if (req.body.label !== undefined) item.label = req.body.label;
+    if (req.body.is_active !== undefined) item.is_active = req.body.is_active;
+    if (req.body.sort_order !== undefined) item.sort_order = req.body.sort_order;
 
-    if (sets.length > 0) {
-      await prisma.$executeRawUnsafe(`UPDATE facility_types SET ${sets.join(', ')} WHERE key = '${key}'`);
-    }
-
-    const result: any = await prisma.$queryRaw`SELECT id, key, label, is_active, sort_order FROM facility_types WHERE key = ${key}`;
-    if (!result[0]) return res.status(404).json({ error: 'Tip bulunamadı' });
-    res.json(result[0]);
+    res.json(item);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

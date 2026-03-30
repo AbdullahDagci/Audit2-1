@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   TextInput, Alert, FlatList, Modal as RNModal, ActivityIndicator, Switch, Dimensions
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
 import { useAuthStore } from '@/stores/auth-store';
@@ -26,11 +26,11 @@ const FACILITY_TYPES = [
   { value: 'depo', label: 'Depo' },
 ];
 
-type Tab = 'users' | 'templates' | 'branches' | 'schedules' | 'types';
+type Tab = 'users' | 'templates' | 'branches' | 'schedules' | 'types' | 'email';
 
 export default function AdminScreen() {
   const user = useAuthStore((s) => s.user);
-  const [tab, setTab] = useState<Tab>('users');
+  const [tab, setTab] = useState<Tab>(user?.role === 'manager' ? 'templates' : 'users');
 
   if (user?.role !== 'admin' && user?.role !== 'manager') {
     return (
@@ -41,13 +41,18 @@ export default function AdminScreen() {
     );
   }
 
-  const tabs: { key: Tab; label: string; icon: string }[] = [
+  const allTabs: { key: Tab; label: string; icon: string }[] = [
     { key: 'users', label: 'Kullanıcılar', icon: 'people' },
     { key: 'templates', label: 'Şablonlar', icon: 'checklist' },
     { key: 'branches', label: 'Şubeler', icon: 'store' },
     { key: 'schedules', label: 'Takvim', icon: 'event' },
     { key: 'types', label: 'Tesis Tipleri', icon: 'category' },
+    { key: 'email', label: 'Email', icon: 'email' },
   ];
+
+  const visibleTabs = user?.role === 'manager'
+    ? allTabs.filter(t => ['templates', 'branches', 'schedules'].includes(t.key))
+    : allTabs;
 
   return (
     <View style={S.container}>
@@ -55,7 +60,7 @@ export default function AdminScreen() {
       {(user?.role === 'manager' || user?.role === 'admin') && <PendingInspectionsSection />}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={S.tabScroll} contentContainerStyle={S.tabRow}>
-        {tabs.map(t => (
+        {visibleTabs.map(t => (
           <TouchableOpacity key={t.key} style={[S.tabBtn, tab === t.key && S.tabActive]} onPress={() => setTab(t.key)}>
             <MaterialIcons name={t.icon as any} size={18} color={tab === t.key ? '#FFF' : '#666'} />
             <Text style={[S.tabText, tab === t.key && S.tabTextActive]}>{t.label}</Text>
@@ -68,6 +73,7 @@ export default function AdminScreen() {
       {tab === 'branches' && <BranchesTab />}
       {tab === 'schedules' && <SchedulesTab />}
       {tab === 'types' && <FacilityTypesTab />}
+      {tab === 'email' && <EmailTab />}
     </View>
   );
 }
@@ -91,7 +97,7 @@ function PendingInspectionsSection() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetch(); }, [fetch]);
+  useFocusEffect(useCallback(() => { fetch(); }, [fetch]));
 
   if (loading || inspections.length === 0) return null;
 
@@ -170,7 +176,7 @@ function UsersTab() {
     } catch {}
     setLoading(false);
   }, []);
-  useEffect(() => { fetch(); }, [fetch]);
+  useFocusEffect(useCallback(() => { fetch(); }, [fetch]));
 
   const toggleBranch = (id: string) => {
     setSelectedBranchIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -190,22 +196,22 @@ function UsersTab() {
   };
 
   const save = async () => {
+    if (saving) return; // Çoklu tıklama koruması
+    if (modal === 'add') {
+      if (!form.fullName || !form.email || !form.password) { Alert.alert('Hata', 'Tüm alanları doldurun'); return; }
+      if (form.role === 'manager' && selectedBranchIds.length === 0) { Alert.alert('Hata', 'Müdür için en az bir şube seçin'); return; }
+    }
     setSaving(true);
+    setModal(null); // Modal'ı hemen kapat (optimistic UI)
     try {
       if (modal === 'add') {
-        if (!form.fullName || !form.email || !form.password) { Alert.alert('Hata', 'Tüm alanları doldurun'); setSaving(false); return; }
-        if (form.role === 'manager' && selectedBranchIds.length === 0) { Alert.alert('Hata', 'Müdür için en az bir şube seçin'); setSaving(false); return; }
         await api.register({ ...form, branchIds: form.role === 'manager' ? selectedBranchIds : undefined });
       } else {
         const payload: any = { fullName: form.fullName, role: form.role, phone: form.phone || null, isActive: editTarget.isActive };
-        if (form.role === 'manager') {
-          payload.branchIds = selectedBranchIds;
-        } else {
-          payload.branchIds = []; // Müdür değilse atamaları kaldır
-        }
+        payload.branchIds = form.role === 'manager' ? selectedBranchIds : [];
         await api.updateUser(editTarget.id, payload);
       }
-      setModal(null); await fetch();
+      fetch();
     } catch (e: any) { Alert.alert('Hata', e.message); }
     setSaving(false);
   };
@@ -260,7 +266,7 @@ function UsersTab() {
             </TouchableOpacity>
           ))}</View>
 
-          {/* Müdür için sube secimi */}
+          {/* Müdür için şube seçimi */}
           {form.role === 'manager' && (
             <>
               <Text style={S.labelText}>Yonettigi Şubeler *</Text>
@@ -298,7 +304,7 @@ function UsersTab() {
                 </ScrollView>
               </View>
               {selectedBranchIds.length === 0 && (
-                <Text style={{ fontSize: 12, color: '#F44336', marginBottom: 8 }}>En az bir sube secmelisiniz</Text>
+                <Text style={{ fontSize: 12, color: '#F44336', marginBottom: 8 }}>En az bir şube seçmelisiniz</Text>
               )}
             </>
           )}
@@ -332,18 +338,19 @@ function TemplatesTab() {
     }
     setLoading(false);
   }, []);
-  useEffect(() => { fetch(); }, [fetch]);
+  useFocusEffect(useCallback(() => { fetch(); }, [fetch]));
 
   const save = async () => {
-    if (!form.name.trim()) return;
+    if (saving || !form.name.trim()) return;
     setSaving(true);
+    setModal(null);
     try {
       if (modal === 'add') {
         await api.createTemplate({ name: form.name, facilityType: form.facilityType });
       } else {
         await api.updateTemplate(editTarget.id, { name: form.name, facilityType: form.facilityType });
       }
-      setModal(null); await fetch();
+      fetch();
     } catch (e: any) { Alert.alert('Hata', e.message); }
     setSaving(false);
   };
@@ -354,7 +361,7 @@ function TemplatesTab() {
       newState ? 'Şablonu Aktif Et' : 'Şablonu Pasif Yap',
       newState
         ? `"${t.name}" şablonunu tekrar aktif etmek istiyor musunuz?`
-        : `"${t.name}" şablonunu pasif yapmak istiyor musunuz? Pasif sablonlar denetimlerde kullanilmaz.`,
+        : `"${t.name}" şablonunu pasif yapmak istiyor musunuz? Pasif şablonlar denetimlerde kullanılmaz.`,
       [
         { text: 'İptal', style: 'cancel' },
         {
@@ -447,12 +454,15 @@ function BranchesTab() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [b, ft] = await Promise.all([api.getBranches(), api.getFacilityTypes()]);
-      setBranches(b);
-      setFacilityTypes(ft.filter((t: any) => t.is_active));
+      const [b, ft] = await Promise.all([
+        api.getBranches(),
+        api.getFacilityTypes().catch(() => FACILITY_TYPES.map(f => ({ key: f.value, label: f.label, is_active: true }))),
+      ]);
+      setBranches(Array.isArray(b) ? b : []);
+      setFacilityTypes(Array.isArray(ft) ? ft.filter((t: any) => t.is_active !== false) : FACILITY_TYPES.map(f => ({ key: f.value, label: f.label, is_active: true })));
     } catch {} setLoading(false);
   }, []);
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
   const openAdd = async () => {
     let lat = 39.9043, lon = 41.2679;
@@ -501,34 +511,30 @@ function BranchesTab() {
     }
   };
 
-  const getMapHtml = (lat: number, lon: number) => '<!DOCTYPE html><html><head>' +
-    '<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">' +
-    '<style>html,body,#map{margin:0;padding:0;width:100%;height:100%}</style>' +
-    '</head><body><div id="map"></div>' +
-    '<script>var marker,map;' +
-    'function initMap(){' +
-    '  var pos={lat:' + lat + ',lng:' + lon + '};' +
-    '  map=new google.maps.Map(document.getElementById("map"),{zoom:15,center:pos,mapTypeControl:false,streetViewControl:false,fullscreenControl:false});' +
-    '  marker=new google.maps.Marker({position:pos,map:map,draggable:true,animation:google.maps.Animation.DROP});' +
-    '  map.addListener("click",function(e){' +
-    '    marker.setPosition(e.latLng);' +
-    '    window.ReactNativeWebView.postMessage(JSON.stringify({lat:e.latLng.lat(),lng:e.latLng.lng()}));' +
-    '  });' +
-    '  marker.addListener("dragend",function(){' +
-    '    var p=marker.getPosition();' +
-    '    window.ReactNativeWebView.postMessage(JSON.stringify({lat:p.lat(),lng:p.lng()}));' +
-    '  });' +
-    '}' +
-    'function moveMarker(lat,lng){' +
-    '  var pos={lat:lat,lng:lng};' +
-    '  marker.setPosition(pos);' +
-    '  map.setCenter(pos);' +
-    '  map.setZoom(16);' +
-    '  window.ReactNativeWebView.postMessage(JSON.stringify({lat:lat,lng:lng}));' +
-    '}' +
-    '</script>' +
-    '<script src="https://maps.googleapis.com/maps/api/js?callback=initMap" async defer></script>' +
-    '</body></html>';
+  const getMapHtml = (lat: number, lon: number) => `<!DOCTYPE html><html><head>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>html,body,#map{margin:0;padding:0;width:100%;height:100%}</style>
+</head><body><div id="map"></div>
+<script>
+var map=L.map('map',{zoomControl:false}).setView([${lat},${lon}],15);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:''}).addTo(map);
+var marker=L.marker([${lat},${lon}],{draggable:true}).addTo(map);
+map.on('click',function(e){
+  marker.setLatLng(e.latlng);
+  window.ReactNativeWebView.postMessage(JSON.stringify({lat:e.latlng.lat,lng:e.latlng.lng}));
+});
+marker.on('dragend',function(){
+  var p=marker.getLatLng();
+  window.ReactNativeWebView.postMessage(JSON.stringify({lat:p.lat,lng:p.lng}));
+});
+function moveMarker(lat,lng){
+  marker.setLatLng([lat,lng]);
+  map.setView([lat,lng],16);
+  window.ReactNativeWebView.postMessage(JSON.stringify({lat:lat,lng:lng}));
+}
+</script></body></html>`;
 
   const deleteBranch = (item: any) => {
     Alert.alert('Subeyi Sil', `"${item.name}" subesini silmek istiyor musunuz?`, [
@@ -541,8 +547,9 @@ function BranchesTab() {
   };
 
   const save = async () => {
-    if (!form.name.trim()) return;
+    if (saving || !form.name.trim()) return;
     setSaving(true);
+    setModal(null);
     try {
       const data = { name: form.name, facilityType: form.facilityType, address: form.address, city: form.city, latitude: form.latitude, longitude: form.longitude };
       if (modal === 'add') {
@@ -550,7 +557,7 @@ function BranchesTab() {
       } else {
         await api.updateBranch(editTarget.id, data);
       }
-      setModal(null); await fetchData();
+      fetchData();
     } catch (e: any) { Alert.alert('Hata', e.message); }
     setSaving(false);
   };
@@ -626,7 +633,7 @@ function BranchesTab() {
               ))}
             </View>
 
-            {/* Harita ile konum secimi */}
+            {/* Harita ile konum seçimi */}
             <Text style={S.labelText}>Konum (haritaya tıklayarak veya pin sürükleyerek secin)</Text>
             <View style={{ borderRadius: 12, overflow: 'hidden', marginBottom: 12, borderWidth: 1, borderColor: '#E0E0E0' }}>
               <WebView
@@ -673,11 +680,13 @@ function SchedulesTab() {
       setSchedules(s); setBranches(b); setTemplates(t); setUsers(u.filter((x: any) => x.role === 'inspector'));
     } catch {} setLoading(false);
   }, []);
-  useEffect(() => { fetch(); }, [fetch]);
+  useFocusEffect(useCallback(() => { fetch(); }, [fetch]));
 
   const save = async () => {
-    if (!form.branchId || !form.templateId || !form.nextDueDate) { Alert.alert('Hata', 'Sube, sablon ve tarih secin'); return; }
+    if (saving) return;
+    if (!form.branchId || !form.templateId || !form.nextDueDate) { Alert.alert('Hata', 'Şube, şablon ve tarih seçin'); return; }
     setSaving(true);
+    setShowAdd(false);
     try {
       await api.createSchedule({
         branchId: form.branchId,
@@ -686,7 +695,7 @@ function SchedulesTab() {
         frequencyDays: parseInt(form.frequencyDays) || 30,
         nextDueDate: form.nextDueDate,
       });
-      setShowAdd(false); await fetch();
+      fetch();
     } catch (e: any) { Alert.alert('Hata', e.message); }
     setSaving(false);
   };
@@ -776,7 +785,7 @@ function FacilityTypesTab() {
   const fetch = useCallback(async () => {
     try { setTypes(await api.getFacilityTypes()); } catch {} setLoading(false);
   }, []);
-  useEffect(() => { fetch(); }, [fetch]);
+  useFocusEffect(useCallback(() => { fetch(); }, [fetch]));
 
   const handleAdd = async () => {
     if (!form.key.trim() || !form.label.trim()) { Alert.alert('Hata', 'Kod ve etiket gerekli'); return; }
@@ -836,6 +845,182 @@ function FacilityTypesTab() {
           </View>
         </View></View>
       </RNModal>
+    </View>
+  );
+}
+
+// ===================== EMAIL YONETIMI =====================
+function EmailTab() {
+  const [emails, setEmails] = useState<string[]>([]);
+  const [newEmail, setNewEmail] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testingEmail, setTestingEmail] = useState<string | null>(null);
+
+  useFocusEffect(useCallback(() => {
+    setLoading(true);
+    api.getManagementEmails()
+      .then(r => { setEmails(r.emails || []); })
+      .catch(() => { Alert.alert('Hata', 'Email listesi yuklenemedi'); })
+      .finally(() => setLoading(false));
+  }, []));
+
+  const addEmail = async () => {
+    const email = newEmail.trim().toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      Alert.alert('Hata', 'Gecerli bir email adresi girin');
+      return;
+    }
+    if (emails.includes(email)) {
+      Alert.alert('Hata', 'Bu email zaten ekli');
+      return;
+    }
+    const updated = [...emails, email];
+    setSaving(true);
+    try {
+      await api.updateManagementEmails(updated);
+      setEmails(updated);
+      setNewEmail('');
+      Alert.alert('Basarili', 'Email adresi eklendi');
+    } catch (e: any) {
+      Alert.alert('Hata', e.message);
+    }
+    setSaving(false);
+  };
+
+  const removeEmail = async (email: string) => {
+    Alert.alert(
+      'Email Kaldir',
+      `"${email}" adresini listeden kaldirmak istiyor musunuz?`,
+      [
+        { text: 'Iptal', style: 'cancel' },
+        {
+          text: 'Kaldir',
+          style: 'destructive',
+          onPress: async () => {
+            const updated = emails.filter(e => e !== email);
+            setSaving(true);
+            try {
+              await api.updateManagementEmails(updated);
+              setEmails(updated);
+            } catch (e: any) {
+              Alert.alert('Hata', e.message);
+            }
+            setSaving(false);
+          },
+        },
+      ]
+    );
+  };
+
+  const testEmail = async (email: string) => {
+    setTestingEmail(email);
+    try {
+      await api.sendTestEmail(email);
+      Alert.alert('Basarili', `Test maili ${email} adresine gonderildi`);
+    } catch (e: any) {
+      Alert.alert('Hata', e.message);
+    }
+    setTestingEmail(null);
+  };
+
+  if (loading) {
+    return (
+      <View style={S.center}>
+        <ActivityIndicator size="large" color="#2E7D32" />
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ flex: 1 }}>
+      <FlatList
+        data={emails}
+        keyExtractor={(item) => item}
+        contentContainerStyle={{ padding: 16, paddingBottom: 200 }}
+        ListHeaderComponent={
+          <View style={{ backgroundColor: '#E3F2FD', borderRadius: 12, padding: 14, marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <MaterialIcons name="info-outline" size={20} color="#1565C0" />
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#1565C0' }}>Yonetim Email Adresleri</Text>
+            </View>
+            <Text style={{ fontSize: 13, color: '#1565C0', lineHeight: 18 }}>
+              Denetim raporlari asagidaki adreslere gonderilir.
+            </Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <View style={S.card}>
+            <View style={[S.avatar, { backgroundColor: '#E8F5E9' }]}>
+              <MaterialIcons name="email" size={22} color="#2E7D32" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={S.cardTitle}>{item}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              <TouchableOpacity
+                onPress={() => testEmail(item)}
+                style={[S.iconBtn, { backgroundColor: '#E3F2FD' }]}
+                disabled={testingEmail === item}
+              >
+                {testingEmail === item ? (
+                  <ActivityIndicator size={16} color="#1565C0" />
+                ) : (
+                  <MaterialIcons name="send" size={18} color="#1565C0" />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => removeEmail(item)}
+                style={[S.iconBtn, { backgroundColor: '#FFEBEE' }]}
+                disabled={saving}
+              >
+                <MaterialIcons name="delete" size={18} color="#C62828" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+        ListEmptyComponent={
+          <View style={S.emptyBox}>
+            <MaterialIcons name="email" size={40} color="#E0E0E0" />
+            <Text style={S.emptyText}>Henuz email adresi eklenmemis</Text>
+          </View>
+        }
+      />
+
+      {/* Alt kisim: Yeni email ekleme */}
+      <View style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#E0E0E0',
+        padding: 16, paddingBottom: 32,
+        shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, elevation: 8,
+      }}>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <TextInput
+            style={[S.input, { flex: 1, marginBottom: 0 }]}
+            placeholder="ornek@sirket.com"
+            value={newEmail}
+            onChangeText={setNewEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <TouchableOpacity
+            onPress={addEmail}
+            disabled={saving || !newEmail.trim()}
+            style={[S.saveBtn, {
+              flexDirection: 'row', alignItems: 'center', gap: 6,
+              opacity: (saving || !newEmail.trim()) ? 0.5 : 1,
+            }]}
+          >
+            {saving ? (
+              <ActivityIndicator size={16} color="#FFF" />
+            ) : (
+              <MaterialIcons name="add" size={20} color="#FFF" />
+            )}
+            <Text style={S.saveText}>Ekle</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 }

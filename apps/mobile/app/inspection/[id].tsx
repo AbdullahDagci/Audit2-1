@@ -25,7 +25,7 @@ export default function InspectionFormScreen() {
   const [previousFindings, setPreviousFindings] = useState<any[]>([]);
   const [findingsExpanded, setFindingsExpanded] = useState(false);
 
-  // Denetim ve şablon verilerini API'den çek
+  // Denetim ve sablon verilerini API'den cek
   const fetchData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
@@ -33,7 +33,7 @@ export default function InspectionFormScreen() {
       const insp = await api.getInspection(id);
       setInspection(insp);
 
-      // Önceki bulguları çek
+      // Onceki bulgulari cek
       if (insp.branchId) {
         try {
           const findings = await api.getPreviousFindings(insp.branchId);
@@ -43,7 +43,7 @@ export default function InspectionFormScreen() {
         }
       }
 
-      // Şablon kategorileri ve maddelerini ayarla
+      // Sablon kategorileri ve maddelerini ayarla
       if (insp.template?.categories) {
         const cats = insp.template.categories
           .sort((a: any, b: any) => a.sortOrder - b.sortOrder)
@@ -65,7 +65,7 @@ export default function InspectionFormScreen() {
           }));
         setCategories(cats);
 
-        // Eğer önceden kaydedilmiş yanıtlar varsa store'a yükle
+        // Eger onceden kaydedilmis yanitlar varsa store'a yukle
         if (insp.responses && insp.responses.length > 0) {
           const { updateResponse } = useInspectionStore.getState();
           insp.responses.forEach((r: any) => {
@@ -78,7 +78,7 @@ export default function InspectionFormScreen() {
         }
       }
     } catch (err: any) {
-      Alert.alert('Hata', err.message || 'Denetim yüklenemedi.');
+      Alert.alert('Hata', err.message || 'Denetim yuklenemedi.');
     }
     setLoading(false);
   }, [id]);
@@ -98,7 +98,7 @@ export default function InspectionFormScreen() {
   const totalAnswered = categoryScores.reduce((sum, cs) => sum + cs.answeredCount, 0);
   const totalItems = categories.reduce((sum, cat) => sum + cat.items.length, 0);
 
-  // Tüm soruları ve foto zorunluluklarını doğrula
+  // Tum sorulari ve foto zorunluluklarini dogrula
   const validate = (): { valid: boolean; errors: string[] } => {
     const errors: string[] = [];
     let unansweredCount = 0;
@@ -108,7 +108,7 @@ export default function InspectionFormScreen() {
       for (const item of cat.items) {
         const resp = responses.get(item.id);
 
-        // Soru cevaplanmış mı?
+        // Soru cevaplanmis mi?
         if (!resp) {
           unansweredCount++;
           continue;
@@ -124,7 +124,7 @@ export default function InspectionFormScreen() {
           continue;
         }
 
-        // Fotoğraf zorunlu mu?
+        // Fotograf zorunlu mu?
         if (item.photo_required) {
           const itemPhotos = photos.get(item.id) || [];
           if (itemPhotos.length === 0) {
@@ -144,7 +144,7 @@ export default function InspectionFormScreen() {
     return { valid: errors.length === 0, errors };
   };
 
-  // Yanıtları backend formatına çevir
+  // Yanitlari backend formatina cevir
   const buildResponsePayload = () => {
     const payload: any[] = [];
     for (const cat of categories) {
@@ -169,7 +169,7 @@ export default function InspectionFormScreen() {
   const handleSaveDraft = () => {
     const payload = buildResponsePayload();
     if (payload.length === 0) {
-      Alert.alert('Uyarı', 'Henüz hiçbir soru cevaplanmamış. En az bir soruyu cevaplayın.');
+      Alert.alert('Uyari', 'Henuz hicbir soru cevaplanmamis. En az bir soruyu cevaplayin.');
       return;
     }
 
@@ -178,7 +178,7 @@ export default function InspectionFormScreen() {
       .then(() => {
         Alert.alert('Kaydedildi', 'Denetim taslak olarak kaydedildi. Daha sonra devam edebilirsiniz.', [
           { text: 'Devam Et' },
-          { text: 'Çıkış', onPress: () => router.back() },
+          { text: 'Cikis', onPress: () => router.back() },
         ]);
       })
       .catch((err: any) => {
@@ -189,16 +189,16 @@ export default function InspectionFormScreen() {
       });
   };
 
-  // Gönder
+  // Gonder
   const handleSubmit = () => {
-    // Tarih kontrolü - süresi geçmiş denetim gönderilemez
+    // Tarih kontrolu - suresi gecmis denetim gonderilemez
     if (inspection?.scheduledDate) {
       const scheduled = new Date(inspection.scheduledDate);
       scheduled.setHours(0, 0, 0, 0);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       if (today > scheduled) {
-        Alert.alert('Süresi Geçmiş', 'Bu denetimin tarihi geçmiştir. Denetim tamamlanamaz.');
+        Alert.alert('Suresi Gecmis', 'Bu denetimin tarihi gecmistir. Denetim tamamlanamaz.');
         return;
       }
     }
@@ -208,49 +208,57 @@ export default function InspectionFormScreen() {
     if (!valid) {
       Alert.alert(
         'Eksik Maddeler',
-        errors.join('\n') + '\n\nTüm soruları cevaplayın ve zorunlu fotoğrafları ekleyin.',
+        errors.join('\n') + '\n\nTum sorulari cevaplayin ve zorunlu fotograflari ekleyin.',
       );
       return;
     }
 
     Alert.alert(
-      'Denetimi Gönder',
-      'Denetimi tamamlayıp göndermek istediğinize emin misiniz? Gönderdikten sonra değişiklik yapamazsınız.',
+      'Denetimi Gonder',
+      'Denetimi tamamlayip gondermek istediginize emin misiniz? Gonderdikten sonra degisiklik yapamazsiniz.',
       [
-        { text: 'İptal', style: 'cancel' },
+        { text: 'Iptal', style: 'cancel' },
         {
-          text: 'Gönder',
+          text: 'Gonder',
           onPress: () => {
             setSubmitting(true);
             const payload = buildResponsePayload();
 
             api.saveResponses(id!, payload)
               .then(async () => {
-                // Fotoğrafları yükle
+                // Fotograflari yukle
+                let failedPhotoCount = 0;
                 for (const [, itemPhotos] of photos.entries()) {
                   for (const photo of itemPhotos) {
                     try {
                       await api.uploadPhoto(id!, photo.uri, undefined);
                     } catch {
-                      // Foto yüklenemezse devam et
+                      failedPhotoCount++;
                     }
                   }
                 }
 
-                // Denetimi tamamla
+                // Yuklenemeyen foto varsa kullaniciyi bildir
+                if (failedPhotoCount > 0) {
+                  Alert.alert(
+                    'Hata',
+                    `${failedPhotoCount} fotograf yuklenemedi. Lutfen tekrar deneyin.`
+                  );
+                }
 
+                // Denetimi tamamla
                 return api.completeInspection(id!);
               })
               .then(() => {
                 resetInspection();
                 Alert.alert(
-                  'Denetim Gönderildi',
-                  'Denetim başarıyla gönderildi. Şube sorumlusu bilgilendirildi.',
+                  'Denetim Gonderildi',
+                  'Denetim basariyla gonderildi. Sube sorumlusu bilgilendirildi.',
                   [{ text: 'Tamam', onPress: () => router.replace('/(tabs)') }],
                 );
               })
               .catch((err: any) => {
-                Alert.alert('Hata', err.message || 'Denetim gönderilemedi.');
+                Alert.alert('Hata', err.message || 'Denetim gonderilemedi.');
               })
               .finally(() => {
                 setSubmitting(false);
@@ -265,7 +273,7 @@ export default function InspectionFormScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ color: '#999', marginTop: 12 }}>Denetim formu yükleniyor...</Text>
+        <Text style={{ color: '#999', marginTop: 12 }}>Denetim formu yukleniyor...</Text>
       </View>
     );
   }
@@ -273,7 +281,7 @@ export default function InspectionFormScreen() {
   if (!inspection || categories.length === 0) {
     return (
       <View style={styles.center}>
-        <Text style={{ color: '#999', fontSize: 16 }}>Denetim formu bulunamadı</Text>
+        <Text style={{ color: '#999', fontSize: 16 }}>Denetim formu bulunamadi</Text>
 
       </View>
     );
@@ -295,13 +303,13 @@ export default function InspectionFormScreen() {
       <Text style={styles.progressText}>{totalAnswered}/{totalItems} madde tamamlandı</Text>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Önceki denetim bulguları */}
+        {/* Onceki denetim bulgulari */}
         {previousFindings.length > 0 && (
           <View style={styles.findingsBanner}>
             <View style={styles.findingsHeader}>
               <MaterialIcons name="warning" size={20} color="#E65100" />
               <Text style={styles.findingsHeaderText}>
-                Önceki denetimden {previousFindings.length} kritik bulgu var
+                Onceki denetimden {previousFindings.length} kritik bulgu var
               </Text>
             </View>
             <TouchableOpacity
@@ -309,7 +317,7 @@ export default function InspectionFormScreen() {
               onPress={() => setFindingsExpanded(!findingsExpanded)}
             >
               <Text style={styles.findingsToggleText}>
-                {findingsExpanded ? 'Gizle' : 'Bulguları Göster'}
+                {findingsExpanded ? 'Gizle' : 'Bulgulari Goster'}
               </Text>
               <MaterialIcons
                 name={findingsExpanded ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
@@ -350,7 +358,7 @@ export default function InspectionFormScreen() {
           style={{ flex: 1 }}
         />
         <Button
-          title={submitting ? 'Gönderiliyor...' : 'Gönder'}
+          title={submitting ? 'Gonderiliyor...' : 'Gonder'}
           variant="primary"
           onPress={handleSubmit}
           disabled={savingDraft || submitting}

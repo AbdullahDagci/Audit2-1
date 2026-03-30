@@ -63,9 +63,12 @@ model User {
   phone     String?
   role      UserRole @default(inspector)
   avatarUrl String?  @map("avatar_url")
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  isActive           Boolean  @default(true) @map("is_active")
+  emailNotifications Boolean  @default(true) @map("email_notifications")
+  pushNotifications  Boolean  @default(true) @map("push_notifications")
+  criticalAlerts     Boolean  @default(true) @map("critical_alerts")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   managedBranches      Branch[]             @relation("BranchManager")
   inspections          Inspection[]         @relation("Inspector")
@@ -327,4 +330,14 @@ model PushToken {
 
   @@unique([userId, expoPushToken])
   @@map("push_tokens")
+}
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
 }

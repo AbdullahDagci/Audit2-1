@@ -10,17 +10,17 @@ router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email ve sifre gerekli' });
+      return res.status(400).json({ error: 'Email ve şifre gerekli' });
     }
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || !user.isActive) {
-      return res.status(401).json({ error: 'Gecersiz email veya sifre' });
+      return res.status(401).json({ error: 'Geçersiz email veya şifre' });
     }
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
-      return res.status(401).json({ error: 'Gecersiz email veya sifre' });
+      return res.status(401).json({ error: 'Geçersiz email veya şifre' });
     }
 
     const token = generateToken(user.id, user.role);
@@ -50,7 +50,7 @@ router.post('/register', authenticate, async (req: AuthRequest, res: Response) =
 
     const { email, password, fullName, role, phone, branchIds } = req.body;
     if (!email || !password || !fullName) {
-      return res.status(400).json({ error: 'Email, sifre ve ad soyad gerekli' });
+      return res.status(400).json({ error: 'Email, şifre ve ad soyad gerekli' });
     }
 
     if (role === 'manager' && (!branchIds || branchIds.length === 0)) {
@@ -59,7 +59,7 @@ router.post('/register', authenticate, async (req: AuthRequest, res: Response) =
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      return res.status(409).json({ error: 'Bu email zaten kayitli' });
+      return res.status(409).json({ error: 'Bu email zaten kayıtlı' });
     }
 
     const hashed = await bcrypt.hash(password, 10);
@@ -68,7 +68,7 @@ router.post('/register', authenticate, async (req: AuthRequest, res: Response) =
       select: { id: true, email: true, fullName: true, role: true, phone: true },
     });
 
-    // Müdür ise seçilen subelere ata
+    // Müdür ise seçilen şubelere ata
     if (role === 'manager' && branchIds && branchIds.length > 0) {
       await prisma.branch.updateMany({
         where: { id: { in: branchIds } },
@@ -87,7 +87,7 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { id: true, email: true, fullName: true, role: true, phone: true, avatarUrl: true },
+      select: { id: true, email: true, fullName: true, role: true, phone: true, avatarUrl: true, emailNotifications: true, pushNotifications: true, criticalAlerts: true },
     });
     if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
     res.json(user);

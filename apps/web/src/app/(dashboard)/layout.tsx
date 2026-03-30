@@ -25,8 +25,8 @@ export default function DashboardLayout({
   const pathname = usePathname();
 
   const title =
-    pageTitles[pathname] ||
-    Object.entries(pageTitles).find(([key]) => pathname.startsWith(key))?.[1] ||
+    (pathname ? pageTitles[pathname] : null) ||
+    Object.entries(pageTitles).find(([key]) => pathname?.startsWith(key))?.[1] ||
     "Dashboard";
 
   return (

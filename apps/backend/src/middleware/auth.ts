@@ -21,7 +21,7 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
     req.userRole = decoded.role;
     next();
   } catch {
-    return res.status(401).json({ error: 'Gecersiz token' });
+    return res.status(401).json({ error: 'Geçersiz token' });
   }
 }
 

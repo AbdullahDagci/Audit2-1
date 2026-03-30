@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Dimensions, ScrollView, ActivityIndicator, Modal as RNModal } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/colors';
 import { Card } from '@/components/ui/Card';
@@ -17,8 +18,10 @@ function statusBadge(status: string) {
   switch (status) {
     case 'scheduled': return { text: 'Planlanmış', variant: 'info' as const };
     case 'completed': return { text: 'Onay Bekliyor', variant: 'warning' as const };
+    case 'pending_action': return { text: 'İşlem Bekliyor', variant: 'warning' as const };
     case 'reviewed': return { text: 'Onaylandı', variant: 'success' as const };
     case 'in_progress': return { text: 'Devam Ediyor', variant: 'info' as const };
+    case 'draft': return { text: 'Taslak', variant: 'neutral' as const };
     default: return { text: status, variant: 'neutral' as const };
   }
 }
@@ -50,7 +53,7 @@ export default function HomeScreen() {
 
   const fetchData = useCallback(async () => {
     try {
-      // Tesis tiplerini API'den cek
+      // Tesis tiplerini API'den çek
       try {
         const types = await api.getFacilityTypes();
         setFacilityTypes(types.filter((t: any) => t.is_active));
@@ -74,7 +77,12 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [isAdmin, selectedFacility]);
 
-  useEffect(() => { setLoading(true); fetchData(); }, [fetchData]);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      fetchData();
+    }, [fetchData])
+  );
 
   const selectedLabel = selectedFacility === 'all' ? 'Tüm Tesisler' : facilityTypes.find((t: any) => t.key === selectedFacility)?.label || selectedFacility;
   const onRefresh = () => { setRefreshing(true); fetchData(); };
@@ -95,7 +103,7 @@ export default function HomeScreen() {
     const branches = selectedFacility === 'all' ? allBranches : allBranches.filter((b: any) => b.facilityType === selectedFacility);
     const stats = dashboard?.stats || { totalInspections: 0, avgScore: 0, criticalCount: 0, pendingSchedules: 0 };
 
-    // Filtreye gore stat hesapla
+    // Filtreye göre stat hesapla
     const filteredStats = selectedFacility === 'all' ? stats : {
       totalInspections: inspections.length,
       avgScore: avgScore,
@@ -110,7 +118,7 @@ export default function HomeScreen() {
       datasets: [{ data: branches.slice(0, 6).map((b: any) => Math.ceil(b.avgScore || 0)) }],
     } : null;
 
-    // Sirali subeler
+    // Sıralı şubeler
     const sortedBranches = [...branches].sort((a: any, b: any) => (b.avgScore || 0) - (a.avgScore || 0));
     const topBranch = sortedBranches[0];
     const worstBranch = sortedBranches[sortedBranches.length - 1];
@@ -137,7 +145,7 @@ export default function HomeScreen() {
           <RNModal visible transparent animationType="fade" onRequestClose={() => setShowPicker(false)}>
             <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setShowPicker(false)}>
               <View style={styles.pickerCard}>
-                <Text style={styles.pickerTitle}>Tesis Tipi Secin</Text>
+                <Text style={styles.pickerTitle}>Tesis Tipi Seçin</Text>
                 <TouchableOpacity style={[styles.pickerItem, selectedFacility === 'all' && styles.pickerItemOn]} onPress={() => { setSelectedFacility('all'); setShowPicker(false); }}>
                   <Text style={[styles.pickerItemText, selectedFacility === 'all' && styles.pickerItemTextOn]}>Tüm Tesisler</Text>
                   {selectedFacility === 'all' && <MaterialIcons name="check" size={20} color="#2E7D32" />}
@@ -153,7 +161,7 @@ export default function HomeScreen() {
           </RNModal>
         )}
 
-        {/* Ozet Kartlari */}
+        {/* Özet Kartları */}
         <View style={styles.statsGrid}>
           <View style={[styles.miniCard, { backgroundColor: '#E8F5E9' }]}>
             <MaterialIcons name="assignment-turned-in" size={22} color="#2E7D32" />
@@ -177,18 +185,18 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Ayin En Başarılı / En Dusuk */}
+        {/* Ayın En Başarılısı / En Düşük */}
         {topBranch && worstBranch && sortedBranches.length > 1 && (
           <View style={styles.topBottomRow}>
-            <Card style={[styles.rankCard, { borderLeftColor: '#4CAF50', borderLeftWidth: 4 }]}>
+            <Card style={[styles.rankCard, { borderLeftColor: '#4CAF50', borderLeftWidth: 4 }] as any}>
               <MaterialIcons name="emoji-events" size={24} color="#FFB300" />
-              <Text style={styles.rankTitle}>Ayin En Başarılısi</Text>
+              <Text style={styles.rankTitle}>Ayın En Başarılısı</Text>
               <Text style={styles.rankBranch}>{topBranch.name}</Text>
               <Text style={[styles.rankScore, { color: '#4CAF50' }]}>%{formatScore(topBranch.avgScore)}</Text>
             </Card>
-            <Card style={[styles.rankCard, { borderLeftColor: '#F44336', borderLeftWidth: 4 }]}>
+            <Card style={[styles.rankCard, { borderLeftColor: '#F44336', borderLeftWidth: 4 }] as any}>
               <MaterialIcons name="trending-down" size={24} color="#F44336" />
-              <Text style={styles.rankTitle}>Gelisme Gereken</Text>
+              <Text style={styles.rankTitle}>Gelişme Gereken</Text>
               <Text style={styles.rankBranch}>{worstBranch.name}</Text>
               <Text style={[styles.rankScore, { color: '#F44336' }]}>%{formatScore(worstBranch.avgScore)}</Text>
             </Card>
@@ -199,7 +207,7 @@ export default function HomeScreen() {
         {branchChartData && branchChartData.datasets[0].data.some((d: number) => d > 0) && (
           <Card style={styles.chartCard}>
             <Text style={styles.chartTitle}>Şube Performansı</Text>
-            <Text style={styles.chartSubtitle}>Ortalama denetim puanlari</Text>
+            <Text style={styles.chartSubtitle}>Ortalama denetim puanları</Text>
             <BarChart
               data={branchChartData}
               width={screenWidth}
@@ -222,7 +230,7 @@ export default function HomeScreen() {
               const scoreRaw = b.avgScore || 0;
               const score = Number(formatScore(scoreRaw));
               const color = score >= 75 ? '#4CAF50' : score >= 50 ? '#FF9800' : '#F44336';
-              const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
+              const medal = idx === 0 ? '1.' : idx === 1 ? '2.' : idx === 2 ? '3.' : `${idx + 1}.`;
               return (
                 <View key={b.id || b.name} style={styles.rankRow}>
                   <Text style={styles.rankNum}>{medal}</Text>
@@ -241,8 +249,8 @@ export default function HomeScreen() {
         {inspections.length === 0 && branches.length === 0 && (
           <View style={styles.emptyBox}>
             <MaterialIcons name="bar-chart" size={48} color="#E0E0E0" />
-            <Text style={styles.emptyText}>Henuz denetim verisi yok</Text>
-            <Text style={styles.emptyHint}>Denetimler tamamlandikca burada grafikler gorunecek</Text>
+            <Text style={styles.emptyText}>Henüz denetim verisi yok</Text>
+            <Text style={styles.emptyHint}>Denetimler tamamlandıkça burada grafikler görünecek</Text>
           </View>
         )}
 
@@ -272,7 +280,7 @@ export default function HomeScreen() {
     );
   }
 
-  // ========== DENETCI ANA SAYFASI ==========
+  // ========== DENETCİ ANA SAYFASI ==========
   return (
     <View style={styles.container}>
       <FlatList
@@ -303,8 +311,8 @@ export default function HomeScreen() {
             {inspections.length === 0 && (
               <View style={styles.emptyBox}>
                 <MaterialIcons name="assignment" size={48} color="#E0E0E0" />
-                <Text style={styles.emptyText}>Henuz denetim yapılmamış</Text>
-                <Text style={styles.emptyHint}>Asagidaki butona tıklayarak ilk denetiminizi başlatin</Text>
+                <Text style={styles.emptyText}>Henüz denetim yapılmamış</Text>
+                <Text style={styles.emptyHint}>Aşağıdaki butona tıklayarak ilk denetiminizi başlatın</Text>
               </View>
             )}
           </>

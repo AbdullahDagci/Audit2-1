@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import { prisma } from '../index';
 import { authenticate, AuthRequest } from '../middleware/auth';
-import { upload } from '../middleware/upload';
+import { upload, compressImage, createThumbnail } from '../middleware/upload';
 import { qs } from '../utils/query';
 import { handleInspectionCompleted } from '../services/inspection-flow';
 import { logActivity } from '../services/activity-logger';
@@ -145,13 +145,18 @@ router.post('/:id/responses', authenticate, async (req: AuthRequest, res: Respon
 
 router.post('/:id/photos', authenticate, upload.single('photo'), async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'Fotograf gerekli' });
+    if (!req.file) return res.status(400).json({ error: 'Fotoğraf gerekli' });
+
+    // Sharp ile sıkıştır + thumbnail oluştur
+    const compressedName = await compressImage(req.file.path);
+    const thumbName = await createThumbnail(req.file.path.replace(req.file.filename, compressedName));
 
     const photo = await prisma.inspectionPhoto.create({
       data: {
         inspectionId: req.params.id as string,
         responseId: req.body.responseId || null,
-        storagePath: `/uploads/${req.file.filename}`,
+        storagePath: `/uploads/${compressedName}`,
+        thumbnailPath: thumbName ? `/uploads/${thumbName}` : null,
         latitude: req.body.latitude ? parseFloat(req.body.latitude) : null,
         longitude: req.body.longitude ? parseFloat(req.body.longitude) : null,
         caption: req.body.caption,
@@ -192,12 +197,13 @@ router.post('/:id/complete', authenticate, async (req: AuthRequest, res: Respons
       for (const item of category.items) {
         catMax += item.maxScore;
         const response = inspData.responses.find((r: any) => r.checklistItemId === item.id);
+        // Yanitsiz maddeler 0 puan alir (catMax'a dahil, earned'a 0)
         if (!response) continue;
 
         if (item.itemType === 'boolean') {
           if (response.passed) catEarned += item.maxScore;
         } else if (item.itemType === 'score') {
-          catEarned += response.score ?? 0;
+          catEarned += Math.min(response.score ?? 0, item.maxScore);
         }
       }
 

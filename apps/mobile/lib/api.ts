@@ -29,7 +29,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ error: 'Sunucu hatası' }));
+    const error = await res.json().catch(() => ({ error: 'Sunucu hatasi' }));
     throw new Error(error.error || `HTTP ${res.status}`);
   }
 
@@ -139,6 +139,13 @@ export const api = {
     });
   },
 
+  async batchCreateCorrectiveActions(inspectionId: string, actions: { responseId: string; description: string }[]) {
+    return request<{ created: number; actions: any[] }>('/api/corrective-actions/batch', {
+      method: 'POST',
+      body: JSON.stringify({ inspectionId, actions }),
+    });
+  },
+
   async uploadEvidence(actionId: string, photoUri: string, notes?: string) {
     const token = await getToken();
     const formData = new FormData();
@@ -155,7 +162,7 @@ export const api = {
       body: formData,
     });
 
-    if (!res.ok) throw new Error('Kanıt yüklenemedi');
+    if (!res.ok) throw new Error('Kanit yuklenemedi');
     return res.json();
   },
 
@@ -179,7 +186,7 @@ export const api = {
       body: formData,
     });
 
-    if (!res.ok) throw new Error('Fotoğraf yüklenemedi');
+    if (!res.ok) throw new Error('Fotograf yuklenemedi');
     return res.json();
   },
 
@@ -276,11 +283,6 @@ export const api = {
   },
 
   // Branch CRUD
-  async getBranches(facilityType?: string) {
-    const params = facilityType ? `?facilityType=${facilityType}` : '';
-    return request<any[]>(`/api/branches${params}`);
-  },
-
   async createBranch(data: any) {
     return request<any>('/api/branches', { method: 'POST', body: JSON.stringify(data) });
   },
@@ -336,5 +338,40 @@ export const api = {
 
   async sendTutanak(id: string) {
     return request<any>(`/api/tutanak/${id}/send`, { method: 'POST' });
+  },
+
+  // Management Emails
+  async getManagementEmails() {
+    return request<{ emails: string[] }>('/api/settings/management-emails');
+  },
+
+  async updateManagementEmails(emails: string[]) {
+    return request<any>('/api/settings/management-emails', {
+      method: 'PUT',
+      body: JSON.stringify({ emails }),
+    });
+  },
+
+  async sendTestEmail(to: string) {
+    return request<any>('/api/settings/test-email', {
+      method: 'POST',
+      body: JSON.stringify({ to }),
+    });
+  },
+
+  // Password change
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    return request<any>(`/api/users/${userId}/password`, {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
+
+  // User preferences
+  async updatePreferences(userId: string, prefs: { emailNotifications?: boolean; pushNotifications?: boolean; criticalAlerts?: boolean }) {
+    return request<any>(`/api/users/${userId}/preferences`, {
+      method: 'PUT',
+      body: JSON.stringify(prefs),
+    });
   },
 };

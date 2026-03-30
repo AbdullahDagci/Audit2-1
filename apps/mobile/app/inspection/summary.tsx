@@ -416,7 +416,7 @@ export default function InspectionSummaryScreen() {
 
       {/* Kritik Bulgular */}
       {criticalFails.length > 0 && (
-        <Card style={[styles.card, { borderLeftWidth: 4, borderLeftColor: '#F44336' }]}>
+        <Card style={[styles.card, { borderLeftWidth: 4, borderLeftColor: '#F44336' }] as any}>
           <View style={styles.criticalHeader}>
             <MaterialIcons name="warning" size={20} color="#F44336" />
             <Text style={styles.criticalTitle}>Kritik Bulgular ({criticalFails.length})</Text>

@@ -1,35 +1,30 @@
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
-import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/auth-store';
+import { api } from '@/lib/api';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
-  }),
+  } as Notifications.NotificationBehavior),
 });
 
 export function useNotifications() {
-  const notificationListener = useRef<Notifications.EventSubscription>();
-  const responseListener = useRef<Notifications.EventSubscription>();
+  const notificationListener = useRef<Notifications.EventSubscription>(null as any);
+  const responseListener = useRef<Notifications.EventSubscription>(null as any);
   const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
     if (!user) return;
 
     registerForPushNotifications().then((token) => {
-      if (token) savePushToken(user.id, token);
+      if (token) api.savePushToken(token).catch(() => {});
     });
 
-    notificationListener.current = Notifications.addNotificationReceivedListener(() => {
-      // Bildirim geldiginde yapilacak islem
-    });
-
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(() => {
-      // Bildirime tiklandiginda yapilacak islem
-    });
+    notificationListener.current = Notifications.addNotificationReceivedListener((_notification) => {});
+    responseListener.current = Notifications.addNotificationResponseReceivedListener((_response) => {});
 
     return () => {
       notificationListener.current?.remove();
@@ -50,16 +45,9 @@ async function registerForPushNotifications(): Promise<string | null> {
 
     if (finalStatus !== 'granted') return null;
 
-    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId: 'fe15d761-62c6-4ba0-912a-a40d5556c6ed' });
     return tokenData.data;
   } catch {
     return null;
   }
-}
-
-async function savePushToken(userId: string, token: string) {
-  await supabase.from('push_tokens').upsert({
-    user_id: userId,
-    expo_push_token: token,
-  }, { onConflict: 'user_id,expo_push_token' });
 }

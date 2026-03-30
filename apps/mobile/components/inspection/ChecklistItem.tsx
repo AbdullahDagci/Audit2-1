@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, StyleSheet, Image, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/colors';
 import { useInspectionStore } from '@/stores/inspection-store';
@@ -52,6 +52,14 @@ export function ChecklistItem({ item }: ChecklistItemProps) {
     }
   };
 
+  const handleAddPhoto = () => {
+    Alert.alert('Fotoğraf Ekle', 'Kaynak seçin', [
+      { text: 'Kamera', onPress: handleTakePhoto },
+      { text: 'Galeri', onPress: handlePickPhoto },
+      { text: 'İptal', style: 'cancel' },
+    ]);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -80,7 +88,7 @@ export function ChecklistItem({ item }: ChecklistItemProps) {
             onPress={() => handleBoolean(false)}
           >
             <MaterialIcons name="close" size={20} color={response?.passed === false ? Colors.white : Colors.danger} />
-            <Text style={[styles.booleanText, response?.passed === false && styles.booleanTextActive]}>Hayir</Text>
+            <Text style={[styles.booleanText, response?.passed === false && styles.booleanTextActive]}>Hayır</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -106,13 +114,19 @@ export function ChecklistItem({ item }: ChecklistItemProps) {
           <MaterialIcons name="note-add" size={20} color={Colors.textSecondary} />
           <Text style={styles.actionText}>Not</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={handleTakePhoto}>
-          <MaterialIcons name="camera-alt" size={20} color={item.photo_required ? Colors.danger : Colors.textSecondary} />
-          <Text style={[styles.actionText, item.photo_required && { color: Colors.danger }]}>Fotograf</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={handlePickPhoto}>
-          <MaterialIcons name="photo-library" size={20} color={Colors.textSecondary} />
-          <Text style={styles.actionText}>Galeri</Text>
+        <TouchableOpacity
+          style={[styles.actionBtn, item.photo_required && styles.actionBtnRequired]}
+          onPress={handleAddPhoto}
+        >
+          <MaterialIcons
+            name="camera-alt"
+            size={20}
+            color={item.photo_required ? Colors.danger : Colors.textSecondary}
+          />
+          <Text style={[styles.actionText, item.photo_required && { color: Colors.danger, fontWeight: '600' }]}>
+            {item.photo_required ? 'Fotoğraf (Zorunlu)' : 'Fotoğraf'}
+          </Text>
+          {item.photo_required && <Text style={styles.requiredStar}>*</Text>}
         </TouchableOpacity>
       </View>
 
@@ -135,8 +149,9 @@ export function ChecklistItem({ item }: ChecklistItemProps) {
               <TouchableOpacity
                 style={styles.photoDelete}
                 onPress={() => removePhoto(item.id, photo.id)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <MaterialIcons name="close" size={14} color={Colors.white} />
+                <MaterialIcons name="close" size={16} color={Colors.white} />
               </TouchableOpacity>
             </View>
           ))}
@@ -177,7 +192,15 @@ const styles = StyleSheet.create({
   scoreBtnTextActive: { color: Colors.white },
   actions: { flexDirection: 'row', gap: 16, marginTop: 4 },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4 },
+  actionBtnRequired: {
+    backgroundColor: '#FFF0F0',
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FFCDD2',
+  },
   actionText: { fontSize: 13, color: Colors.textSecondary },
+  requiredStar: { color: Colors.danger, fontSize: 16, fontWeight: '800', marginLeft: 2 },
   notesInput: {
     marginTop: 8, borderWidth: 1, borderColor: Colors.border, borderRadius: 8,
     padding: 10, fontSize: 14, color: Colors.text, minHeight: 60, textAlignVertical: 'top',
@@ -186,7 +209,9 @@ const styles = StyleSheet.create({
   photoWrapper: { position: 'relative' },
   photoThumb: { width: 70, height: 70, borderRadius: 8 },
   photoDelete: {
-    position: 'absolute', top: -6, right: -6, backgroundColor: Colors.danger,
-    borderRadius: 10, width: 20, height: 20, alignItems: 'center', justifyContent: 'center',
+    position: 'absolute', top: -8, right: -8, backgroundColor: Colors.danger,
+    borderRadius: 14, width: 28, height: 28, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: Colors.white,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.3, shadowRadius: 2, elevation: 4,
   },
 });

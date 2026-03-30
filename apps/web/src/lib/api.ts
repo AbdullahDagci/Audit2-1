@@ -64,6 +64,9 @@ export const api = {
   updateBranch: (id: string, data: any) =>
     request<any>(`/api/branches/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 
+  deleteBranch: (id: string) =>
+    request<any>(`/api/branches/${id}`, { method: 'DELETE' }),
+
   // Templates
   getTemplates: (facilityType?: string) => {
     const params = facilityType ? `?facilityType=${facilityType}` : '';
@@ -159,6 +162,12 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  batchCreateCorrectiveActions: (inspectionId: string, actions: { responseId: string; description: string }[]) =>
+    request<{ created: number; actions: any[] }>('/api/corrective-actions/batch', {
+      method: 'POST',
+      body: JSON.stringify({ inspectionId, actions }),
+    }),
+
   uploadEvidence: async (actionId: string, photo: File, notes?: string) => {
     const token = getToken();
     const formData = new FormData();
@@ -211,4 +220,34 @@ export const api = {
 
   getActivityLogStats: () =>
     request<{ action: string; count: number }[]>('/api/activity-logs/stats'),
+
+  // Management Emails
+  getManagementEmails: () =>
+    request<{ emails: string[] }>('/api/settings/management-emails'),
+
+  updateManagementEmails: (emails: string[]) =>
+    request<any>('/api/settings/management-emails', {
+      method: 'PUT',
+      body: JSON.stringify({ emails }),
+    }),
+
+  sendTestEmail: (to: string) =>
+    request<any>('/api/settings/test-email', {
+      method: 'POST',
+      body: JSON.stringify({ to }),
+    }),
+
+  // Password
+  changePassword: (userId: string, currentPassword: string, newPassword: string) =>
+    request<any>(`/api/users/${userId}/password`, {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+
+  // User Preferences
+  updatePreferences: (userId: string, prefs: any) =>
+    request<any>(`/api/users/${userId}/preferences`, {
+      method: 'PUT',
+      body: JSON.stringify(prefs),
+    }),
 };

@@ -39,13 +39,16 @@ export default function BranchComparison({ branches }: BranchComparisonProps) {
           margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          {/* @ts-ignore */}
           <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 12 }} />
+          {/* @ts-ignore */}
           <YAxis
             type="category"
             dataKey="name"
             tick={{ fontSize: 12 }}
             width={90}
           />
+          {/* @ts-ignore */}
           <Tooltip
             formatter={(value: number) => [`${value} puan`, "Puan"]}
             contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}

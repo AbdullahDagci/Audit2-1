@@ -33,6 +33,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [inspections, setInspections] = useState<Inspection[]>([]);
+  const [allInspections, setAllInspections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,17 +43,19 @@ export default function DashboardPage() {
         setLoading(true);
         setError(null);
 
-        const [dashboardRes, inspectionsRes] = await Promise.all([
+        const [dashboardRes, inspectionsRes, allInspectionsRes] = await Promise.all([
           api.getDashboard(),
           api.getInspections({ limit: "5", sort: "date", order: "desc" }),
+          api.getInspections({ limit: "200", sort: "date", order: "desc" }),
         ]);
 
         setStats(dashboardRes.stats);
         setBranches(dashboardRes.branches || []);
         setInspections(inspectionsRes.data || []);
+        setAllInspections(allInspectionsRes.data || []);
       } catch (err: any) {
-        console.error("Dashboard veri yüklemesi başarısız:", err);
-        setError(err.message || "Veriler yüklenirken bir hata oluştu");
+        console.error("Dashboard veri yuklemesi basarisiz:", err);
+        setError(err.message || "Veriler yuklenirken bir hata olustu");
       } finally {
         setLoading(false);
       }
@@ -66,7 +69,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-center h-96">
         <div className="flex flex-col items-center gap-3">
           <Loader2 size={40} className="animate-spin text-green-600" />
-          <p className="text-sm text-gray-500">Veriler yükleniyor...</p>
+          <p className="text-sm text-gray-500">Veriler yukleniyor...</p>
         </div>
       </div>
     );
@@ -122,7 +125,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RecentInspections inspections={inspections} />
-        <CriticalAlerts />
+        <CriticalAlerts inspections={allInspections} />
       </div>
     </div>
   );

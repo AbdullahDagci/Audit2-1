@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl, Modal, TextInput } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/auth-store';
@@ -23,6 +23,13 @@ export default function ProfileScreen() {
   const [stats, setStats] = useState({ total: 0, avg: 0, thisMonth: 0 });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Sifre degistirme state
+  const [passwordModal, setPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -51,15 +58,15 @@ export default function ProfileScreen() {
   useEffect(() => { fetchStats(); }, [fetchStats]);
   const onRefresh = () => { setRefreshing(true); fetchStats(); };
 
-  const name = user?.fullName || 'Kullanıcı';
+  const name = user?.fullName || 'Kullanici';
   const initials = name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
-  const role = user?.role === 'admin' ? 'Yönetici' : user?.role === 'manager' ? 'Müdür' : 'Denetçi';
+  const role = user?.role === 'admin' ? 'Yonetici' : user?.role === 'manager' ? 'Mudur' : 'Denetci';
 
   const handleSignOut = () => {
-    Alert.alert('Çıkış', 'Çıkış yapmak istediğinize emin misiniz?', [
-      { text: 'İptal', style: 'cancel' },
+    Alert.alert('Cikis', 'Cikis yapmak istediginize emin misiniz?', [
+      { text: 'Iptal', style: 'cancel' },
       {
-        text: 'Çıkış Yap',
+        text: 'Cikis Yap',
         style: 'destructive',
         onPress: async () => {
           await signOut();
@@ -67,6 +74,45 @@ export default function ProfileScreen() {
         },
       },
     ]);
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      Alert.alert('Hata', 'Tum alanlari doldurun');
+      return;
+    }
+    if (newPassword.length < 6) {
+      Alert.alert('Hata', 'Yeni sifre en az 6 karakter olmalidir');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Hata', 'Yeni sifreler eslesmedi');
+      return;
+    }
+    if (!user?.id) {
+      Alert.alert('Hata', 'Kullanici bilgisi bulunamadi');
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      await api.changePassword(user.id, currentPassword, newPassword);
+      Alert.alert('Basarili', 'Sifreniz basariyla degistirildi');
+      setPasswordModal(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (e: any) {
+      Alert.alert('Hata', e.message || 'Sifre degistirilemedi');
+    }
+    setChangingPassword(false);
+  };
+
+  const openPasswordModal = () => {
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordModal(true);
   };
 
   return (
@@ -107,6 +153,12 @@ export default function ProfileScreen() {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Ayarlar</Text>
 
+        <TouchableOpacity style={styles.row} onPress={openPasswordModal}>
+          <MaterialIcons name="lock" size={22} color={TEXT2} />
+          <Text style={styles.rowText}>Sifre Degistir</Text>
+          <MaterialIcons name="chevron-right" size={22} color={BORDER} />
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.row} onPress={() => router.push('/notifications')}>
           <MaterialIcons name="notifications" size={22} color={TEXT2} />
           <Text style={styles.rowText}>Bildirimler</Text>
@@ -127,8 +179,64 @@ export default function ProfileScreen() {
 
       <TouchableOpacity style={styles.logoutBtn} onPress={handleSignOut}>
         <MaterialIcons name="logout" size={20} color={WHITE} />
-        <Text style={styles.logoutText}>Çıkış Yap</Text>
+        <Text style={styles.logoutText}>Cikis Yap</Text>
       </TouchableOpacity>
+
+      {/* Sifre Degistirme Modal */}
+      <Modal visible={passwordModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Sifre Degistir</Text>
+              <TouchableOpacity onPress={() => setPasswordModal(false)}>
+                <MaterialIcons name="close" size={24} color={TEXT2} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.inputLabel}>Mevcut Sifre</Text>
+            <TextInput
+              style={styles.input}
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              secureTextEntry
+              placeholder="Mevcut sifrenizi girin"
+              placeholderTextColor="#999"
+            />
+
+            <Text style={styles.inputLabel}>Yeni Sifre</Text>
+            <TextInput
+              style={styles.input}
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry
+              placeholder="Yeni sifrenizi girin"
+              placeholderTextColor="#999"
+            />
+
+            <Text style={styles.inputLabel}>Yeni Sifre (Tekrar)</Text>
+            <TextInput
+              style={styles.input}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              placeholder="Yeni sifrenizi tekrar girin"
+              placeholderTextColor="#999"
+            />
+
+            <TouchableOpacity
+              style={[styles.saveBtn, changingPassword && { opacity: 0.6 }]}
+              onPress={handleChangePassword}
+              disabled={changingPassword}
+            >
+              {changingPassword ? (
+                <ActivityIndicator size="small" color={WHITE} />
+              ) : (
+                <Text style={styles.saveBtnText}>Kaydet</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -168,4 +276,26 @@ const styles = StyleSheet.create({
     backgroundColor: RED, borderRadius: 12, paddingVertical: 14, marginTop: 20,
   },
   logoutText: { fontSize: 16, fontWeight: '600', color: WHITE },
+  // Modal styles
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20,
+  },
+  modalContent: {
+    backgroundColor: WHITE, borderRadius: 16, padding: 20,
+    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20,
+  },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: TEXT },
+  inputLabel: { fontSize: 13, fontWeight: '600', color: TEXT2, marginBottom: 6, marginTop: 12 },
+  input: {
+    borderWidth: 1, borderColor: BORDER, borderRadius: 10, paddingHorizontal: 14,
+    paddingVertical: 12, fontSize: 15, color: TEXT, backgroundColor: BG,
+  },
+  saveBtn: {
+    backgroundColor: GREEN, borderRadius: 10, paddingVertical: 14,
+    alignItems: 'center', marginTop: 24,
+  },
+  saveBtnText: { fontSize: 16, fontWeight: '600', color: WHITE },
 });

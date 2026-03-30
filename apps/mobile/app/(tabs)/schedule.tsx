@@ -3,6 +3,7 @@ import { View, Text, SectionList, StyleSheet, RefreshControl, ActivityIndicator,
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useAuthStore } from '@/stores/auth-store';
 import { api } from '@/lib/api';
 import { Badge } from '@/components/ui/Badge';
@@ -21,8 +22,8 @@ interface AgendaItem {
 
 function formatTR(dateStr: string) {
   const d = new Date(dateStr);
-  const days = ['Pazar', 'Pazartesi', 'Sali', 'Carsamba', 'Persembe', 'Cuma', 'Cumartesi'];
-  const months = ['Ocak', 'Subat', 'Mart', 'Nisan', 'Mayis', 'Haziran', 'Temmuz', 'Agustos', 'Eylul', 'Ekim', 'Kasim', 'Aralik'];
+  const days = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+  const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
   return { day: d.getDate(), dayName: days[d.getDay()], month: months[d.getMonth()], year: d.getFullYear(), full: d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear() };
 }
 
@@ -55,7 +56,7 @@ export default function ScheduleScreen() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // 1. Tüm denetimleri çek
+      // 1. Tum denetimleri cek
       try {
         const params: Record<string, string> = {};
         if (selectedType !== 'all') params.facilityType = selectedType;
@@ -122,7 +123,13 @@ export default function ScheduleScreen() {
     setRefreshing(false);
   }, [selectedType, startDate, endDate]);
 
-  useEffect(() => { setLoading(true); fetchData(); }, [fetchData]);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      fetchData();
+    }, [fetchData])
+  );
+
   const onRefresh = () => { setRefreshing(true); fetchData(); };
 
   const selectedTypeLabel = selectedType === 'all' ? 'Tüm Tipler' : facilityTypes.find((t: any) => t.key === selectedType)?.label || selectedType;
@@ -159,11 +166,11 @@ export default function ScheduleScreen() {
         )}
         <TouchableOpacity style={[S.dateBtn, startDate && S.dateBtnActive]} onPress={() => { setTempDate(startDate || new Date()); setShowStartPicker(true); }}>
           <MaterialIcons name="event" size={14} color={startDate ? '#FFF' : '#1565C0'} />
-          <Text style={[S.dateBtnText, startDate && { color: '#FFF' }]}>{startDate ? formatD(startDate) : 'Başlangic'}</Text>
+          <Text style={[S.dateBtnText, startDate && { color: '#FFF' }]}>{startDate ? formatD(startDate) : 'Başlangıç'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[S.dateBtn, endDate && S.dateBtnActive]} onPress={() => { setTempDate(endDate || new Date()); setShowEndPicker(true); }}>
           <MaterialIcons name="event" size={14} color={endDate ? '#FFF' : '#1565C0'} />
-          <Text style={[S.dateBtnText, endDate && { color: '#FFF' }]}>{endDate ? formatD(endDate) : 'Bitis'}</Text>
+          <Text style={[S.dateBtnText, endDate && { color: '#FFF' }]}>{endDate ? formatD(endDate) : 'Bitiş'}</Text>
         </TouchableOpacity>
         {hasFilter && (
           <TouchableOpacity style={S.clearBtn} onPress={clearFilters}>
@@ -171,7 +178,7 @@ export default function ScheduleScreen() {
           </TouchableOpacity>
         )}
       </View>
-      <Text style={S.resultCount}>{items.length} kayit</Text>
+      <Text style={S.resultCount}>{items.length} kayıt</Text>
 
       {/* Date pickers */}
       {showStartPicker && (
@@ -203,7 +210,7 @@ export default function ScheduleScreen() {
       <RNModal visible={showTypePicker} transparent animationType="fade" onRequestClose={() => setShowTypePicker(false)}>
         <TouchableOpacity style={S.pickerOverlay} activeOpacity={1} onPress={() => setShowTypePicker(false)}>
           <View style={S.pickerCard}>
-            <Text style={S.pickerTitle}>Tesis Tipi Secin</Text>
+            <Text style={S.pickerTitle}>Tesis Tipi Seçin</Text>
             <TouchableOpacity style={[S.pickerItem, selectedType === 'all' && S.pickerItemOn]} onPress={() => { setSelectedType('all'); setShowTypePicker(false); }}>
               <Text style={[S.pickerItemText, selectedType === 'all' && S.pickerItemTextOn]}>Tüm Tipler</Text>
               {selectedType === 'all' && <MaterialIcons name="check" size={20} color="#2E7D32" />}
@@ -236,7 +243,7 @@ export default function ScheduleScreen() {
                 <Text style={[S.dateDayName, isToday && { color: '#2E7D32', fontWeight: '700' }]}>{f.dayName}</Text>
                 <Text style={S.dateMonth}>{f.month} {f.year}</Text>
               </View>
-              {isToday && <View style={S.todayBadge}><Text style={S.todayBadgeText}>BUGUN</Text></View>}
+              {isToday && <View style={S.todayBadge}><Text style={S.todayBadgeText}>BUGÜN</Text></View>}
             </View>
           );
         }}

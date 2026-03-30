@@ -187,7 +187,7 @@ function FullscreenViewer({
 export default function InspectionDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const inspectionId = params.id as string;
+  const inspectionId = (params?.id || '') as string;
 
   const [inspection, setInspection] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -279,6 +279,8 @@ export default function InspectionDetailPage() {
     setExpandedCategories(next);
   };
 
+  const [batchSaving, setBatchSaving] = useState(false);
+
   const handleCreateAction = async (responseId: string) => {
     const desc = newActionDesc[responseId]?.trim();
     if (!desc) {
@@ -310,6 +312,56 @@ export default function InspectionDetailPage() {
       setActionError(err.message || "Düzeltici faaliyet oluşturulamadı");
     } finally {
       setCreatingAction(null);
+    }
+  };
+
+  const handleBatchSave = async () => {
+    // Doldurulan tüm açıklamaları topla
+    const actionsToCreate = deficiencies
+      .filter((d: any) => !d.hasCorrectiveAction && newActionDesc[d.responseId]?.trim())
+      .map((d: any) => ({ responseId: d.responseId, description: newActionDesc[d.responseId].trim() }));
+
+    // Kritik eksikliklerde açıklama zorunlu kontrolü
+    const missingCritical = deficiencies.filter(
+      (d: any) => d.isCritical && !d.hasCorrectiveAction && !newActionDesc[d.responseId]?.trim()
+    );
+    if (missingCritical.length > 0) {
+      setActionError(`${missingCritical.length} kritik eksiklik için açıklama zorunludur`);
+      return;
+    }
+    if (actionsToCreate.length === 0) {
+      setActionError("Kaydedilecek faaliyet bulunamadı");
+      return;
+    }
+
+    setBatchSaving(true);
+    setActionError(null);
+    try {
+      const result = await api.batchCreateCorrectiveActions(inspectionId, actionsToCreate);
+
+      // Evidence dosyaları yükle
+      for (const action of result.actions) {
+        const file = newActionFiles[action.responseId];
+        if (file) {
+          try {
+            await api.uploadEvidence(action.id, file);
+          } catch {}
+        }
+      }
+
+      // Listeyi yenile
+      const [defsRes, acts] = await Promise.all([
+        api.getDeficiencies(inspectionId),
+        api.getCorrectiveActions(inspectionId),
+      ]);
+      setDeficiencies(Array.isArray(defsRes) ? defsRes : (defsRes as any)?.deficiencies || []);
+      setCorrectiveActions(Array.isArray(acts) ? acts : []);
+      setNewActionDesc({});
+      setNewActionFiles({});
+    } catch (err: any) {
+      setActionError(err.message || "Toplu kayıt başarısız");
+    } finally {
+      setBatchSaving(false);
     }
   };
 
@@ -1019,6 +1071,31 @@ export default function InspectionDetailPage() {
                   </div>
                 );
               })}
+
+              {/* Tümünü Kaydet butonu */}
+              {deficiencies.some((d: any) => !d.hasCorrectiveAction) && (
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={handleBatchSave}
+                    disabled={batchSaving || !Object.values(newActionDesc).some((v) => v?.trim())}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-primary-800 text-white rounded-xl text-base font-semibold hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md"
+                  >
+                    {batchSaving ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        Kaydediliyor...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle size={18} />
+                        Tüm Faaliyetleri Kaydet
+                        {Object.values(newActionDesc).filter((v) => v?.trim()).length > 0 &&
+                          ` (${Object.values(newActionDesc).filter((v) => v?.trim()).length})`}
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -12,6 +12,10 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     const where: any = {};
     if (facilityType) where.facilityType = facilityType;
     if (active !== undefined) where.isActive = active === 'true';
+    // RBAC: Müdür sadece kendi şubelerini görsün
+    if (req.userRole === 'manager') {
+      where.managerId = req.userId;
+    }
 
     const branches = await prisma.branch.findMany({
       where,
@@ -46,7 +50,13 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
 router.post('/', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
-    const branch = await prisma.branch.create({ data: req.body });
+    const { name, facilityType, address, city, latitude, longitude, geofenceRadius, managerId } = req.body;
+    if (!name || !facilityType) {
+      return res.status(400).json({ error: 'Şube adı ve tesis tipi gerekli' });
+    }
+    const branch = await prisma.branch.create({
+      data: { name, facilityType, address, city, latitude, longitude, geofenceRadius, managerId },
+    });
     res.status(201).json(branch);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -55,7 +65,19 @@ router.post('/', authenticate, requireRole('admin', 'manager'), async (req: Auth
 
 router.put('/:id', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
-    const branch = await prisma.branch.update({ where: { id: req.params.id as string }, data: req.body });
+    const { name, facilityType, address, city, latitude, longitude, geofenceRadius, managerId, isActive } = req.body;
+    const data: any = {};
+    if (name !== undefined) data.name = name;
+    if (facilityType !== undefined) data.facilityType = facilityType;
+    if (address !== undefined) data.address = address;
+    if (city !== undefined) data.city = city;
+    if (latitude !== undefined) data.latitude = latitude;
+    if (longitude !== undefined) data.longitude = longitude;
+    if (geofenceRadius !== undefined) data.geofenceRadius = geofenceRadius;
+    if (managerId !== undefined) data.managerId = managerId;
+    if (isActive !== undefined) data.isActive = isActive;
+
+    const branch = await prisma.branch.update({ where: { id: req.params.id as string }, data });
     res.json(branch);
   } catch (err: any) {
     res.status(500).json({ error: err.message });

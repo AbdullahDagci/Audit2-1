@@ -20,20 +20,20 @@ import {
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/manager", label: "Şube Paneli", icon: Building2, roles: ["manager"] },
-  { href: "/dashboard/inspections", label: "Denetimler", icon: ClipboardCheck },
-  { href: "/dashboard/branches", label: "Şubeler", icon: Building2 },
-  { href: "/dashboard/reports", label: "Raporlar", icon: BarChart3 },
-  { href: "/dashboard/users", label: "Kullanıcılar", icon: Users },
-  { href: "/dashboard/templates", label: "Şablonlar", icon: FileText },
-  { href: "/dashboard/schedules", label: "Takvim", icon: Calendar },
-  { href: "/dashboard/activity-logs", label: "Aktivite Kayıtları", icon: History, roles: ["admin"] },
-  { href: "/dashboard/notifications", label: "Bildirimler", icon: Bell },
-  { href: "/dashboard/settings", label: "Ayarlar", icon: Settings },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "manager", "inspector"] },
+  { href: "/dashboard/manager", label: "Sube Paneli", icon: Building2, roles: ["manager"] },
+  { href: "/dashboard/inspections", label: "Denetimler", icon: ClipboardCheck, roles: ["admin", "manager", "inspector"] },
+  { href: "/dashboard/branches", label: "Subeler", icon: Building2, roles: ["admin", "manager"] },
+  { href: "/dashboard/templates", label: "Sablonlar", icon: FileText, roles: ["admin", "manager"] },
+  { href: "/dashboard/users", label: "Kullanicilar", icon: Users, roles: ["admin"] },
+  { href: "/dashboard/schedules", label: "Takvim", icon: Calendar, roles: ["admin", "manager"] },
+  { href: "/dashboard/reports", label: "Raporlar", icon: BarChart3, roles: ["admin", "manager"] },
+  { href: "/dashboard/activity-logs", label: "Aktivite Kayitlari", icon: History, roles: ["admin"] },
+  { href: "/dashboard/notifications", label: "Bildirimler", icon: Bell, roles: ["admin", "manager", "inspector"] },
+  { href: "/dashboard/settings", label: "Ayarlar", icon: Settings, roles: ["admin"] },
 ];
 
-const ROLE_LABELS: Record<string, string> = { admin: 'Yönetici', manager: 'Müdür', inspector: 'Denetçi' };
+const ROLE_LABELS: Record<string, string> = { admin: 'Yonetici', manager: 'Mudur', inspector: 'Denetci' };
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -51,6 +51,7 @@ export default function Sidebar() {
 
   const handleLogout = () => {
     removeToken();
+    localStorage.removeItem("auth_token");
     localStorage.removeItem("user");
     document.cookie = "auth-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     router.push("/login");
@@ -72,13 +73,13 @@ export default function Sidebar() {
         <ul className="space-y-1 px-3">
           {navItems
             .filter((item) => {
-              if (!('roles' in item) || !item.roles) return true;
+              if (!item.roles) return true;
               return user?.role && item.roles.includes(user.role);
             })
             .map((item) => {
               const isActive =
                 pathname === item.href ||
-                (item.href !== "/dashboard" && pathname.startsWith(item.href));
+                (item.href !== "/dashboard" && pathname?.startsWith(item.href));
               return (
                 <li key={item.href}>
                   <Link
@@ -105,13 +106,16 @@ export default function Sidebar() {
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{user?.fullName || 'Kullanıcı'}</p>
+            <p className="text-sm font-medium truncate">{user?.fullName || 'Kullanici'}</p>
             <p className="text-xs text-primary-300 truncate">{ROLE_LABELS[user?.role] || user?.role || ''}</p>
           </div>
         </div>
-        <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-primary-300 hover:text-white transition-colors w-full">
+        <button
+          onClick={handleLogout}
+          className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
+        >
           <LogOut size={16} />
-          Çıkış Yap
+          Cikis Yap
         </button>
       </div>
     </aside>

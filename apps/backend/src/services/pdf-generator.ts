@@ -14,6 +14,9 @@ interface InspectionPdfData {
   tutanaklar?: any[];
 }
 
+// Upload dizininin base path'i (proje k\u00f6k\u00fcne g\u00f6re)
+const UPLOADS_BASE_PATH = path.join(__dirname, '../../');
+
 function getScoreColor(percentage: number): string {
   if (percentage >= 75) return '#4CAF50';
   if (percentage >= 50) return '#FF9800';
@@ -21,10 +24,10 @@ function getScoreColor(percentage: number): string {
 }
 
 function getScoreLabel(percentage: number): string {
-  if (percentage >= 90) return 'Mükemmel';
-  if (percentage >= 75) return 'İyi';
+  if (percentage >= 90) return 'M\u00fckemmel';
+  if (percentage >= 75) return '\u0130yi';
   if (percentage >= 50) return 'Orta';
-  if (percentage >= 25) return 'Zayıf';
+  if (percentage >= 25) return 'Zay\u0131f';
   return 'Kritik';
 }
 
@@ -40,6 +43,82 @@ function generateReportNumber(): string {
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
   return `DNT-${year}${month}-${random}`;
+}
+
+/**
+ * Dosya yolundan foto\u011fraf\u0131 okuyup base64 data URI olarak d\u00f6nd\u00fcr\u00fcr.
+ * Dosya bulunamazsa veya okunamazsa null d\u00f6ner -- PDF bozulmaz.
+ */
+function readPhotoAsBase64(storagePath: string): string | null {
+  try {
+    const absolutePath = path.join(UPLOADS_BASE_PATH, storagePath);
+    if (!fs.existsSync(absolutePath)) return null;
+
+    const fileContent = fs.readFileSync(absolutePath);
+    const base64 = Buffer.from(fileContent).toString('base64');
+
+    // Uzant\u0131ya g\u00f6re MIME type belirle
+    const ext = path.extname(storagePath).toLowerCase();
+    let mime = 'image/jpeg';
+    if (ext === '.png') mime = 'image/png';
+    else if (ext === '.gif') mime = 'image/gif';
+    else if (ext === '.webp') mime = 'image/webp';
+
+    return `data:${mime};base64,${base64}`;
+  } catch {
+    // Dosya okunamad\u0131 -- sessizce ge\u00e7
+    return null;
+  }
+}
+
+/**
+ * Bir response'a ait foto\u011fraflar\u0131 HTML olarak \u00fcretir.
+ * Max 3 foto\u011fraf g\u00f6sterir, fazlas\u0131 i\u00e7in "+X foto\u011fraf daha" yazar.
+ */
+function buildResponsePhotosHtml(photos: any[]): string {
+  if (!photos || photos.length === 0) return '';
+
+  const MAX_DISPLAY = 3;
+  const photosToShow = photos.slice(0, MAX_DISPLAY);
+  const remainingCount = photos.length - MAX_DISPLAY;
+
+  let imagesHtml = '';
+  for (const photo of photosToShow) {
+    if (!photo.storagePath) continue;
+    const dataUri = readPhotoAsBase64(photo.storagePath);
+    if (!dataUri) continue;
+
+    imagesHtml += `<img src="${dataUri}" style="max-width:200px;max-height:150px;border-radius:4px;margin:4px;object-fit:cover;" />`;
+  }
+
+  // Hi\u00e7bir foto\u011fraf okunamad\u0131ysa bo\u015f d\u00f6n
+  if (!imagesHtml) return '';
+
+  let html = `<div style="padding:6px 6px 2px;background:#fafafa;border:1px solid #eee;border-radius:4px;margin-top:4px;">
+    <div style="font-size:10px;color:#888;margin-bottom:4px;">Denetim Foto\u011fraflar\u0131:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:flex-start;">${imagesHtml}</div>`;
+
+  if (remainingCount > 0) {
+    html += `<div style="font-size:10px;color:#999;margin-top:4px;">+${remainingCount} foto\u011fraf daha</div>`;
+  }
+
+  html += '</div>';
+  return html;
+}
+
+/**
+ * D\u00fczeltici faaliyet kan\u0131t foto\u011fraf\u0131n\u0131 HTML olarak \u00fcretir.
+ */
+function buildEvidencePhotoHtml(evidencePhotoPath: string | null | undefined): string {
+  if (!evidencePhotoPath) return '';
+
+  const dataUri = readPhotoAsBase64(evidencePhotoPath);
+  if (!dataUri) return '';
+
+  return `<div style="margin-top:6px;padding:6px;background:#E8F5E9;border-radius:4px;border:1px solid #C8E6C9;">
+    <div style="font-size:10px;color:#2E7D32;margin-bottom:4px;">Kan\u0131t Foto\u011fraf\u0131:</div>
+    <img src="${dataUri}" style="max-width:250px;max-height:180px;border-radius:4px;object-fit:cover;" />
+  </div>`;
 }
 
 function buildHtmlReport(data: InspectionPdfData): string {
@@ -61,12 +140,16 @@ function buildHtmlReport(data: InspectionPdfData): string {
 
     let itemsHtml = catResponses.map((r: any) => {
       const item = r.checklistItem;
-      const isCritical = item?.isCritical ? '<span style="color:#F44336;font-weight:bold;">[KRİTİK]</span> ' : '';
-      const status = r.passed === true ? '✅ Uygun' : r.passed === false ? '❌ Uygun Değil' : `${r.score || 0}/${item?.maxScore || 0}`;
+      const isCritical = item?.isCritical ? '<span style="color:#F44336;font-weight:bold;">[KR\u0130T\u0130K]</span> ' : '';
+      const status = r.passed === true ? '\u2705 Uygun' : r.passed === false ? '\u274c Uygun De\u011fil' : `${r.score || 0}/${item?.maxScore || 0}`;
+      const photosHtml = buildResponsePhotosHtml(r.photos);
       return `<tr>
-        <td style="padding:6px;border:1px solid #ddd;">${isCritical}${item?.questionText || ''}</td>
-        <td style="padding:6px;border:1px solid #ddd;text-align:center;">${status}</td>
-        <td style="padding:6px;border:1px solid #ddd;">${r.notes || ''}</td>
+        <td style="padding:6px;border:1px solid #ddd;">
+          ${isCritical}${item?.questionText || ''}
+          ${photosHtml}
+        </td>
+        <td style="padding:6px;border:1px solid #ddd;text-align:center;vertical-align:top;">${status}</td>
+        <td style="padding:6px;border:1px solid #ddd;vertical-align:top;">${r.notes || ''}</td>
       </tr>`;
     }).join('');
 
@@ -90,14 +173,16 @@ function buildHtmlReport(data: InspectionPdfData): string {
   if (correctiveActions.length > 0) {
     correctiveHtml = correctiveActions.map((action: any) => {
       const bgColor = action.isCritical ? '#FFEBEE' : '#FFF3E0';
-      const evidenceStatus = action.evidencePhotoPath ? '✅ Kanıt Yüklendi' : '⏳ Kanıt Bekleniyor';
+      const evidenceStatus = action.evidencePhotoPath ? '\u2705 Kan\u0131t Y\u00fcklendi' : '\u23f3 Kan\u0131t Bekleniyor';
+      const evidencePhotoHtml = buildEvidencePhotoHtml(action.evidencePhotoPath);
       return `<div style="background:${bgColor};padding:10px;margin-bottom:8px;border-radius:4px;border-left:4px solid ${action.isCritical ? '#F44336' : '#FF9800'};">
         <strong>${action.response?.checklistItem?.questionText || 'Madde'}</strong>
-        ${action.isCritical ? '<span style="color:#F44336;"> [KRİTİK]</span>' : ''}
-        <br><strong>Düzeltici Faaliyet:</strong> ${action.description}
+        ${action.isCritical ? '<span style="color:#F44336;"> [KR\u0130T\u0130K]</span>' : ''}
+        <br><strong>D\u00fczeltici Faaliyet:</strong> ${action.description}
         <br><strong>Durum:</strong> ${evidenceStatus}
-        ${action.evidenceNotes ? `<br><strong>Kanıt Notu:</strong> ${action.evidenceNotes}` : ''}
+        ${action.evidenceNotes ? `<br><strong>Kan\u0131t Notu:</strong> ${action.evidenceNotes}` : ''}
         <br><small>Ekleyen: ${action.createdBy?.fullName || '-'} | Tarih: ${formatDate(action.createdAt)}</small>
+        ${evidencePhotoHtml}
       </div>`;
     }).join('');
   }
@@ -124,21 +209,21 @@ function buildHtmlReport(data: InspectionPdfData): string {
   <div class="header">
     <img src="${LOGO_BASE64}" alt="ERTANSA" style="height:60px;margin-bottom:8px;" />
     <h1>ERTANSA</h1>
-    <div class="subtitle">DENETİM VE DÜZELTİCİ FAALİYET RAPORU</div>
+    <div class="subtitle">DEN\u0130T\u0130M VE D\u00dcZELT\u0130C\u0130 FAAL\u0130YET RAPORU</div>
     <div style="font-size:11px;color:#999;">Rapor No: ${reportNo} | Tarih: ${formatDate(now)}</div>
   </div>
 
-  <div class="section-title">1. GENEL BİLGİLER</div>
+  <div class="section-title">1. GENEL B\u0130LG\u0130LER</div>
   <div class="info-grid">
-    <div class="info-box"><label>Şube</label><span>${branch?.name || '-'}</span></div>
-    <div class="info-box"><label>Tesis Türü</label><span>${branch?.facilityType || '-'}</span></div>
-    <div class="info-box"><label>Denetçi</label><span>${inspector?.fullName || '-'}</span></div>
+    <div class="info-box"><label>\u015eube</label><span>${branch?.name || '-'}</span></div>
+    <div class="info-box"><label>Tesis T\u00fcr\u00fc</label><span>${branch?.facilityType || '-'}</span></div>
+    <div class="info-box"><label>Denet\u00e7i</label><span>${inspector?.fullName || '-'}</span></div>
     <div class="info-box"><label>Denetim Tarihi</label><span>${formatDate(inspection.completedAt || inspection.createdAt)}</span></div>
-    <div class="info-box"><label>Şablon</label><span>${template?.name || '-'}</span></div>
-    <div class="info-box"><label>Konum Doğrulama</label><span>${inspection.locationVerified ? '✅ Doğrulandı' : '❌ Doğrulanmadı'}</span></div>
+    <div class="info-box"><label>\u015eablon</label><span>${template?.name || '-'}</span></div>
+    <div class="info-box"><label>Konum Do\u011frulama</label><span>${inspection.locationVerified ? '\u2705 Do\u011fruland\u0131' : '\u274c Do\u011frulanmad\u0131'}</span></div>
   </div>
 
-  <div class="section-title">2. PUAN ÖZETİ</div>
+  <div class="section-title">2. PUAN \u00d6ZET\u0130</div>
   <div class="score-box" style="background:${scoreColor}20;border:2px solid ${scoreColor};">
     <div style="font-size:36px;font-weight:bold;color:${scoreColor};">%${Math.round(scorePercentage)}</div>
     <div style="font-size:16px;color:${scoreColor};">${scoreLabel}</div>
@@ -148,36 +233,36 @@ function buildHtmlReport(data: InspectionPdfData): string {
     </div>
   </div>
 
-  <div class="section-title">3. KRİTİK BULGULAR</div>
+  <div class="section-title">3. KR\u0130T\u0130K BULGULAR</div>
   ${criticalFindings.length > 0 ? criticalFindings.map((r: any) => `
     <div style="background:#FFEBEE;padding:8px;margin-bottom:5px;border-left:4px solid #F44336;border-radius:4px;">
       <strong>${r.checklistItem?.questionText || ''}</strong>
       ${r.notes ? `<br><em>Not: ${r.notes}</em>` : ''}
     </div>
-  `).join('') : '<p style="color:#4CAF50;">Kritik bulgu tespit edilmemiştir.</p>'}
+  `).join('') : '<p style="color:#4CAF50;">Kritik bulgu tespit edilmemi\u015ftir.</p>'}
 
-  <div class="section-title">4. DETAYLI DENETİM SONUÇLARI</div>
+  <div class="section-title">4. DETAYLI DEN\u0130T\u0130M SONU\u00c7LARI</div>
   ${categoriesHtml}
 
-  <div class="section-title">5. DÜZELTİCİ FAALİYETLER</div>
-  ${correctiveActions.length > 0 ? correctiveHtml : '<p>Düzeltici faaliyet bulunmamaktadır.</p>'}
+  <div class="section-title">5. D\u00dcZELT\u0130C\u0130 FAAL\u0130YETLER</div>
+  ${correctiveActions.length > 0 ? correctiveHtml : '<p>D\u00fczeltici faaliyet bulunmamaktad\u0131r.</p>'}
 
-  <div class="section-title">6. SONUÇ</div>
-  <p>${branch?.name || ''} şubesinde yapılan denetim sonucunda genel puan <strong>%${Math.round(scorePercentage)}</strong> (${scoreLabel}) olarak belirlenmiştir.
-  ${criticalFindings.length > 0 ? `Toplamda <strong>${criticalFindings.length} kritik bulgu</strong> tespit edilmiş olup düzeltici faaliyetler başlatılmıştır.` : 'Kritik bulgu tespit edilmemiştir.'}</p>
+  <div class="section-title">6. SONU\u00c7</div>
+  <p>${branch?.name || ''} \u015fubesinde yap\u0131lan denetim sonucunda genel puan <strong>%${Math.round(scorePercentage)}</strong> (${scoreLabel}) olarak belirlenmi\u015ftir.
+  ${criticalFindings.length > 0 ? `Toplamda <strong>${criticalFindings.length} kritik bulgu</strong> tespit edilmi\u015f olup d\u00fczeltici faaliyetler ba\u015flat\u0131lm\u0131\u015ft\u0131r.` : 'Kritik bulgu tespit edilmemi\u015ftir.'}</p>
 
   <div class="footer">
     <div class="signature-grid">
       <div class="signature-box">
-        <div class="signature-line">Denetçi</div>
+        <div class="signature-line">Denet\u00e7i</div>
         <div>${inspector?.fullName || ''}</div>
       </div>
       <div class="signature-box">
-        <div class="signature-line">Şube Sorumlusu</div>
+        <div class="signature-line">\u015eube Sorumlusu</div>
         <div>${branch?.manager?.fullName || ''}</div>
       </div>
       <div class="signature-box">
-        <div class="signature-line">Üst Yönetim</div>
+        <div class="signature-line">\u00dcst Y\u00f6netim</div>
         <div>&nbsp;</div>
       </div>
     </div>

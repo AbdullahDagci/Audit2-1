@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Plus, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Plus, Loader2, Pencil, Trash2, X } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 import { api } from "@/lib/api";
 
@@ -19,6 +19,15 @@ interface Branch {
   manager?: { id: string; fullName: string } | null;
 }
 
+interface BranchFormData {
+  name: string;
+  facilityType: string;
+  address: string;
+  city: string;
+  latitude: string;
+  longitude: string;
+}
+
 const facilityTypes = ["Tümü", "Mağaza", "Kesimhane", "Ahır", "Yufka", "Depo"];
 
 const facilityTypeLabels: Record<string, string> = {
@@ -27,6 +36,23 @@ const facilityTypeLabels: Record<string, string> = {
   Ahir: "Ahır",
   Yufka: "Yufka",
   Depo: "Depo",
+};
+
+const facilityTypeOptions = [
+  { value: "Magaza", label: "Mağaza" },
+  { value: "Kesimhane", label: "Kesimhane" },
+  { value: "Ahir", label: "Ahır" },
+  { value: "Yufka", label: "Yufka" },
+  { value: "Depo", label: "Depo" },
+];
+
+const emptyForm: BranchFormData = {
+  name: "",
+  facilityType: "Magaza",
+  address: "",
+  city: "",
+  latitude: "",
+  longitude: "",
 };
 
 function getStatusBadge(isActive: boolean) {
@@ -41,25 +67,156 @@ export default function BranchesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchBranches() {
-      setLoading(true);
-      setError(null);
-      try {
-        const facilityParam = activeType === "Tümü" ? undefined : activeType;
-        const data = await api.getBranches(facilityParam);
-        setBranches(data);
-      } catch (err: any) {
-        setError(err.message || "Şubeler yüklenirken hata oluştu");
-      } finally {
-        setLoading(false);
-      }
+  // Modal state
+  const [showModal, setShowModal] = useState(false);
+  const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
+  const [formData, setFormData] = useState<BranchFormData>(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Delete confirmation state
+  const [deleteTarget, setDeleteTarget] = useState<Branch | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // Success notification
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const fetchBranches = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const facilityParam = activeType === "Tümü" ? undefined : activeType;
+      const data = await api.getBranches(facilityParam);
+      setBranches(data);
+    } catch (err: any) {
+      setError(err.message || "Şubeler yüklenirken hata oluştu");
+    } finally {
+      setLoading(false);
     }
-    fetchBranches();
   }, [activeType]);
+
+  useEffect(() => {
+    fetchBranches();
+  }, [fetchBranches]);
+
+  useEffect(() => {
+    if (successMsg) {
+      const timer = setTimeout(() => setSuccessMsg(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMsg]);
+
+  const openCreateModal = () => {
+    setEditingBranch(null);
+    setFormData(emptyForm);
+    setFormError(null);
+    setShowModal(true);
+  };
+
+  const openEditModal = (branch: Branch) => {
+    setEditingBranch(branch);
+    setFormData({
+      name: branch.name || "",
+      facilityType: branch.facilityType || "Magaza",
+      address: branch.address || "",
+      city: branch.city || "",
+      latitude: branch.latitude != null ? String(branch.latitude) : "",
+      longitude: branch.longitude != null ? String(branch.longitude) : "",
+    });
+    setFormError(null);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingBranch(null);
+    setFormData(emptyForm);
+    setFormError(null);
+  };
+
+  const handleFormChange = (field: keyof BranchFormData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = async () => {
+    if (!formData.name.trim()) {
+      setFormError("Şube adı zorunludur");
+      return;
+    }
+    if (!formData.city.trim()) {
+      setFormError("Şehir zorunludur");
+      return;
+    }
+
+    const payload: any = {
+      name: formData.name.trim(),
+      facilityType: formData.facilityType,
+      address: formData.address.trim(),
+      city: formData.city.trim(),
+      latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+      longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+    };
+
+    try {
+      setSaving(true);
+      setFormError(null);
+
+      if (editingBranch) {
+        await api.updateBranch(editingBranch.id, payload);
+        setSuccessMsg("Şube başarıyla güncellendi");
+      } else {
+        await api.createBranch(payload);
+        setSuccessMsg("Şube başarıyla oluşturuldu");
+      }
+
+      closeModal();
+      fetchBranches();
+    } catch (err: any) {
+      setFormError(err.message || "Kaydetme işlemi başarısız");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      setDeleting(true);
+      await api.deleteBranch(deleteTarget.id);
+      setSuccessMsg("Şube başarıyla silindi");
+      setDeleteTarget(null);
+      fetchBranches();
+    } catch (err: any) {
+      setFormError(err.message || "Silme işlemi başarısız");
+      setDeleteTarget(null);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
+      {/* Success notification */}
+      {successMsg && (
+        <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-700 flex items-center justify-between">
+          <span>{successMsg}</span>
+          <button onClick={() => setSuccessMsg(null)} className="text-green-500 hover:text-green-700">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Error notification (from delete etc.) */}
+      {formError && !showModal && (
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700 flex items-center justify-between">
+          <span>{formError}</span>
+          <button onClick={() => setFormError(null)} className="text-red-500 hover:text-red-700">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Header: filter chips + new button */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-wrap">
           {facilityTypes.map((type) => (
@@ -72,16 +229,20 @@ export default function BranchesPage() {
                   : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
               }`}
             >
-              {type}
+              {type === "Tümü" ? "Tümü" : facilityTypeLabels[type] || type}
             </button>
           ))}
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-primary-800 text-white rounded-lg text-sm font-medium hover:bg-primary-900 transition-colors">
+        <button
+          onClick={openCreateModal}
+          className="flex items-center gap-2 px-4 py-2 bg-primary-800 text-white rounded-lg text-sm font-medium hover:bg-primary-900 transition-colors"
+        >
           <Plus size={16} />
           Yeni Şube
         </button>
       </div>
 
+      {/* Table */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="animate-spin text-primary-800" size={32} />
@@ -106,6 +267,7 @@ export default function BranchesPage() {
                 <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">Şehir</th>
                 <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">Sorumlu</th>
                 <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">Durum</th>
+                <th className="text-right text-xs font-medium text-gray-500 uppercase py-3 px-4">İşlemler</th>
               </tr>
             </thead>
             <tbody>
@@ -119,10 +281,187 @@ export default function BranchesPage() {
                   <td className="py-3 px-4 text-sm text-gray-600">{branch.city || "-"}</td>
                   <td className="py-3 px-4 text-sm text-gray-600">{branch.manager?.fullName || "-"}</td>
                   <td className="py-3 px-4">{getStatusBadge(branch.isActive)}</td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => openEditModal(branch)}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-primary-800 hover:bg-primary-50 transition-colors"
+                        title="Düzenle"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(branch)}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        title="Sil"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Create/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {editingBranch ? "Şubeyi Düzenle" : "Yeni Şube"}
+              </h3>
+              <button
+                onClick={closeModal}
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {formError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-600">
+                  {formError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Şube Adı <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => handleFormChange("name", e.target.value)}
+                  placeholder="Şube adını girin"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tesis Tipi <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.facilityType}
+                  onChange={(e) => handleFormChange("facilityType", e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none text-sm"
+                >
+                  {facilityTypeOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Adres
+                </label>
+                <input
+                  type="text"
+                  value={formData.address}
+                  onChange={(e) => handleFormChange("address", e.target.value)}
+                  placeholder="Adres bilgisi"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Şehir <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.city}
+                  onChange={(e) => handleFormChange("city", e.target.value)}
+                  placeholder="Şehir"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none text-sm"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Enlem (Latitude)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={formData.latitude}
+                    onChange={(e) => handleFormChange("latitude", e.target.value)}
+                    placeholder="örn: 37.0015"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Boylam (Longitude)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={formData.longitude}
+                    onChange={(e) => handleFormChange("longitude", e.target.value)}
+                    placeholder="örn: 35.3213"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-100">
+              <button
+                onClick={closeModal}
+                className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                İptal
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-primary-800 rounded-lg hover:bg-primary-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {saving && <Loader2 size={16} className="animate-spin" />}
+                {editingBranch ? "Güncelle" : "Oluştur"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Şubeyi Sil</h3>
+              <p className="text-sm text-gray-600">
+                <strong>{deleteTarget.name}</strong> şubesini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-100">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                İptal
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {deleting && <Loader2 size={16} className="animate-spin" />}
+                Sil
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

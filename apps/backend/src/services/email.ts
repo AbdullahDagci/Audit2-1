@@ -7,7 +7,7 @@ let transporter: nodemailer.Transporter;
 async function getTransporter(): Promise<nodemailer.Transporter> {
   if (transporter) return transporter;
 
-  if (isProduction && process.env.SMTP_HOST) {
+  if (process.env.SMTP_HOST) {
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || '587'),
@@ -72,7 +72,19 @@ export async function sendEmail(params: SendEmailParams): Promise<{ success: boo
   }
 }
 
-export function getManagementEmails(): string[] {
+export async function getManagementEmails(): Promise<string[]> {
+  try {
+    // Oncelik: DB'den oku
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+    const setting = await prisma.systemSetting.findUnique({ where: { key: 'management_emails' } });
+    await prisma.$disconnect();
+    if (setting) {
+      const dbEmails: string[] = JSON.parse(setting.value);
+      if (dbEmails.length > 0) return dbEmails;
+    }
+  } catch {}
+  // Fallback: .env'den oku
   const emails = process.env.SMTP_TO_MANAGEMENT || '';
   return emails.split(',').map(e => e.trim()).filter(Boolean);
 }

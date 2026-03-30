@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, Alert, Platform, Modal as RNModal, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors } from '@/constants/colors';
@@ -41,14 +42,14 @@ export default function InspectionsScreen() {
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [tempDate, setTempDate] = useState(new Date());
 
-  // Tarih duzenleme
+  // Tarih düzenleme
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
   const [editDate, setEditDate] = useState(new Date());
   const [showEditDatePicker, setShowEditDatePicker] = useState(false);
 
   const fetchInspections = useCallback(async () => {
     try {
-      // Tesis tiplerini cek
+      // Tesis tiplerini çek
       try {
         const types = await api.getFacilityTypes();
         setFacilityTypes(types.filter((t: any) => t.is_active));
@@ -89,7 +90,13 @@ export default function InspectionsScreen() {
     setRefreshing(false);
   }, [selectedType, startDate, endDate]);
 
-  useEffect(() => { setLoading(true); fetchInspections(); }, [fetchInspections]);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      fetchInspections();
+    }, [fetchInspections])
+  );
+
   const onRefresh = () => { setRefreshing(true); fetchInspections(); };
 
   const selectedTypeLabel = selectedType === 'all' ? 'Tüm Tipler' : facilityTypes.find((t: any) => t.key === selectedType)?.label || selectedType;
@@ -126,7 +133,7 @@ export default function InspectionsScreen() {
       await api.updateInspection(inspId, { scheduledDate: date.toISOString().split('T')[0] });
       setInspections(prev => prev.map(i => i.id === inspId ? { ...i, scheduledDate: date.toISOString() } : i));
     } catch (err: any) {
-      Alert.alert('Hata', err.message || 'Tarih guncellenemedi.');
+      Alert.alert('Hata', err.message || 'Tarih güncellenemedi.');
     }
     setEditingDateId(null);
     setShowEditDatePicker(false);
@@ -177,7 +184,7 @@ export default function InspectionsScreen() {
         )}
       </View>
 
-      {/* Filtre alani */}
+      {/* Filtre alanı */}
       <View style={S.filterBar}>
         {/* Tesis tipi select */}
         <TouchableOpacity style={S.selectBox} onPress={() => setShowTypePicker(true)}>
@@ -186,16 +193,16 @@ export default function InspectionsScreen() {
           <MaterialIcons name="keyboard-arrow-down" size={20} color="#999" />
         </TouchableOpacity>
 
-        {/* Başlangic tarihi */}
+        {/* Başlangıç tarihi */}
         <TouchableOpacity style={[S.dateBox, startDate && S.dateBoxActive]} onPress={() => { setTempDate(startDate || new Date()); setShowStartPicker(true); }}>
           <MaterialIcons name="event" size={16} color={startDate ? '#FFF' : '#1565C0'} />
-          <Text style={[S.dateText, startDate && S.dateTextActive]} numberOfLines={1}>{startDate ? formatDate(startDate) : 'Başlangic'}</Text>
+          <Text style={[S.dateText, startDate && S.dateTextActive]} numberOfLines={1}>{startDate ? formatDate(startDate) : 'Başlangıç'}</Text>
         </TouchableOpacity>
 
-        {/* Bitis tarihi */}
+        {/* Bitiş tarihi */}
         <TouchableOpacity style={[S.dateBox, endDate && S.dateBoxActive]} onPress={() => { setTempDate(endDate || new Date()); setShowEndPicker(true); }}>
           <MaterialIcons name="event" size={16} color={endDate ? '#FFF' : '#1565C0'} />
-          <Text style={[S.dateText, endDate && S.dateTextActive]} numberOfLines={1}>{endDate ? formatDate(endDate) : 'Bitis'}</Text>
+          <Text style={[S.dateText, endDate && S.dateTextActive]} numberOfLines={1}>{endDate ? formatDate(endDate) : 'Bitiş'}</Text>
         </TouchableOpacity>
 
         {/* Temizle */}
@@ -206,7 +213,7 @@ export default function InspectionsScreen() {
         )}
       </View>
 
-      {/* Sonuc sayisi */}
+      {/* Sonuç sayısı */}
       <View style={S.resultBar}>
         <Text style={S.resultText}>{filteredInspections.length} denetim</Text>
       </View>
@@ -267,7 +274,7 @@ export default function InspectionsScreen() {
       <RNModal visible={showTypePicker} transparent animationType="fade" onRequestClose={() => setShowTypePicker(false)}>
         <TouchableOpacity style={S.modalOverlay} activeOpacity={1} onPress={() => setShowTypePicker(false)}>
           <View style={S.modalCard}>
-            <Text style={S.modalTitle}>Tesis Tipi Secin</Text>
+            <Text style={S.modalTitle}>Tesis Tipi Seçin</Text>
             <TouchableOpacity style={[S.modalItem, selectedType === 'all' && S.modalItemOn]} onPress={() => { setSelectedType('all'); setShowTypePicker(false); }}>
               <Text style={[S.modalItemText, selectedType === 'all' && S.modalItemTextOn]}>Tüm Tipler</Text>
               {selectedType === 'all' && <MaterialIcons name="check" size={20} color="#2E7D32" />}
@@ -321,7 +328,7 @@ export default function InspectionsScreen() {
                   <View style={S.actions}>
                     <TouchableOpacity style={S.actionBtn} onPress={(e) => { e.stopPropagation?.(); handleEditDate(item); }}>
                       <MaterialIcons name="edit-calendar" size={16} color="#1565C0" />
-                      <Text style={S.actionBtnText}>Tarih Degistir</Text>
+                      <Text style={S.actionBtnText}>Tarih Değiştir</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={[S.actionBtn, S.actionBtnDanger]} onPress={(e) => { e.stopPropagation?.(); handleDelete(item); }}>
                       <MaterialIcons name="delete-outline" size={16} color="#C62828" />
@@ -347,11 +354,11 @@ export default function InspectionsScreen() {
         />
       )}
 
-      {/* Tarih duzenleme picker */}
+      {/* Tarih düzenleme picker */}
       {showEditDatePicker && (
         <View style={S.dateEditOverlay}>
           <View style={S.dateEditCard}>
-            <Text style={{ fontSize: 15, fontWeight: '600', color: '#333', marginBottom: 8 }}>Yeni tarih secin</Text>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: '#333', marginBottom: 8 }}>Yeni tarih seçin</Text>
             <DateTimePicker
               value={editDate}
               mode="date"
@@ -363,7 +370,7 @@ export default function InspectionsScreen() {
             {Platform.OS === 'ios' && (
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
                 <TouchableOpacity onPress={() => { setShowEditDatePicker(false); setEditingDateId(null); }} style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#F5F5F5', borderRadius: 8 }}>
-                  <Text style={{ color: '#666', fontWeight: '600' }}>Iptal</Text>
+                  <Text style={{ color: '#666', fontWeight: '600' }}>İptal</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => editingDateId && saveEditDate(editingDateId, editDate)} style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#2E7D32', borderRadius: 8 }}>
                   <Text style={{ color: '#FFF', fontWeight: '600' }}>Kaydet</Text>
@@ -379,18 +386,18 @@ export default function InspectionsScreen() {
 
 const S = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F5' },
-  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 10, marginHorizontal: 16, marginTop: 12, paddingHorizontal: 10 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 10, marginHorizontal: 16, marginTop: 12, paddingHorizontal: 10, minHeight: 48 },
   searchIcon: { marginRight: 6 },
-  searchInput: { flex: 1, fontSize: 14, color: '#333', paddingVertical: 10 },
+  searchInput: { flex: 1, fontSize: 14, color: '#333', paddingVertical: 12 },
   searchClear: { padding: 4 },
   filterBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
   selectBox: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 10 },
   selectText: { flex: 1, fontSize: 13, fontWeight: '600', color: '#333' },
-  dateBox: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 10 },
+  dateBox: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 10, minHeight: 44, minWidth: 44, paddingHorizontal: 14, paddingVertical: 10 },
   dateBoxActive: { backgroundColor: '#1565C0', borderColor: '#1565C0' },
   dateText: { fontSize: 12, color: '#1565C0', fontWeight: '600' },
   dateTextActive: { color: '#FFF' },
-  clearBtn: { padding: 8, backgroundColor: '#FFEBEE', borderRadius: 8 },
+  clearBtn: { padding: 8, backgroundColor: '#FFEBEE', borderRadius: 8, minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' },
   resultBar: { paddingHorizontal: 16, paddingVertical: 6 },
   resultText: { fontSize: 12, color: '#999' },
   pickerBtns: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginBottom: 8 },

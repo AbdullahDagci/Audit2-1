@@ -5,7 +5,7 @@ import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 const router = Router();
 
 // GET /api/reports/dashboard
-router.get('/dashboard', authenticate, requireRole('admin', 'manager'), async (_req: AuthRequest, res: Response) => {
+router.get('/dashboard', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -33,8 +33,11 @@ router.get('/dashboard', authenticate, requireRole('admin', 'manager'), async (_
       : 0;
 
     // Şube bazli performans
+    const branchWhere: any = { isActive: true };
+    if (req.userRole === 'manager') branchWhere.managerId = req.userId;
+
     const branchPerformance = await prisma.branch.findMany({
-      where: { isActive: true },
+      where: branchWhere,
       select: {
         id: true, name: true, facilityType: true,
         inspections: {
@@ -111,7 +114,7 @@ router.get('/branch-comparison', authenticate, requireRole('admin', 'manager'), 
       branchId: id,
       branchName: data.name,
       facilityType: data.facilityType,
-      avgScore: Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length * 100) / 100,
+      avgScore: data.scores.length > 0 ? Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length * 100) / 100 : 0,
       inspectionCount: data.scores.length,
     }));
 

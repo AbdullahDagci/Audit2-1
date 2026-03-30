@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import path from 'path';
 import { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/auth';
@@ -14,17 +15,37 @@ import facilityTypeRoutes from './routes/facility-types';
 import correctiveActionRoutes from './routes/corrective-actions';
 import tutanakRoutes from './routes/tutanak';
 import activityLogRoutes from './routes/activity-logs';
+import settingsRoutes from './routes/settings';
 
 export const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+// CORS
 app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
   credentials: true,
 }));
+
+// Gzip compression (API yanıtları %60-80 küçülür)
+app.use(compression({
+  level: 6,
+  threshold: 1024,
+  filter: (req, res) => {
+    // Görseller zaten sıkıştırılmış, tekrar sıkıştırma
+    if (req.path.startsWith('/uploads/')) return false;
+    return compression.filter(req, res);
+  },
+}));
+
 app.use(express.json({ limit: '50mb' }));
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Static dosyalar (7 gün cache, immutable)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
+  maxAge: '7d',
+  immutable: true,
+  etag: true,
+}));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -39,6 +60,7 @@ app.use('/api/facility-types', facilityTypeRoutes);
 app.use('/api/corrective-actions', correctiveActionRoutes);
 app.use('/api/tutanak', tutanakRoutes);
 app.use('/api/activity-logs', activityLogRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -46,5 +68,5 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`ERTANSA Audit API sunucusu http://localhost:${PORT} adresinde calisiyor`);
+  console.log(`ERTANSA Audit API http://localhost:${PORT} aktif`);
 });

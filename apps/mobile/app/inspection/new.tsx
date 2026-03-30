@@ -88,12 +88,12 @@ export default function NewInspectionScreen() {
       });
 
       Alert.alert(
-        'Denetim Planlandi',
-        `${selectedBranch.name} için ${scheduledDate.toLocaleDateString('tr-TR')} tarihine denetim planlandi.`,
+        'Denetim Planlandı',
+        `${selectedBranch.name} için ${scheduledDate.toLocaleDateString('tr-TR')} tarihine denetim planlandı.`,
         [{ text: 'Tamam', onPress: () => router.back() }]
       );
     } catch (err: any) {
-      Alert.alert('Hata', err.message || 'Denetim planlanirken bir hata oluştu.');
+      Alert.alert('Hata', err.message || 'Denetim planlanırken bir hata oluştu.');
     }
     setScheduling(false);
   };
@@ -111,7 +111,7 @@ export default function NewInspectionScreen() {
     const location = await getCurrentLocation();
 
     if (!location) {
-      Alert.alert('Konum Alinamadi', 'Denetim başlatmak için konum izni vermeniz gerekir.');
+      Alert.alert('Konum Alınamadı', 'Denetim başlatmak için konum izni vermeniz gerekir.');
       setChecking(false);
       return;
     }
@@ -124,7 +124,7 @@ export default function NewInspectionScreen() {
     } else {
       Alert.alert(
         'Konum Doğrulanamadı',
-        `${selectedBranch.name} subesine ${formatDistance(distance)} uzaktasınız.\n\nDenetim başlatmak için subenin yakınında olmanız gerekir.`,
+        `${selectedBranch.name} şubesine ${formatDistance(distance)} uzaktasınız.\n\nDenetim başlatmak için şubenin yakınında olmanız gerekir.`,
         [{ text: 'Tamam' }]
       );
     }
@@ -215,7 +215,7 @@ export default function NewInspectionScreen() {
             );
           }}
           contentContainerStyle={styles.list}
-          ListEmptyComponent={<Text style={styles.empty}>Bu tipte sube bulunamadı</Text>}
+          ListEmptyComponent={<Text style={styles.empty}>Bu tipte şube bulunamadı</Text>}
         />
       )}
 
@@ -251,27 +251,11 @@ export default function NewInspectionScreen() {
             </TouchableOpacity>
           )}
 
-          {/* Butonlar: Denetçi -> Planla + Başla, Admin/Manager -> sadece Planla */}
+          {/* Butonlar: Denetci -> Sadece Basla (konum dogrulamali), Admin/Manager -> sadece Planla */}
           {isInspector ? (
             <View style={styles.btnRow}>
               <TouchableOpacity
-                style={styles.scheduleBtn}
-                onPress={handleSchedule}
-                disabled={scheduling}
-                activeOpacity={0.8}
-              >
-                {scheduling ? (
-                  <ActivityIndicator size="small" color="#1565C0" />
-                ) : (
-                  <>
-                    <MaterialIcons name="schedule" size={22} color="#1565C0" />
-                    <Text style={styles.scheduleBtnText}>Planla</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.startBtn}
+                style={[styles.startBtn, { flex: 1 }]}
                 onPress={handleStartInspection}
                 disabled={checking}
                 activeOpacity={0.8}
@@ -279,12 +263,12 @@ export default function NewInspectionScreen() {
                 {checking ? (
                   <>
                     <ActivityIndicator size="small" color="#FFF" />
-                    <Text style={styles.startBtnText}>Kontrol...</Text>
+                    <Text style={styles.startBtnText}>Konum kontrol ediliyor...</Text>
                   </>
                 ) : (
                   <>
                     <MaterialIcons name="play-arrow" size={24} color="#FFF" />
-                    <Text style={styles.startBtnText}>Başla</Text>
+                    <Text style={styles.startBtnText}>Denetimi Başlat</Text>
                   </>
                 )}
               </TouchableOpacity>

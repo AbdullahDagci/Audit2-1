@@ -49,7 +49,7 @@ const ITEM_TYPES = [
 export default function TemplateDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const templateId = params.id as string;
+  const templateId = (params?.id || '') as string;
 
   const [template, setTemplate] = useState<Template | null>(null);
   const [loading, setLoading] = useState(true);

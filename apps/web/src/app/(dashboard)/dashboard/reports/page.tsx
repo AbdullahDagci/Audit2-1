@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import BranchComparison from "@/components/reports/BranchComparison";
@@ -18,13 +18,13 @@ import {
 
 const MONTH_LABELS: Record<number, string> = {
   0: "Oca",
-  1: "Sub",
+  1: "Şub",
   2: "Mar",
   3: "Nis",
   4: "May",
   5: "Haz",
   6: "Tem",
-  7: "Agu",
+  7: "Ağu",
   8: "Eyl",
   9: "Eki",
   10: "Kas",
@@ -38,6 +38,38 @@ interface BranchData {
 
 type TabType = "comparison" | "trend" | "category";
 
+function jsonToCsv(data: any[]): string {
+  if (!data || data.length === 0) return "";
+  const headers = Object.keys(data[0]);
+  const rows = data.map((row) =>
+    headers
+      .map((h) => {
+        const val = row[h];
+        const str = val != null ? String(val) : "";
+        // Escape quotes and wrap in quotes if needed
+        if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      })
+      .join(",")
+  );
+  return [headers.join(","), ...rows].join("\n");
+}
+
+function downloadCsv(csvContent: string, filename: string) {
+  const BOM = "\uFEFF"; // UTF-8 BOM for Turkish characters
+  const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState<TabType>("comparison");
   const [branches, setBranches] = useState<BranchData[]>([]);
@@ -46,64 +78,100 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        setError(null);
+  // Date filter state
+  const [startDate, setStartDate] = useState("2026-01-01");
+  const [endDate, setEndDate] = useState("2026-03-29");
 
-        const [dashboardRes, inspectionsRes] = await Promise.all([
-          api.getDashboard(),
-          api.getInspections({ limit: "1000", sort: "date", order: "desc" }),
-        ]);
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        // Branch comparison data
-        const branchList = (dashboardRes.branches || []).map((b: any) => ({
-          name: b.name,
-          score: Math.round(b.avgScore ?? b.score ?? 0),
-        }));
-        setBranches(branchList);
+      const [branchComparisonRes, inspectionsRes] = await Promise.all([
+        api.getBranchComparison(startDate, endDate),
+        api.getInspections({ limit: "1000", sort: "date", order: "desc" }),
+      ]);
 
-        // Trend analysis: group inspections by month and calculate avg score
-        const inspections = inspectionsRes.data || [];
-        const monthMap: Record<string, { total: number; count: number }> = {};
+      // Branch comparison data from filtered API
+      const branchList = (branchComparisonRes || []).map((b: any) => ({
+        name: b.name || b.branchName || "?",
+        score: Math.round(b.avgScore ?? b.score ?? 0),
+      }));
+      setBranches(branchList);
 
-        for (const insp of inspections) {
-          if (insp.score == null || !insp.date) continue;
-          const d = new Date(insp.date);
-          const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, "0")}`;
-          if (!monthMap[key]) {
-            monthMap[key] = { total: 0, count: 0 };
-          }
-          monthMap[key].total += insp.score;
-          monthMap[key].count += 1;
+      // Trend analysis: group inspections by month and calculate avg score
+      const inspections = inspectionsRes.data || [];
+      const monthMap: Record<string, { total: number; count: number }> = {};
+
+      for (const insp of inspections) {
+        if (insp.score == null || !insp.date) continue;
+        const d = new Date(insp.date);
+        const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, "0")}`;
+        if (!monthMap[key]) {
+          monthMap[key] = { total: 0, count: 0 };
         }
-
-        const trend: TrendDataPoint[] = Object.entries(monthMap)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([key, val]) => {
-            const month = parseInt(key.split("-")[1], 10);
-            const year = key.split("-")[0];
-            return {
-              month: `${MONTH_LABELS[month]} ${year}`,
-              genel: Math.round(val.total / val.count),
-            };
-          });
-        setTrendData(trend);
-
-        // Category analysis: build from branch data if available
-        // Keep as placeholder since category-level data requires template-level scores
-        setCategoryData([]);
-      } catch (err: any) {
-        console.error("Rapor verileri yüklenirken hata:", err);
-        setError(err.message || "Veriler yüklenirken bir hata oluştu");
-      } finally {
-        setLoading(false);
+        monthMap[key].total += insp.score;
+        monthMap[key].count += 1;
       }
+
+      const trend: TrendDataPoint[] = Object.entries(monthMap)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, val]) => {
+          const month = parseInt(key.split("-")[1], 10);
+          const year = key.split("-")[0];
+          return {
+            month: `${MONTH_LABELS[month]} ${year}`,
+            genel: Math.round(val.total / val.count),
+          };
+        });
+      setTrendData(trend);
+
+      // Category analysis placeholder
+      setCategoryData([]);
+    } catch (err: any) {
+      console.error("Rapor verileri yüklenirken hata:", err);
+      setError(err.message || "Veriler yüklenirken bir hata oluştu");
+    } finally {
+      setLoading(false);
+    }
+  }, [startDate, endDate]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleExportCsv = () => {
+    let dataToExport: any[] = [];
+    let filename = "rapor.csv";
+
+    if (activeTab === "comparison") {
+      dataToExport = branches.map((b) => ({
+        "Şube Adı": b.name,
+        "Puan": b.score,
+      }));
+      filename = `sube-karsilastirma_${startDate}_${endDate}.csv`; // dosya adi ASCII kalmali
+    } else if (activeTab === "trend") {
+      dataToExport = trendData.map((t) => ({
+        "Ay": t.month,
+        "Genel Puan": t.genel,
+      }));
+      filename = `trend-analizi_${startDate}_${endDate}.csv`;
+    } else if (activeTab === "category") {
+      dataToExport = categoryData.map((c) => ({
+        "Kategori": c.category,
+        ...c,
+      }));
+      filename = `kategori-analizi_${startDate}_${endDate}.csv`;
     }
 
-    fetchData();
-  }, []);
+    if (dataToExport.length === 0) {
+      alert("Dışarı aktarılacak veri bulunamadı");
+      return;
+    }
+
+    const csv = jsonToCsv(dataToExport);
+    downloadCsv(csv, filename);
+  };
 
   const tabs: { key: TabType; label: string }[] = [
     { key: "comparison", label: "Şube Karşılaştırma" },
@@ -139,33 +207,34 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
           <div>
-            <label className="text-sm text-gray-500 mr-2">Baslangic:</label>
+            <label className="text-sm text-gray-500 mr-2">Başlangıç:</label>
             <input
               type="date"
-              defaultValue="2026-01-01"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
               className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
             />
           </div>
           <div>
-            <label className="text-sm text-gray-500 mr-2">Bitis:</label>
+            <label className="text-sm text-gray-500 mr-2">Bitiş:</label>
             <input
               type="date"
-              defaultValue="2026-03-29"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
               className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
             />
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">
+          <button
+            onClick={handleExportCsv}
+            className="flex items-center gap-2 px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800 transition-colors"
+          >
             <Download size={16} />
-            PDF
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800 transition-colors">
-            <Download size={16} />
-            Excel
+            Dışarı Aktar (CSV)
           </button>
         </div>
       </div>
@@ -206,16 +275,20 @@ export default function ReportsPage() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Kategori Analizi</h3>
             {categoryData.length === 0 ? (
               <div className="flex items-center justify-center h-64 text-gray-500">
-                Kategori analizi icin yeterli veri bulunmuyor.
+                Kategori analizi için yeterli veri bulunmuyor.
               </div>
             ) : (
               <div className="h-96">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={categoryData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    {/* @ts-ignore - Recharts v2 React 18 type compat */}
                     <XAxis dataKey="category" tick={{ fontSize: 12 }} />
+                    {/* @ts-ignore */}
                     <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
+                    {/* @ts-ignore */}
                     <Tooltip contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }} />
+                    {/* @ts-ignore */}
                     <Legend />
                   </BarChart>
                 </ResponsiveContainer>

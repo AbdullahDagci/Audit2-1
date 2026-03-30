@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Storage } from 'expo-sqlite/kv-store';
+import { useAuthStore } from '@/stores/auth-store';
+import { api } from '@/lib/api';
 
 const GREEN = '#2E7D32';
 const LIGHT_GREEN = '#4CAF50';
@@ -35,6 +37,7 @@ const DEFAULT_SETTINGS: Settings = {
 };
 
 export default function SettingsScreen() {
+  const user = useAuthStore((s) => s.user);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
 
@@ -44,27 +47,58 @@ export default function SettingsScreen() {
 
   const loadSettings = async () => {
     try {
+      // Oncelikle API'den tercihleri al
+      const me = await api.getMe();
+      if (me && (me.emailNotifications !== undefined || me.pushNotifications !== undefined || me.criticalAlerts !== undefined)) {
+        const apiSettings: Settings = {
+          emailNotifications: me.emailNotifications ?? DEFAULT_SETTINGS.emailNotifications,
+          pushNotifications: me.pushNotifications ?? DEFAULT_SETTINGS.pushNotifications,
+          criticalAlerts: me.criticalAlerts ?? DEFAULT_SETTINGS.criticalAlerts,
+        };
+        setSettings(apiSettings);
+        // Lokal cache'i de guncelle
+        try { Storage.setItemSync(STORAGE_KEY, JSON.stringify(apiSettings)); } catch {}
+        setLoading(false);
+        return;
+      }
+    } catch {
+      // API basarisiz olursa lokal cache'den oku
+    }
+
+    try {
       const stored = Storage.getItemSync(STORAGE_KEY);
       if (stored) {
         setSettings(JSON.parse(stored));
       }
     } catch {
-      // Use defaults
+      // Varsayilan degerler kullanilir
     }
     setLoading(false);
   };
 
   const updateSetting = useCallback(
-    (key: keyof Settings, value: boolean) => {
+    async (key: keyof Settings, value: boolean) => {
       const updated = { ...settings, [key]: value };
       setSettings(updated);
+
+      // Lokal cache'i guncelle (optimistic)
       try {
         Storage.setItemSync(STORAGE_KEY, JSON.stringify(updated));
-      } catch {
-        // Silently fail
+      } catch {}
+
+      // API'ye gonder
+      if (user?.id) {
+        try {
+          await api.updatePreferences(user.id, { [key]: value });
+        } catch (e: any) {
+          // API basarisiz olursa geri al
+          setSettings(settings);
+          try { Storage.setItemSync(STORAGE_KEY, JSON.stringify(settings)); } catch {}
+          Alert.alert('Hata', e.message || 'Tercih guncellenemedi');
+        }
       }
     },
-    [settings],
+    [settings, user?.id],
   );
 
   const handleClearCache = () => {
@@ -81,9 +115,9 @@ export default function SettingsScreen() {
               Storage.clearSync();
               // Restore settings after clearing everything
               Storage.setItemSync(STORAGE_KEY, JSON.stringify(settings));
-              Alert.alert('Başarılı', 'Önbellek temizlendi.');
+              Alert.alert('Basarili', 'Onbellek temizlendi.');
             } catch {
-              Alert.alert('Hata', 'Önbellek temizlenirken bir hata oluştu.');
+              Alert.alert('Hata', 'Onbellek temizlenirken bir hata olustu.');
             }
           },
         },

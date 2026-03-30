@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import { prisma } from '../index';
 import { authenticate, AuthRequest } from '../middleware/auth';
-import { upload } from '../middleware/upload';
+import { upload, compressImage } from '../middleware/upload';
 import { checkAndFinalizeInspection } from '../services/inspection-flow';
 import { logActivity } from '../services/activity-logger';
 
@@ -159,6 +159,90 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// POST /api/corrective-actions/batch - Toplu düzeltici faaliyet oluştur
+router.post('/batch', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { inspectionId, actions } = req.body;
+
+    if (!inspectionId || !Array.isArray(actions) || actions.length === 0) {
+      return res.status(400).json({ error: 'inspectionId ve en az bir action gerekli' });
+    }
+
+    const inspection = await prisma.inspection.findUnique({
+      where: { id: inspectionId },
+      include: { branch: true },
+    });
+
+    if (!inspection) return res.status(404).json({ error: 'Denetim bulunamadı' });
+
+    const isManager = inspection.branch.managerId === req.userId;
+    const isAdmin = req.userRole === 'admin';
+    if (!isManager && !isAdmin) {
+      return res.status(403).json({ error: 'Düzeltici faaliyet ekleme yetkiniz yok' });
+    }
+
+    if (inspection.status !== 'completed' && inspection.status !== 'pending_action') {
+      return res.status(400).json({ error: 'Sadece tamamlanmış veya işlem bekleyen denetimlere düzeltici faaliyet eklenebilir' });
+    }
+
+    const createdActions = [];
+    for (const item of actions) {
+      if (!item.responseId || !item.description?.trim()) continue;
+
+      const response = await prisma.inspectionResponse.findUnique({
+        where: { id: item.responseId },
+        include: { checklistItem: true },
+      });
+
+      if (!response || response.inspectionId !== inspectionId) continue;
+
+      // Zaten faaliyet varsa atla
+      const existing = await prisma.correctiveAction.findFirst({
+        where: { inspectionId, responseId: item.responseId },
+      });
+      if (existing) continue;
+
+      const action = await prisma.correctiveAction.create({
+        data: {
+          inspectionId,
+          responseId: item.responseId,
+          description: item.description.trim(),
+          isCritical: response.checklistItem.isCritical,
+          createdById: req.userId!,
+          status: 'pending',
+        },
+        include: {
+          response: { include: { checklistItem: true } },
+          createdBy: { select: { id: true, fullName: true } },
+        },
+      });
+
+      createdActions.push(action);
+
+      await logActivity({
+        userId: req.userId,
+        action: 'CORRECTIVE_ACTION_CREATED',
+        entityType: 'corrective_action',
+        entityId: action.id,
+        details: { inspectionId, isCritical: action.isCritical },
+        ipAddress: req.ip,
+      });
+    }
+
+    // Durumu pending_action'a güncelle
+    if (inspection.status === 'completed' && createdActions.length > 0) {
+      await prisma.inspection.update({
+        where: { id: inspectionId },
+        data: { status: 'pending_action' },
+      });
+    }
+
+    res.status(201).json({ created: createdActions.length, actions: createdActions });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/corrective-actions/:id/evidence - Kanıt fotoğrafı yükle
 router.post('/:id/evidence', authenticate, upload.single('photo'), async (req: AuthRequest, res: Response) => {
   try {
@@ -183,29 +267,27 @@ router.post('/:id/evidence', authenticate, upload.single('photo'), async (req: A
       return res.status(403).json({ error: 'Kanıt yükleme yetkiniz yok' });
     }
 
+    // Sharp ile sıkıştır
+    const compressedName = await compressImage(req.file.path);
+
     const updated = await prisma.correctiveAction.update({
       where: { id: req.params.id as string },
       data: {
-        evidencePhotoPath: `/uploads/${req.file.filename}`,
+        evidencePhotoPath: `/uploads/${compressedName}`,
         evidenceNotes: req.body.notes || null,
         evidenceUploadedAt: new Date(),
         status: 'evidence_uploaded',
       },
     });
 
-    // Denetçiye bildirim gönder
-    await prisma.notification.create({
-      data: {
-        userId: action.inspection.inspectorId,
-        title: 'Düzeltici Faaliyet Kanıtı Yüklendi',
-        body: `${action.inspection.branch.name} şubesindeki "${action.response.checklistItem.questionText}" maddesi için kanıt yüklendi.`,
-        data: {
-          inspectionId: action.inspectionId,
-          correctiveActionId: action.id,
-          type: 'evidence_uploaded',
-        },
-      },
-    });
+    // Denetçiye bildirim + push gönder
+    const { createAndPushNotification } = require('../services/push-notification');
+    await createAndPushNotification(
+      action.inspection.inspectorId,
+      'Düzeltici Faaliyet Kanıtı Yüklendi',
+      `${action.inspection.branch.name} şubesindeki "${action.response.checklistItem.questionText}" maddesi için kanıt yüklendi.`,
+      { inspectionId: action.inspectionId, correctiveActionId: action.id, type: 'evidence_uploaded' },
+    );
 
     await logActivity({
       userId: req.userId,

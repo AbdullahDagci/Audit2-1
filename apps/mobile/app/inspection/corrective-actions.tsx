@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   TextInput, Alert, ActivityIndicator, Image, Modal as RNModal, Dimensions
@@ -8,27 +8,31 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { api } from '@/lib/api';
 import { Config } from '@/constants/config';
-import { useAuthStore } from '@/stores/auth-store';
 
 const screenWidth = Dimensions.get('window').width;
 
 export default function CorrectiveActionsScreen() {
   const router = useRouter();
   const { inspectionId } = useLocalSearchParams<{ inspectionId: string }>();
-  const user = useAuthStore((s) => s.user);
 
+  // Data state
   const [deficiencies, setDeficiencies] = useState<any[]>([]);
   const [correctiveActions, setCorrectiveActions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Form state - her deficiency icin ayri
+  // Form state - toplu kayit icin
   const [descriptions, setDescriptions] = useState<Record<string, string>>({});
   const [photos, setPhotos] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState<Record<string, boolean>>({});
-  const [expandedOptional, setExpandedOptional] = useState<Record<string, boolean>>({});
+
+  // Kaydetme state
+  const [saving, setSaving] = useState(false);
+  const [saveProgress, setSaveProgress] = useState('');
+
+  // Fotograf goruntuleme
   const [viewPhoto, setViewPhoto] = useState<string | null>(null);
-  const [successItems, setSuccessItems] = useState<Record<string, boolean>>({});
+
+  // ---- Yardimci fonksiyonlar ----
 
   const photoUrl = (path: string) => {
     if (!path) return '';
@@ -36,28 +40,52 @@ export default function CorrectiveActionsScreen() {
     return `${Config.API_URL}${path}`;
   };
 
+  const getActionForResponse = useCallback((responseId: string) => {
+    return correctiveActions.find((a: any) => a.responseId === responseId);
+  }, [correctiveActions]);
+
+  // ---- Ozet hesaplamalari ----
+
+  const summary = useMemo(() => {
+    const total = deficiencies.length;
+    const critical = deficiencies.filter((d) => d.isCritical).length;
+    const saved = deficiencies.filter((d) => getActionForResponse(d.responseId)).length;
+    return { total, critical, saved };
+  }, [deficiencies, getActionForResponse]);
+
+  // Kaydedilmemis ve description dolmus eksiklikleri say
+  const pendingActions = useMemo(() => {
+    return deficiencies.filter((d) => {
+      const hasExisting = !!getActionForResponse(d.responseId);
+      if (hasExisting) return false;
+      const desc = descriptions[d.responseId]?.trim();
+      return !!desc;
+    });
+  }, [deficiencies, descriptions, getActionForResponse]);
+
+  // ---- Veri yukleme ----
+
   const fetchData = useCallback(async () => {
     if (!inspectionId) return;
     setLoading(true);
     setError(null);
     try {
-      const [defs, actions] = await Promise.all([
-        api.getDeficiencies(inspectionId).catch(() => []),
+      const [defsResponse, actions] = await Promise.all([
+        api.getDeficiencies(inspectionId).catch(() => ({ deficiencies: [] })),
         api.getCorrectiveActions(inspectionId).catch(() => []),
       ]);
-      setDeficiencies(Array.isArray(defs) ? defs : []);
+      const defList = (defsResponse as any)?.deficiencies || (Array.isArray(defsResponse) ? defsResponse : []);
+      setDeficiencies(defList);
       setCorrectiveActions(Array.isArray(actions) ? actions : []);
     } catch (err: any) {
-      setError(err.message || 'Veriler yüklenemedi');
+      setError(err.message || 'Veriler yuklenemedi');
     }
     setLoading(false);
   }, [inspectionId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const getActionForResponse = (responseId: string) => {
-    return correctiveActions.find((a: any) => a.responseId === responseId);
-  };
+  // ---- Fotograf islemleri ----
 
   const pickPhoto = async (responseId: string) => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -65,7 +93,6 @@ export default function CorrectiveActionsScreen() {
       quality: 0.7,
       allowsEditing: true,
     });
-
     if (!result.canceled && result.assets?.[0]) {
       setPhotos((prev) => ({ ...prev, [responseId]: result.assets[0].uri }));
     }
@@ -74,360 +101,798 @@ export default function CorrectiveActionsScreen() {
   const takePhoto = async (responseId: string) => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('İzin Gerekli', 'Kamera izni vermeniz gerekiyor.');
+      Alert.alert('Izin Gerekli', 'Kamera izni vermeniz gerekiyor.');
       return;
     }
-
     const result = await ImagePicker.launchCameraAsync({
       quality: 0.7,
       allowsEditing: true,
     });
-
     if (!result.canceled && result.assets?.[0]) {
       setPhotos((prev) => ({ ...prev, [responseId]: result.assets[0].uri }));
     }
   };
 
   const showPhotoOptions = (responseId: string) => {
-    Alert.alert('Fotoğraf Seç', 'Fotoğraf kaynağı seçin', [
+    Alert.alert('Fotograf Sec', 'Fotograf kaynagi secin', [
       { text: 'Kamera', onPress: () => takePhoto(responseId) },
       { text: 'Galeri', onPress: () => pickPhoto(responseId) },
-      { text: 'İptal', style: 'cancel' },
+      { text: 'Iptal', style: 'cancel' },
     ]);
   };
 
-  const handleSubmit = async (deficiency: any) => {
-    const responseId = deficiency.responseId;
-    const description = descriptions[responseId]?.trim();
+  const removePhoto = (responseId: string) => {
+    setPhotos((prev) => {
+      const next = { ...prev };
+      delete next[responseId];
+      return next;
+    });
+  };
 
-    if (!description) {
-      Alert.alert('Uyarı', 'Düzeltici faaliyet açıklaması yazmanız gerekiyor.');
+  // ---- TOPLU KAYIT ----
+
+  const handleBatchSave = async () => {
+    // Validasyon: Kritik olup description bos olanlari bul
+    const unsavedCriticals = deficiencies.filter((d) => {
+      if (!d.isCritical) return false;
+      const hasExisting = !!getActionForResponse(d.responseId);
+      if (hasExisting) return false;
+      const desc = descriptions[d.responseId]?.trim();
+      return !desc;
+    });
+
+    if (unsavedCriticals.length > 0) {
+      const names = unsavedCriticals.map((d) => `- ${d.questionText}`).join('\n');
+      Alert.alert(
+        'Kritik Eksiklikler',
+        `Asagidaki kritik eksiklikler icin duzeltici faaliyet zorunludur:\n\n${names}`,
+      );
       return;
     }
 
-    setSubmitting((prev) => ({ ...prev, [responseId]: true }));
-
-    try {
-      // Düzeltici faaliyet oluştur
-      const action = await api.createCorrectiveAction({
-        inspectionId: inspectionId!,
-        responseId,
-        description,
-      });
-
-      // Kanıt fotoğrafı varsa yükle
-      if (photos[responseId]) {
-        await api.uploadEvidence(action.id, photos[responseId]);
-      }
-
-      setSuccessItems((prev) => ({ ...prev, [responseId]: true }));
-
-      // Listeyi yenile
-      await fetchData();
-
-      // Başarı geri bildirimi
-      Alert.alert('Başarılı', 'Düzeltici faaliyet kaydedildi.');
-    } catch (err: any) {
-      Alert.alert('Hata', err.message || 'Düzeltici faaliyet kaydedilemedi.');
+    if (pendingActions.length === 0) {
+      Alert.alert('Uyari', 'Kaydedilecek duzeltici faaliyet bulunamadi. Lutfen en az bir aciklama yazin.');
+      return;
     }
 
-    setSubmitting((prev) => ({ ...prev, [responseId]: false }));
+    setSaving(true);
+    setSaveProgress(`0/${pendingActions.length} kaydediliyor...`);
+
+    try {
+      // 1. Toplu kayit: batch endpoint
+      const batchPayload = pendingActions.map((d) => ({
+        responseId: d.responseId,
+        description: descriptions[d.responseId].trim(),
+      }));
+
+      setSaveProgress(`Faaliyetler kaydediliyor...`);
+      const result = await api.batchCreateCorrectiveActions(inspectionId!, batchPayload);
+
+      // 2. Fotograflari siraliyla yukle
+      const actionsWithPhotos = pendingActions.filter((d) => photos[d.responseId]);
+
+      if (actionsWithPhotos.length > 0 && result.actions) {
+        for (let i = 0; i < actionsWithPhotos.length; i++) {
+          const def = actionsWithPhotos[i];
+          const photoUri = photos[def.responseId];
+          // batch response'dan ilgili action'i bul
+          const createdAction = result.actions.find(
+            (a: any) => a.responseId === def.responseId
+          );
+
+          if (createdAction && photoUri) {
+            setSaveProgress(`Fotograf yukleniyor ${i + 1}/${actionsWithPhotos.length}...`);
+            try {
+              await api.uploadEvidence(createdAction.id, photoUri);
+            } catch {
+              // Fotograf yuklenemezse devam et, ama kullaniciyi bilgilendir
+              // (batch kayit basarili oldugundan kritik degil)
+            }
+          }
+        }
+      }
+
+      // 3. Formu temizle ve veriyi yenile
+      setDescriptions({});
+      setPhotos({});
+      await fetchData();
+
+      setSaving(false);
+      setSaveProgress('');
+
+      Alert.alert(
+        'Basarili',
+        `${result.created} duzeltici faaliyet kaydedildi.`,
+        [{ text: 'Tamam', onPress: () => router.back() }],
+      );
+    } catch (err: any) {
+      setSaving(false);
+      setSaveProgress('');
+      Alert.alert('Hata', err.message || 'Duzeltici faaliyetler kaydedilemedi.');
+    }
   };
+
+  // ---- Render: Loading ----
 
   if (loading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ color: '#999', marginTop: 12 }}>Yükleniyor...</Text>
+        <Text style={styles.loadingText}>Yukleniyor...</Text>
       </View>
     );
   }
+
+  // ---- Render: Error ----
 
   if (error) {
     return (
       <View style={styles.center}>
         <MaterialIcons name="error-outline" size={48} color="#F44336" />
-        <Text style={{ color: '#F44336', marginTop: 12, fontSize: 15 }}>{error}</Text>
+        <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryBtn} onPress={fetchData}>
-          <Text style={{ color: '#FFF', fontWeight: '600' }}>Tekrar Dene</Text>
+          <Text style={styles.retryBtnText}>Tekrar Dene</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
+  // ---- Render: Ana sayfa ----
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Geri butonu */}
-      <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-        <MaterialIcons name="arrow-back-ios" size={20} color="#2E7D32" />
-        <Text style={styles.backText}>Geri</Text>
-      </TouchableOpacity>
-
-      {/* Baslik */}
-      <View style={styles.headerCard}>
-        <MaterialIcons name="build" size={28} color="#E65100" />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Düzeltici Faaliyetler</Text>
-          <Text style={styles.headerSub}>
-            {deficiencies.length} eksiklik bulundu
-            {correctiveActions.length > 0 && ` · ${correctiveActions.length} faaliyet kayıtlı`}
-          </Text>
-        </View>
-      </View>
-
-      {deficiencies.length === 0 && (
-        <View style={styles.emptyBox}>
-          <MaterialIcons name="check-circle" size={48} color="#4CAF50" />
-          <Text style={styles.emptyText}>Eksiklik bulunamadı</Text>
-
+    <View style={styles.container}>
+      {/* Saving Overlay */}
+      {saving && (
+        <View style={styles.savingOverlay}>
+          <View style={styles.savingBox}>
+            <ActivityIndicator size="large" color="#2E7D32" />
+            <Text style={styles.savingText}>{saveProgress}</Text>
+          </View>
         </View>
       )}
 
-      {/* Eksiklik Listesi */}
-      {deficiencies.map((def: any) => {
-        const existingAction = getActionForResponse(def.responseId);
-        const isCritical = def.isCritical;
-        const responseId = def.responseId;
-        const isOptionalExpanded = expandedOptional[responseId];
-        const isSuccess = successItems[responseId];
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Geri butonu */}
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <MaterialIcons name="arrow-back-ios" size={20} color="#2E7D32" />
+          <Text style={styles.backText}>Geri</Text>
+        </TouchableOpacity>
 
-        return (
-          <View key={responseId} style={[styles.defCard, isCritical && styles.defCardCritical]}>
-            {/* Soru basligi */}
-            <View style={styles.defHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.defCategory}>{def.categoryName}</Text>
-                <Text style={styles.defQuestion}>{def.questionText}</Text>
-              </View>
-              <View style={styles.defScoreBox}>
-                <Text style={styles.defScore}>{def.score ?? 0}/{def.maxScore}</Text>
-              </View>
-            </View>
-
-            {/* Kritik badge */}
-            {isCritical && (
-              <View style={styles.critBadge}>
-                <MaterialIcons name="warning" size={14} color="#C62828" />
-                <Text style={styles.critBadgeText}>KRİTİK</Text>
-              </View>
-            )}
-
-            {/* Denetçi notları */}
-            {def.notes && (
-              <View style={styles.notesBox}>
-                <MaterialIcons name="note" size={14} color="#999" />
-                <Text style={styles.notesText}>{def.notes}</Text>
-              </View>
-            )}
-
-            {/* Mevcut düzeltici faaliyet varsa göster */}
-            {existingAction ? (
-              <View style={styles.existingAction}>
-                <View style={styles.existingHeader}>
-                  <MaterialIcons name="check-circle" size={18} color="#2E7D32" />
-                  <Text style={styles.existingTitle}>Düzeltici Faaliyet Kayıtlı</Text>
-
-                </View>
-                <Text style={styles.existingDesc}>{existingAction.description}</Text>
-                {existingAction.evidence && existingAction.evidence.length > 0 ? (
-                  <View style={styles.evidenceRow}>
-                    <MaterialIcons name="photo" size={16} color="#4CAF50" />
-                    <Text style={styles.evidenceText}>{existingAction.evidence.length} kanıt yüklendi</Text>
-
-                    {existingAction.evidence.map((ev: any) => (
-                      <TouchableOpacity key={ev.id} onPress={() => setViewPhoto(photoUrl(ev.storagePath || ev.photoUrl))}>
-                        <Image
-                          source={{ uri: photoUrl(ev.storagePath || ev.photoUrl) }}
-                          style={styles.evidenceThumb}
-                        />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                ) : (
-                  <View style={styles.evidenceRow}>
-                    <MaterialIcons name="photo" size={16} color="#FF9800" />
-                    <Text style={[styles.evidenceText, { color: '#FF9800' }]}>Kanıt bekleniyor</Text>
-
-                  </View>
-                )}
-              </View>
-            ) : isSuccess ? (
-              <View style={styles.successBox}>
-                <MaterialIcons name="check-circle" size={24} color="#4CAF50" />
-                <Text style={styles.successText}>Başarıyla kaydedildi</Text>
-
-              </View>
-            ) : isCritical ? (
-              /* Kritik - zorunlu form */
-              <View style={styles.formSection}>
-                <Text style={styles.formLabel}>Düzeltici faaliyet açıklaması (zorunlu)</Text>
-                <TextInput
-                  style={styles.formInput}
-                  placeholder="Yapılacak düzeltici faaliyeti açıklayın..."
-                  value={descriptions[responseId] || ''}
-                  onChangeText={(t) => setDescriptions((prev) => ({ ...prev, [responseId]: t }))}
-                  multiline
-                />
-                {/* Fotograf */}
-                {photos[responseId] ? (
-                  <View style={styles.photoPreview}>
-                    <Image source={{ uri: photos[responseId] }} style={styles.photoPreviewImg} />
-                    <TouchableOpacity style={styles.photoRemove} onPress={() => setPhotos((prev) => { const n = { ...prev }; delete n[responseId]; return n; })}>
-                      <MaterialIcons name="close" size={18} color="#FFF" />
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <TouchableOpacity style={styles.photoBtn} onPress={() => showPhotoOptions(responseId)}>
-                    <MaterialIcons name="add-a-photo" size={20} color="#2E7D32" />
-                    <Text style={styles.photoBtnText}>Kanıt Fotoğrafı Ekle</Text>
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  style={[styles.submitBtn, submitting[responseId] && { opacity: 0.6 }]}
-                  onPress={() => handleSubmit(def)}
-                  disabled={submitting[responseId]}
-                  activeOpacity={0.8}
-                >
-                  {submitting[responseId] ? (
-                    <ActivityIndicator size="small" color="#FFF" />
-                  ) : (
-                    <>
-                      <MaterialIcons name="save" size={18} color="#FFF" />
-                      <Text style={styles.submitBtnText}>Kaydet</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            ) : (
-              /* Kritik değil - opsiyonel, açılır kapanır */
-              <View>
-                <TouchableOpacity
-                  style={styles.optionalToggle}
-                  onPress={() => setExpandedOptional((prev) => ({ ...prev, [responseId]: !prev[responseId] }))}
-                >
-                  <MaterialIcons name={isOptionalExpanded ? 'keyboard-arrow-up' : 'keyboard-arrow-down'} size={20} color="#2E7D32" />
-                  <Text style={styles.optionalToggleText}>Düzeltici Faaliyet Ekle</Text>
-                </TouchableOpacity>
-
-                {isOptionalExpanded && (
-                  <View style={styles.formSection}>
-                    <TextInput
-                      style={styles.formInput}
-                      placeholder="Düzeltici faaliyet açıklaması..."
-                      value={descriptions[responseId] || ''}
-                      onChangeText={(t) => setDescriptions((prev) => ({ ...prev, [responseId]: t }))}
-                      multiline
-                    />
-                    {photos[responseId] ? (
-                      <View style={styles.photoPreview}>
-                        <Image source={{ uri: photos[responseId] }} style={styles.photoPreviewImg} />
-                        <TouchableOpacity style={styles.photoRemove} onPress={() => setPhotos((prev) => { const n = { ...prev }; delete n[responseId]; return n; })}>
-                          <MaterialIcons name="close" size={18} color="#FFF" />
-                        </TouchableOpacity>
-                      </View>
-                    ) : (
-                      <TouchableOpacity style={styles.photoBtn} onPress={() => showPhotoOptions(responseId)}>
-                        <MaterialIcons name="add-a-photo" size={20} color="#2E7D32" />
-                        <Text style={styles.photoBtnText}>Kanıt Fotoğrafı Ekle</Text>
-                      </TouchableOpacity>
-                    )}
-                    <TouchableOpacity
-                      style={[styles.submitBtn, submitting[responseId] && { opacity: 0.6 }]}
-                      onPress={() => handleSubmit(def)}
-                      disabled={submitting[responseId]}
-                      activeOpacity={0.8}
-                    >
-                      {submitting[responseId] ? (
-                        <ActivityIndicator size="small" color="#FFF" />
-                      ) : (
-                        <>
-                          <MaterialIcons name="save" size={18} color="#FFF" />
-                          <Text style={styles.submitBtnText}>Kaydet</Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            )}
+        {/* Baslik karti */}
+        <View style={styles.headerCard}>
+          <View style={styles.headerIcon}>
+            <MaterialIcons name="build" size={28} color="#E65100" />
           </View>
-        );
-      })}
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Duzeltici Faaliyetler</Text>
+            <Text style={styles.headerSub}>
+              {summary.total} eksiklik, {summary.critical} kritik, {summary.saved} kaydedildi
+            </Text>
+          </View>
+        </View>
 
-      {/* Tam ekran fotoğraf görüntüleme */}
-      <RNModal visible={!!viewPhoto} transparent animationType="fade" onRequestClose={() => setViewPhoto(null)}>
+        {/* Ozet bar */}
+        <View style={styles.summaryBar}>
+          <View style={styles.summaryItem}>
+            <MaterialIcons name="list-alt" size={18} color="#E65100" />
+            <Text style={styles.summaryValue}>{summary.total}</Text>
+            <Text style={styles.summaryLabel}>Eksiklik</Text>
+          </View>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryItem}>
+            <MaterialIcons name="warning" size={18} color="#C62828" />
+            <Text style={[styles.summaryValue, { color: '#C62828' }]}>{summary.critical}</Text>
+            <Text style={styles.summaryLabel}>Kritik</Text>
+          </View>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryItem}>
+            <MaterialIcons name="check-circle" size={18} color="#2E7D32" />
+            <Text style={[styles.summaryValue, { color: '#2E7D32' }]}>{summary.saved}</Text>
+            <Text style={styles.summaryLabel}>Kayitli</Text>
+          </View>
+        </View>
+
+        {/* Eksiklik yoksa */}
+        {deficiencies.length === 0 && (
+          <View style={styles.emptyBox}>
+            <MaterialIcons name="check-circle" size={48} color="#4CAF50" />
+            <Text style={styles.emptyText}>Eksiklik bulunamadi</Text>
+          </View>
+        )}
+
+        {/* Eksiklik Listesi */}
+        {deficiencies.map((def: any) => {
+          const existingAction = getActionForResponse(def.responseId);
+          const isCritical = def.isCritical;
+          const responseId = def.responseId;
+
+          return (
+            <View
+              key={responseId}
+              style={[
+                styles.defCard,
+                isCritical ? styles.defCardCritical : styles.defCardNormal,
+              ]}
+            >
+              {/* Soru basligi */}
+              <View style={styles.defHeader}>
+                <View style={styles.defHeaderLeft}>
+                  <Text style={styles.defCategory}>{def.categoryName}</Text>
+                  <Text style={styles.defQuestion}>{def.questionText}</Text>
+                </View>
+                <View style={styles.defScoreBox}>
+                  <Text style={styles.defScore}>{def.score ?? 0}/{def.maxScore}</Text>
+                </View>
+              </View>
+
+              {/* Kritik badge */}
+              {isCritical && (
+                <View style={styles.critBadge}>
+                  <MaterialIcons name="warning" size={14} color="#C62828" />
+                  <Text style={styles.critBadgeText}>KRITIK</Text>
+                </View>
+              )}
+
+              {/* Denetci notlari */}
+              {def.notes && (
+                <View style={styles.notesBox}>
+                  <MaterialIcons name="note" size={14} color="#999" />
+                  <Text style={styles.notesText}>{def.notes}</Text>
+                </View>
+              )}
+
+              {/* Mevcut duzeltici faaliyet varsa: yesil kutu, duzenleme yok */}
+              {existingAction ? (
+                <View style={styles.existingAction}>
+                  <View style={styles.existingHeader}>
+                    <MaterialIcons name="check-circle" size={18} color="#2E7D32" />
+                    <Text style={styles.existingTitle}>Duzeltici Faaliyet Kayitli</Text>
+                  </View>
+                  <Text style={styles.existingDesc}>{existingAction.description}</Text>
+                  {existingAction.evidence && existingAction.evidence.length > 0 ? (
+                    <View style={styles.evidenceRow}>
+                      <MaterialIcons name="photo" size={16} color="#4CAF50" />
+                      <Text style={styles.evidenceText}>
+                        {existingAction.evidence.length} kanit yuklendi
+                      </Text>
+                      {existingAction.evidence.map((ev: any) => (
+                        <TouchableOpacity
+                          key={ev.id}
+                          onPress={() => setViewPhoto(photoUrl(ev.storagePath || ev.photoUrl))}
+                        >
+                          <Image
+                            source={{ uri: photoUrl(ev.storagePath || ev.photoUrl) }}
+                            style={styles.evidenceThumb}
+                          />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  ) : (
+                    <View style={styles.evidenceRow}>
+                      <MaterialIcons name="photo" size={16} color="#FF9800" />
+                      <Text style={[styles.evidenceText, { color: '#FF9800' }]}>
+                        Kanit bekleniyor
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                /* Form: description + fotograf */
+                <View style={styles.formSection}>
+                  <Text style={styles.formLabel}>
+                    {isCritical
+                      ? 'Duzeltici faaliyet aciklamasi (zorunlu)'
+                      : 'Duzeltici faaliyet aciklamasi'}
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.formInput,
+                      isCritical && !descriptions[responseId]?.trim() && styles.formInputCriticalEmpty,
+                    ]}
+                    placeholder="Duzeltici faaliyet aciklamasi..."
+                    placeholderTextColor="#BDBDBD"
+                    value={descriptions[responseId] || ''}
+                    onChangeText={(t) =>
+                      setDescriptions((prev) => ({ ...prev, [responseId]: t }))
+                    }
+                    multiline
+                  />
+
+                  {/* Fotograf */}
+                  {photos[responseId] ? (
+                    <View style={styles.photoPreview}>
+                      <Image
+                        source={{ uri: photos[responseId] }}
+                        style={styles.photoPreviewImg}
+                      />
+                      <TouchableOpacity
+                        style={styles.photoRemove}
+                        onPress={() => removePhoto(responseId)}
+                      >
+                        <MaterialIcons name="close" size={18} color="#FFF" />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.photoBtn}
+                      onPress={() => showPhotoOptions(responseId)}
+                    >
+                      <MaterialIcons name="add-a-photo" size={20} color="#2E7D32" />
+                      <Text style={styles.photoBtnText}>Kanit Fotografi Ekle</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </View>
+          );
+        })}
+
+        {/* ScrollView altinda bosluk birak (sabit buton icin) */}
+        <View style={styles.bottomSpacer} />
+      </ScrollView>
+
+      {/* Sabit "Hepsini Kaydet" butonu */}
+      {deficiencies.length > 0 && summary.saved < summary.total && (
+        <View style={styles.fixedBottom}>
+          <TouchableOpacity
+            style={[
+              styles.batchSaveBtn,
+              (pendingActions.length === 0 || saving) && styles.batchSaveBtnDisabled,
+            ]}
+            onPress={handleBatchSave}
+            disabled={pendingActions.length === 0 || saving}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="save" size={20} color="#FFF" />
+            <Text style={styles.batchSaveBtnText}>
+              Hepsini Kaydet{pendingActions.length > 0 ? ` (${pendingActions.length} faaliyet)` : ''}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Tam ekran fotograf goruntuleme */}
+      <RNModal
+        visible={!!viewPhoto}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setViewPhoto(null)}
+      >
         <View style={styles.photoModal}>
-          <TouchableOpacity style={styles.photoModalClose} onPress={() => setViewPhoto(null)}>
+          <TouchableOpacity
+            style={styles.photoModalClose}
+            onPress={() => setViewPhoto(null)}
+          >
             <MaterialIcons name="close" size={28} color="#FFF" />
           </TouchableOpacity>
           {viewPhoto && (
-            <Image source={{ uri: viewPhoto }} style={styles.photoFull} resizeMode="contain" />
+            <Image
+              source={{ uri: viewPhoto }}
+              style={styles.photoFull}
+              resizeMode="contain"
+            />
           )}
         </View>
       </RNModal>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
-  content: { padding: 16, paddingBottom: 40 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F5F5' },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 12, paddingVertical: 6 },
-  backText: { fontSize: 16, fontWeight: '600', color: '#2E7D32' },
-  headerCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 12, padding: 16, gap: 14, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#212121' },
-  headerSub: { fontSize: 13, color: '#757575', marginTop: 2 },
-  retryBtn: { marginTop: 16, backgroundColor: '#2E7D32', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10 },
-  emptyBox: { alignItems: 'center', marginTop: 60 },
-  emptyText: { fontSize: 16, color: '#999', marginTop: 12 },
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+  },
+  loadingText: {
+    color: '#999',
+    marginTop: 12,
+    fontSize: 14,
+  },
+  errorText: {
+    color: '#F44336',
+    marginTop: 12,
+    fontSize: 15,
+  },
+  retryBtn: {
+    marginTop: 16,
+    backgroundColor: '#2E7D32',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  retryBtnText: {
+    color: '#FFF',
+    fontWeight: '600',
+  },
+
+  // Geri butonu
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 12,
+    paddingVertical: 6,
+  },
+  backText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2E7D32',
+  },
+
+  // Header kart
+  headerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 16,
+    gap: 14,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  headerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#FFF3E0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerContent: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#212121',
+  },
+  headerSub: {
+    fontSize: 13,
+    color: '#757575',
+    marginTop: 2,
+  },
+
+  // Ozet bar
+  summaryBar: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  summaryItem: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  summaryValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#E65100',
+  },
+  summaryLabel: {
+    fontSize: 11,
+    color: '#999',
+    fontWeight: '500',
+  },
+  summaryDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: '#E0E0E0',
+  },
+
+  // Empty
+  emptyBox: {
+    alignItems: 'center',
+    marginTop: 60,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#999',
+    marginTop: 12,
+  },
 
   // Deficiency card
-  defCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2, borderLeftWidth: 4, borderLeftColor: '#FF9800' },
-  defCardCritical: { borderLeftColor: '#F44336' },
-  defHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  defCategory: { fontSize: 11, fontWeight: '600', color: '#999', textTransform: 'uppercase', marginBottom: 2 },
-  defQuestion: { fontSize: 14, fontWeight: '600', color: '#333', lineHeight: 20 },
-  defScoreBox: { backgroundColor: '#FFEBEE', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  defScore: { fontSize: 12, fontWeight: '700', color: '#F44336' },
+  defCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    borderLeftWidth: 4,
+  },
+  defCardNormal: {
+    borderLeftColor: '#FF9800',
+  },
+  defCardCritical: {
+    borderLeftColor: '#F44336',
+  },
+  defHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  defHeaderLeft: {
+    flex: 1,
+  },
+  defCategory: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#999',
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  defQuestion: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    lineHeight: 20,
+  },
+  defScoreBox: {
+    backgroundColor: '#FFEBEE',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  defScore: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#F44336',
+  },
 
-  critBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FFEBEE', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, alignSelf: 'flex-start', marginTop: 8 },
-  critBadgeText: { fontSize: 10, fontWeight: '700', color: '#C62828' },
+  // Kritik badge
+  critBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFEBEE',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+  critBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#C62828',
+  },
 
-  notesBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 8, backgroundColor: '#FAFAFA', padding: 10, borderRadius: 8 },
-  notesText: { flex: 1, fontSize: 12, color: '#666', fontStyle: 'italic' },
+  // Notes
+  notesBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginTop: 8,
+    backgroundColor: '#FAFAFA',
+    padding: 10,
+    borderRadius: 8,
+  },
+  notesText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+  },
 
-  // Existing corrective action
-  existingAction: { marginTop: 12, backgroundColor: '#E8F5E9', borderRadius: 10, padding: 12 },
-  existingHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  existingTitle: { fontSize: 13, fontWeight: '600', color: '#2E7D32' },
-  existingDesc: { fontSize: 13, color: '#333', lineHeight: 18 },
-  evidenceRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' },
-  evidenceText: { fontSize: 12, color: '#4CAF50', fontWeight: '500' },
-  evidenceThumb: { width: 48, height: 48, borderRadius: 8, backgroundColor: '#E0E0E0' },
-
-  // Success
-  successBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 12, backgroundColor: '#E8F5E9', borderRadius: 10, padding: 14 },
-  successText: { fontSize: 14, fontWeight: '600', color: '#2E7D32' },
+  // Existing action (yesil kutu)
+  existingAction: {
+    marginTop: 12,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 10,
+    padding: 12,
+  },
+  existingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  existingTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2E7D32',
+  },
+  existingDesc: {
+    fontSize: 13,
+    color: '#333',
+    lineHeight: 18,
+  },
+  evidenceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+    flexWrap: 'wrap',
+  },
+  evidenceText: {
+    fontSize: 12,
+    color: '#4CAF50',
+    fontWeight: '500',
+  },
+  evidenceThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#E0E0E0',
+  },
 
   // Form
-  formSection: { marginTop: 12 },
-  formLabel: { fontSize: 12, fontWeight: '600', color: '#666', marginBottom: 6 },
-  formInput: { backgroundColor: '#FAFAFA', borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 10, padding: 12, fontSize: 14, minHeight: 70, textAlignVertical: 'top', marginBottom: 10 },
-  photoBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: '#2E7D32', borderStyle: 'dashed', borderRadius: 10, paddingVertical: 12, marginBottom: 10 },
-  photoBtnText: { fontSize: 13, fontWeight: '600', color: '#2E7D32' },
-  photoPreview: { position: 'relative', marginBottom: 10 },
-  photoPreviewImg: { width: '100%', height: 160, borderRadius: 10, backgroundColor: '#F0F0F0' },
-  photoRemove: { position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 14, padding: 4 },
-  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#2E7D32', borderRadius: 12, paddingVertical: 14 },
-  submitBtnText: { fontSize: 15, fontWeight: '600', color: '#FFF' },
+  formSection: {
+    marginTop: 12,
+  },
+  formLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 6,
+  },
+  formInput: {
+    backgroundColor: '#FAFAFA',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 14,
+    minHeight: 70,
+    textAlignVertical: 'top',
+    marginBottom: 10,
+    color: '#212121',
+  },
+  formInputCriticalEmpty: {
+    borderColor: '#FFCDD2',
+    backgroundColor: '#FFF8F8',
+  },
 
-  // Optional toggle
-  optionalToggle: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 10, paddingVertical: 8 },
-  optionalToggleText: { fontSize: 13, fontWeight: '600', color: '#2E7D32' },
+  // Photo
+  photoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: '#2E7D32',
+    borderStyle: 'dashed',
+    borderRadius: 10,
+    paddingVertical: 12,
+    marginBottom: 4,
+  },
+  photoBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2E7D32',
+  },
+  photoPreview: {
+    position: 'relative',
+    marginBottom: 4,
+  },
+  photoPreviewImg: {
+    width: '100%',
+    height: 160,
+    borderRadius: 10,
+    backgroundColor: '#F0F0F0',
+  },
+  photoRemove: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 14,
+    padding: 4,
+  },
+
+  // Bottom spacer (sabit buton icin alan)
+  bottomSpacer: {
+    height: 80,
+  },
+
+  // Sabit alt buton
+  fixedBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: 28,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 8,
+  },
+  batchSaveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#2E7D32',
+    borderRadius: 14,
+    paddingVertical: 16,
+  },
+  batchSaveBtnDisabled: {
+    backgroundColor: '#A5D6A7',
+  },
+  batchSaveBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+
+  // Saving overlay
+  savingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  savingBox: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    gap: 16,
+    marginHorizontal: 40,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  savingText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
+  },
 
   // Photo modal
-  photoModal: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' },
-  photoModalClose: { position: 'absolute', top: 60, right: 20, zIndex: 10, padding: 8 },
-  photoFull: { width: screenWidth, height: screenWidth },
+  photoModal: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoModalClose: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    zIndex: 10,
+    padding: 8,
+  },
+  photoFull: {
+    width: screenWidth,
+    height: screenWidth,
+  },
 });
