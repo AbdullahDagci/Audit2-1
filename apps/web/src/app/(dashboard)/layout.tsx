@@ -15,6 +15,7 @@ const pageTitles: Record<string, string> = {
   "/dashboard/manager": "Şube Paneli",
   "/dashboard/activity-logs": "Aktivite Kayıtları",
   "/dashboard/notifications": "Bildirimler",
+  "/dashboard/inspections/new": "Yeni Denetim",
 };
 
 export default function DashboardLayout({

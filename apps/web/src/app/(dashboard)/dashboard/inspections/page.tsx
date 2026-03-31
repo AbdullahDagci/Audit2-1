@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Download, Search, Loader2, Trash2, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { Download, Search, Loader2, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, Plus } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 import { api } from "@/lib/api";
 
@@ -88,6 +88,14 @@ export default function InspectionsPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string>("");
+
+  useEffect(() => {
+    try {
+      const u = localStorage.getItem("user");
+      if (u) setUserRole(JSON.parse(u).role || "");
+    } catch {}
+  }, []);
 
   const searchTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -204,8 +212,17 @@ export default function InspectionsPage() {
           </select>
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <span>Toplam: <strong className="text-gray-900">{total}</strong></span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-500">Toplam: <strong className="text-gray-900">{total}</strong></span>
+          {userRole === "inspector" && (
+            <button
+              onClick={() => router.push("/dashboard/inspections/new")}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-800 text-white rounded-xl text-sm font-medium hover:bg-primary-900 transition-all duration-300 ease-ios shadow-soft"
+            >
+              <Plus size={16} />
+              Yeni Denetim
+            </button>
+          )}
         </div>
       </div>
 

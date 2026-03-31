@@ -211,6 +211,7 @@ export default function InspectionDetailPage() {
   const [showPreviousFindings, setShowPreviousFindings] = useState(false);
   const [loadingFindings, setLoadingFindings] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [startingInspection, setStartingInspection] = useState(false);
 
   // Photo viewer
   const [viewerPhotos, setViewerPhotos] = useState<string[] | null>(null);
@@ -516,11 +517,46 @@ export default function InspectionDetailPage() {
     });
   });
 
+  const isInspector = currentUser?.role === "inspector";
   const isManager = currentUser?.role === "manager";
   const isManagerOrAdmin = currentUser?.role === "manager" || currentUser?.role === "admin";
   const showCorrectiveSection =
     (status === "completed" || status === "pending_action" || status === "reviewed");
   const canUploadEvidence = isManager;
+
+  // Planlanmis denetimi baslatabilir mi?
+  const canStartInspection = (() => {
+    if (status !== "scheduled" && status !== "draft") return false;
+    if (!isInspector) return false;
+    if (!scheduledDate) return true;
+    const scheduled = new Date(scheduledDate);
+    scheduled.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today.getTime() === scheduled.getTime();
+  })();
+
+  // Devam eden denetim formu - sadece bugunku tarihte
+  const canContinueInspection = (() => {
+    if (status !== "in_progress" || !isInspector) return false;
+    if (!scheduledDate) return true;
+    const scheduled = new Date(scheduledDate);
+    scheduled.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today.getTime() === scheduled.getTime();
+  })();
+
+  const handleStartInspection = async () => {
+    setStartingInspection(true);
+    try {
+      await api.updateInspection(inspectionId, { status: "in_progress" });
+      router.push(`/dashboard/inspections/${inspectionId}/fill`);
+    } catch (err: any) {
+      alert(err.message || "Denetim baslatilamadi.");
+      setStartingInspection(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -562,7 +598,32 @@ export default function InspectionDetailPage() {
             )}
           </div>
         </div>
-        {getStatusBadge(status)}
+        <div className="flex items-center gap-3">
+          {getStatusBadge(status)}
+          {canStartInspection && (
+            <button
+              onClick={handleStartInspection}
+              disabled={startingInspection}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-800 text-white rounded-xl text-sm font-medium hover:bg-primary-900 transition-all duration-300 shadow-soft disabled:opacity-50"
+            >
+              {startingInspection ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <CheckCircle size={16} />
+              )}
+              Denetimi Baslat
+            </button>
+          )}
+          {canContinueInspection && (
+            <button
+              onClick={() => router.push(`/dashboard/inspections/${inspectionId}/fill`)}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-800 text-white rounded-xl text-sm font-medium hover:bg-primary-900 transition-all duration-300 shadow-soft"
+            >
+              <CheckCircle size={16} />
+              Denetime Devam Et
+            </button>
+          )}
+        </div>
       </div>
 
       {/* -------- Score + Category Breakdown -------- */}

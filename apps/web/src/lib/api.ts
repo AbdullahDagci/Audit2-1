@@ -121,6 +121,41 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  createInspection: (data: any) =>
+    request<any>('/api/inspections', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  saveResponses: (id: string, responses: any[]) =>
+    request<any>(`/api/inspections/${id}/responses`, {
+      method: 'POST',
+      body: JSON.stringify({ responses }),
+    }),
+
+  completeInspection: (id: string) =>
+    request<any>(`/api/inspections/${id}/complete`, { method: 'POST' }),
+
+  uploadInspectionPhoto: async (id: string, photo: File, responseId?: string) => {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append('photo', photo);
+    if (responseId) formData.append('responseId', responseId);
+
+    const res = await fetch(`${API_URL}/api/inspections/${id}/photos`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ error: 'Sunucu hatasi' }));
+      throw new Error(error.error || `HTTP ${res.status}`);
+    }
+
+    return res.json();
+  },
+
   // Users
   getUsers: () => request<any[]>('/api/users'),
   updateUser: (id: string, data: any) =>
