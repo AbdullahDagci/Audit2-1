@@ -29,11 +29,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-900 via-primary-800 to-primary-600">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <div className="text-center mb-8">
-            <img src="/logo.png" alt="ERTANSA" className="h-16 w-16 mx-auto mb-3 rounded" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-950 via-primary-900 to-primary-800">
+      <div className="w-full max-w-md px-4">
+        <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-float border border-white/20 p-10">
+          <div className="text-center mb-10">
+            <img src="/logo-transparent.png" alt="ERTANSA" className="h-20 w-20 mx-auto mb-4" />
             <h1 className="text-3xl font-bold text-primary-900 tracking-tight">
               ERTANSA
             </h1>
@@ -46,7 +46,7 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-gray-700 mb-1.5"
               >
                 E-posta Adresi
               </label>
@@ -55,7 +55,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none transition"
+                className="input-ios"
                 placeholder="ornek@ertansa.com"
               />
             </div>
@@ -63,7 +63,7 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-gray-700 mb-1.5"
               >
                 Şifre
               </label>
@@ -72,13 +72,13 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none transition"
+                className="input-ios"
                 placeholder="********"
               />
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg">
+              <div className="bg-red-50 text-red-600 text-sm p-3 rounded-xl">
                 {error}
               </div>
             )}
@@ -86,14 +86,14 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary-800 hover:bg-primary-900 text-white font-medium py-2.5 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary w-full"
             >
               {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
             </button>
           </form>
 
-          <p className="text-center text-xs text-gray-400 mt-6">
-            ERTANSA Denetim Yönetim Sistemi
+          <p className="text-center text-xs text-gray-400 mt-8">
+            ERTANSA Denetim Yonetim Sistemi
           </p>
         </div>
       </div>

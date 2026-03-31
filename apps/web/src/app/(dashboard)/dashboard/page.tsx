@@ -78,12 +78,12 @@ export default function DashboardPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 max-w-md text-center">
+        <div className="bg-red-50 border border-red-200 rounded-2xl shadow-soft p-6 max-w-md text-center">
           <AlertTriangle size={40} className="text-red-500 mx-auto mb-3" />
           <p className="text-sm text-red-700">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors"
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-xl text-sm hover:bg-red-700 transition-all duration-300 ease-ios"
           >
             Tekrar Dene
           </button>

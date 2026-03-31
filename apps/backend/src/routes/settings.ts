@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import { prisma } from '../index';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
-import { sendEmail } from '../services/email';
+import { sendEmail, buildEmailHtml } from '../services/email';
 
 const router = Router();
 
@@ -48,25 +48,14 @@ router.post('/test-email', authenticate, requireRole('admin'), async (req: AuthR
     const result = await sendEmail({
       to,
       subject: 'ERTANSA Denetim Sistemi - Test Maili',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background-color: #2E7D32; padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0;">ERTANSA</h1>
-            <p style="color: #C8E6C9; margin: 5px 0 0;">Denetim Sistemi</p>
-          </div>
-          <div style="padding: 30px; background-color: #ffffff;">
-            <h2 style="color: #333;">Test Maili</h2>
-            <p style="color: #666;">Bu mail, SMTP email servisinin doğru çalıştığını doğrulamak için gönderilmiştir.</p>
-            <div style="background-color: #E8F5E9; border-left: 4px solid #2E7D32; padding: 15px; margin: 20px 0; border-radius: 4px;">
-              <strong style="color: #2E7D32;">Durum: Başarılı</strong><br/>
-              <span style="color: #555;">Tarih: ${new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-            </div>
-          </div>
-          <div style="background-color: #f5f5f5; padding: 15px; text-align: center;">
-            <p style="color: #999; font-size: 11px; margin: 0;">ERTANSA Gıda - Denetim Yönetim Sistemi</p>
-          </div>
-        </div>
-      `,
+      html: buildEmailHtml(
+        'Test Maili',
+        `<p>Bu mail, SMTP email servisinin dogru calistigini dogrulamak icin gonderilmistir.</p>
+         <div style="background-color:#E8F5E9;border-left:4px solid #2E7D32;padding:15px;margin:20px 0;border-radius:8px;">
+           <strong style="color:#2E7D32;">Durum: Basarili</strong><br/>
+           <span style="color:#555;">Tarih: ${new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+         </div>`,
+      ),
     });
 
     if (result.success) {

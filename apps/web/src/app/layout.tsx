@@ -6,7 +6,11 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "ERTANSA Denetim Sistemi",
-  description: "ERTANSA Denetim ve Audit Yonetim Sistemi",
+  description: "ERTANSA Denetim ve Audit Yönetim Sistemi",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/logo-transparent.png",
+  },
 };
 
 export default function RootLayout({

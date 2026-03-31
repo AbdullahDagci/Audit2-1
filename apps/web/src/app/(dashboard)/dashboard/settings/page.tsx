@@ -292,7 +292,7 @@ export default function SettingsPage() {
     <div className="max-w-2xl space-y-6 sm:space-y-8">
       {/* Success notification */}
       {successMsg && (
-        <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-700 flex items-center justify-between">
+        <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-700 flex items-center justify-between">
           <span className="flex items-center gap-2">
             <Check size={16} className="text-green-600" />
             {successMsg}
@@ -305,7 +305,7 @@ export default function SettingsPage() {
 
       {/* Error notification */}
       {errorMsg && (
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700 flex items-center justify-between">
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700 flex items-center justify-between">
           <span className="flex items-center gap-2">
             <X size={16} className="text-red-600" />
             {errorMsg}
@@ -317,7 +317,7 @@ export default function SettingsPage() {
       )}
 
       {/* Management Emails Section */}
-      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-soft border border-gray-100/50">
         <div className="flex items-center gap-2 mb-1">
           <Mail size={20} className="text-primary-800" />
           <h3 className="text-base sm:text-lg font-semibold text-gray-900">Yonetim Email Adresleri</h3>
@@ -335,7 +335,7 @@ export default function SettingsPage() {
           <>
             {/* Email list */}
             {managementEmails.length === 0 ? (
-              <div className="text-center py-6 text-gray-400 text-sm border border-dashed border-gray-200 rounded-lg mb-4">
+              <div className="text-center py-6 text-gray-400 text-sm border border-dashed border-gray-200 rounded-xl mb-4">
                 Henuz email adresi eklenmemis
               </div>
             ) : (
@@ -343,14 +343,14 @@ export default function SettingsPage() {
                 {managementEmails.map((email) => (
                   <div
                     key={email}
-                    className="group flex items-center gap-1.5 bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700"
+                    className="group flex items-center gap-1.5 bg-gray-100 border border-gray-200 rounded-xl px-3 py-1.5 text-sm text-gray-700"
                   >
                     <Mail size={14} className="text-gray-400 flex-shrink-0" />
                     <span className="break-all">{email}</span>
                     <button
                       onClick={() => handleTestEmail(email)}
                       disabled={testingSendTo === email}
-                      className="ml-1 p-0.5 rounded hover:bg-blue-100 text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50"
+                      className="ml-1 p-0.5 rounded-lg hover:bg-blue-100 text-gray-400 hover:text-blue-600 transition-all duration-300 ease-ios disabled:opacity-50"
                       title="Test maili gonder"
                     >
                       {testingSendTo === email ? (
@@ -362,7 +362,7 @@ export default function SettingsPage() {
                     <button
                       onClick={() => handleRemoveEmail(email)}
                       disabled={emailSaving}
-                      className="p-0.5 rounded hover:bg-red-100 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                      className="p-0.5 rounded-lg hover:bg-red-100 text-gray-400 hover:text-red-600 transition-all duration-300 ease-ios disabled:opacity-50"
                       title="Kaldir"
                     >
                       <X size={14} />
@@ -384,7 +384,7 @@ export default function SettingsPage() {
                   }}
                   onKeyDown={handleEmailKeyDown}
                   placeholder="ornek@sirket.com"
-                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none text-sm ${
+                  className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none text-sm transition-all duration-300 ease-ios ${
                     emailError ? "border-red-300 bg-red-50" : "border-gray-300"
                   }`}
                 />
@@ -395,7 +395,7 @@ export default function SettingsPage() {
               <button
                 onClick={handleAddEmail}
                 disabled={emailSaving || !newEmail.trim()}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-primary-800 text-white rounded-lg text-sm font-medium hover:bg-primary-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-primary-800 text-white rounded-xl text-sm font-medium hover:bg-primary-900 transition-all duration-300 ease-ios disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 {emailSaving ? (
                   <Loader2 size={16} className="animate-spin" />
@@ -410,7 +410,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Password Change Section */}
-      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-soft border border-gray-100/50">
         <div className="flex items-center gap-2 mb-1">
           <Lock size={20} className="text-primary-800" />
           <h3 className="text-base sm:text-lg font-semibold text-gray-900">Sifre Degistir</h3>
@@ -433,7 +433,7 @@ export default function SettingsPage() {
                   setPasswordError(null);
                 }}
                 placeholder="Mevcut sifrenizi girin"
-                className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none text-sm"
+                className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none text-sm transition-all duration-300 ease-ios"
               />
               <button
                 type="button"
@@ -458,7 +458,7 @@ export default function SettingsPage() {
                   setPasswordError(null);
                 }}
                 placeholder="Yeni sifrenizi girin"
-                className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none text-sm"
+                className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none text-sm transition-all duration-300 ease-ios"
               />
               <button
                 type="button"
@@ -483,7 +483,7 @@ export default function SettingsPage() {
                   setPasswordError(null);
                 }}
                 placeholder="Yeni sifrenizi tekrar girin"
-                className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none text-sm"
+                className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none text-sm transition-all duration-300 ease-ios"
               />
               <button
                 type="button"
@@ -496,7 +496,7 @@ export default function SettingsPage() {
           </div>
 
           {passwordError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 text-sm text-red-600 flex items-center gap-2">
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 text-sm text-red-600 flex items-center gap-2">
               <X size={14} className="text-red-500 flex-shrink-0" />
               {passwordError}
             </div>
@@ -505,7 +505,7 @@ export default function SettingsPage() {
           <button
             onClick={handleChangePassword}
             disabled={passwordChanging || !currentPassword || !newPassword || !confirmPassword}
-            className="flex items-center gap-2 px-5 py-2.5 bg-primary-800 text-white rounded-lg text-sm font-medium hover:bg-primary-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-5 py-2.5 bg-primary-800 text-white rounded-xl text-sm font-medium hover:bg-primary-900 transition-all duration-300 ease-ios disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {passwordChanging ? (
               <Loader2 size={16} className="animate-spin" />
@@ -517,7 +517,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-soft border border-gray-100/50">
         <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-6">Genel Ayarlar</h3>
         <div className="space-y-5">
           <div>
@@ -528,7 +528,7 @@ export default function SettingsPage() {
               type="text"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none transition-all duration-300 ease-ios"
             />
           </div>
           <div>
@@ -539,7 +539,7 @@ export default function SettingsPage() {
               type="number"
               value={defaultRadius}
               onChange={(e) => setDefaultRadius(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none transition-all duration-300 ease-ios"
             />
             <p className="text-xs text-gray-400 mt-1">
               Denetim lokasyon dogrulamasi icin kullanilir
@@ -552,7 +552,7 @@ export default function SettingsPage() {
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none transition-all duration-300 ease-ios"
             >
               <option>Turkce</option>
               <option>English</option>
@@ -561,7 +561,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-soft border border-gray-100/50">
         <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-6">Bildirim Tercihleri</h3>
         <div className="space-y-4">
           <label className="flex items-center justify-between cursor-pointer">
@@ -572,12 +572,12 @@ export default function SettingsPage() {
             <button
               onClick={() => handleTogglePreference("emailNotifications", emailNotif, setEmailNotif)}
               disabled={prefsSaving}
-              className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+              className={`relative w-11 h-6 rounded-full transition-all duration-300 ease-ios flex-shrink-0 ${
                 emailNotif ? "bg-primary-800" : "bg-gray-300"
               } ${prefsSaving ? "opacity-50" : ""}`}
             >
               <span
-                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-300 ease-ios ${
                   emailNotif ? "translate-x-5" : ""
                 }`}
               />
@@ -591,12 +591,12 @@ export default function SettingsPage() {
             <button
               onClick={() => handleTogglePreference("pushNotifications", pushNotif, setPushNotif)}
               disabled={prefsSaving}
-              className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+              className={`relative w-11 h-6 rounded-full transition-all duration-300 ease-ios flex-shrink-0 ${
                 pushNotif ? "bg-primary-800" : "bg-gray-300"
               } ${prefsSaving ? "opacity-50" : ""}`}
             >
               <span
-                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-300 ease-ios ${
                   pushNotif ? "translate-x-5" : ""
                 }`}
               />
@@ -610,12 +610,12 @@ export default function SettingsPage() {
             <button
               onClick={() => handleTogglePreference("criticalAlerts", criticalAlert, setCriticalAlert)}
               disabled={prefsSaving}
-              className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+              className={`relative w-11 h-6 rounded-full transition-all duration-300 ease-ios flex-shrink-0 ${
                 criticalAlert ? "bg-primary-800" : "bg-gray-300"
               } ${prefsSaving ? "opacity-50" : ""}`}
             >
               <span
-                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-300 ease-ios ${
                   criticalAlert ? "translate-x-5" : ""
                 }`}
               />
@@ -629,12 +629,12 @@ export default function SettingsPage() {
             <button
               onClick={() => handleTogglePreference("weeklyReport", weeklyReport, setWeeklyReport)}
               disabled={prefsSaving}
-              className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+              className={`relative w-11 h-6 rounded-full transition-all duration-300 ease-ios flex-shrink-0 ${
                 weeklyReport ? "bg-primary-800" : "bg-gray-300"
               } ${prefsSaving ? "opacity-50" : ""}`}
             >
               <span
-                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-300 ease-ios ${
                   weeklyReport ? "translate-x-5" : ""
                 }`}
               />
@@ -648,12 +648,12 @@ export default function SettingsPage() {
             <button
               onClick={() => handleTogglePreference("overdueReminder", overdueReminder, setOverdueReminder)}
               disabled={prefsSaving}
-              className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+              className={`relative w-11 h-6 rounded-full transition-all duration-300 ease-ios flex-shrink-0 ${
                 overdueReminder ? "bg-primary-800" : "bg-gray-300"
               } ${prefsSaving ? "opacity-50" : ""}`}
             >
               <span
-                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-300 ease-ios ${
                   overdueReminder ? "translate-x-5" : ""
                 }`}
               />
@@ -665,7 +665,7 @@ export default function SettingsPage() {
       <div className="flex justify-end">
         <button
           onClick={handleSave}
-          className="px-6 py-2.5 bg-primary-800 text-white rounded-lg text-sm font-medium hover:bg-primary-900 transition-colors"
+          className="px-6 py-2.5 bg-primary-800 text-white rounded-xl text-sm font-medium hover:bg-primary-900 transition-all duration-300 ease-ios hover:shadow-soft-lg"
         >
           Kaydet
         </button>

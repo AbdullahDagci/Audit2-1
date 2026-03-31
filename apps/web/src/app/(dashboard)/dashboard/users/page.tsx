@@ -137,7 +137,7 @@ export default function UsersPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       {error && (
-        <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg flex items-center justify-between">
+        <div className="bg-red-50 text-red-600 text-sm p-3 rounded-xl flex items-center justify-between">
           {error}
           <button onClick={() => setError(null)}><X size={16} /></button>
         </div>
@@ -147,16 +147,16 @@ export default function UsersPage() {
         <p className="text-sm text-gray-500">{users.length} kullanici</p>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-800 text-white rounded-lg text-sm font-medium hover:bg-primary-900 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-primary-800 text-white rounded-xl text-sm font-medium hover:bg-primary-900 transition-all duration-300 ease-ios hover:shadow-soft-lg"
         >
           <Plus size={16} /> <span className="hidden sm:inline">Yeni Kullanici</span>
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
+      <div className="bg-white rounded-2xl shadow-soft border border-gray-100/50 overflow-hidden overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-gray-200 bg-gray-50">
+            <tr className="border-b border-gray-200 bg-gray-50/80">
               <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">Ad Soyad</th>
               <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">Rol</th>
               <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">Email</th>
@@ -167,7 +167,7 @@ export default function UsersPage() {
           </thead>
           <tbody>
             {users.map((user) => (
-              <tr key={user.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+              <tr key={user.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors duration-150">
                 <td className="py-3 px-4 whitespace-nowrap">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-800 text-xs font-bold flex-shrink-0">
@@ -190,14 +190,14 @@ export default function UsersPage() {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => openEdit(user)}
-                      className="p-1.5 text-gray-400 hover:text-primary-800 hover:bg-primary-50 rounded"
+                      className="p-1.5 text-gray-400 hover:text-primary-800 hover:bg-primary-50 rounded-xl transition-all duration-300 ease-ios"
                       title="Duzenle"
                     >
                       <Pencil size={14} />
                     </button>
                     <button
                       onClick={() => toggleActive(user)}
-                      className={`p-1.5 rounded ${user.isActive ? "text-gray-400 hover:text-red-600 hover:bg-red-50" : "text-gray-400 hover:text-green-600 hover:bg-green-50"}`}
+                      className={`p-1.5 rounded-xl transition-all duration-300 ease-ios ${user.isActive ? "text-gray-400 hover:text-red-600 hover:bg-red-50" : "text-gray-400 hover:text-green-600 hover:bg-green-50"}`}
                       title={user.isActive ? "Pasif Yap" : "Aktif Yap"}
                     >
                       {user.isActive ? <UserX size={14} /> : <UserCheck size={14} />}
@@ -217,25 +217,25 @@ export default function UsersPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Ad Soyad</label>
             <input type="text" value={createForm.fullName} onChange={(e) => setCreateForm({ ...createForm, fullName: e.target.value })}
               placeholder="orn. Ahmet Yilmaz"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all duration-300 ease-ios" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">E-posta</label>
             <input type="email" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
               placeholder="ornek@ertansa.com"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all duration-300 ease-ios" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Sifre</label>
             <input type="password" value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
               placeholder="En az 6 karakter"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all duration-300 ease-ios" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
               <select value={createForm.role} onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all duration-300 ease-ios">
                 {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
             </div>
@@ -243,13 +243,13 @@ export default function UsersPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
               <input type="tel" value={createForm.phone} onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
                 placeholder="05xx xxx xx xx"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all duration-300 ease-ios" />
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Iptal</button>
+            <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300 ease-ios">Iptal</button>
             <button onClick={handleCreate} disabled={saving || !createForm.email || !createForm.password || !createForm.fullName}
-              className="px-4 py-2 text-sm text-white bg-primary-800 rounded-lg hover:bg-primary-900 disabled:opacity-50">
+              className="px-4 py-2 text-sm text-white bg-primary-800 rounded-xl hover:bg-primary-900 disabled:opacity-50 transition-all duration-300 ease-ios">
               {saving ? "Olusturuluyor..." : "Olustur"}
             </button>
           </div>
@@ -262,20 +262,20 @@ export default function UsersPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Ad Soyad</label>
             <input type="text" value={editForm.fullName} onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all duration-300 ease-ios" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
               <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all duration-300 ease-ios">
                 {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
               <input type="tel" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all duration-300 ease-ios" />
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -286,9 +286,9 @@ export default function UsersPage() {
           </div>
           <p className="text-xs text-gray-400">Email: {editUser?.email}</p>
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setEditUser(null)} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Iptal</button>
+            <button onClick={() => setEditUser(null)} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300 ease-ios">Iptal</button>
             <button onClick={handleEdit} disabled={saving || !editForm.fullName}
-              className="px-4 py-2 text-sm text-white bg-primary-800 rounded-lg hover:bg-primary-900 disabled:opacity-50">
+              className="px-4 py-2 text-sm text-white bg-primary-800 rounded-xl hover:bg-primary-900 disabled:opacity-50 transition-all duration-300 ease-ios">
               {saving ? "Kaydediliyor..." : "Kaydet"}
             </button>
           </div>

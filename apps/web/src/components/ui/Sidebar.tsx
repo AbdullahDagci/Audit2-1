@@ -67,19 +67,19 @@ export default function Sidebar() {
 
   const sidebarContent = (
     <>
-      <div className="p-5 border-b border-white/10 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center text-lg font-bold">E</div>
+      <div className="p-5 border-b border-white/5 flex items-center gap-3">
+        <img src="/logo-transparent.png" alt="ERTANSA" className="w-10 h-10 rounded-xl" />
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-bold tracking-tight">ERTANSA</h1>
           <p className="text-[10px] text-primary-300 uppercase tracking-widest">Denetim Sistemi</p>
         </div>
         {/* Mobilde kapat butonu */}
-        <button onClick={() => setOpen(false)} className="lg:hidden p-1 hover:bg-white/10 rounded">
+        <button onClick={() => setOpen(false)} className="lg:hidden p-1 hover:bg-white/10 rounded-lg transition-colors duration-200">
           <X size={20} />
         </button>
       </div>
 
-      <nav className="flex-1 py-3 overflow-y-auto">
+      <nav className="flex-1 py-3 overflow-y-auto scrollbar-thin">
         <ul className="space-y-0.5 px-2">
           {navItems
             .filter((item) => user?.role && item.roles.includes(user.role))
@@ -91,8 +91,10 @@ export default function Sidebar() {
                     href={item.href}
                     onClick={() => setOpen(false)}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                      isActive ? "bg-primary-600 text-white" : "text-primary-100 hover:bg-white/10"
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ease-ios",
+                      isActive
+                        ? "bg-white/15 text-white border border-white/10 shadow-glass"
+                        : "text-primary-100 hover:bg-white/[0.08] border border-transparent"
                     )}
                   >
                     <item.icon size={18} />
@@ -104,17 +106,19 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      <div className="p-3 border-t border-white/10">
-        <div className="flex items-center gap-3 mb-2 px-1">
-          <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-xs font-bold">{initials}</div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{user?.fullName || 'Kullanıcı'}</p>
-            <p className="text-xs text-primary-300 truncate">{ROLE_LABELS[user?.role] || ''}</p>
+      <div className="p-3 border-t border-white/5">
+        <div className="bg-white/5 rounded-xl p-3 mb-2">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-xs font-bold">{initials}</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{user?.fullName || 'Kullanıcı'}</p>
+              <p className="text-xs text-primary-300 truncate">{ROLE_LABELS[user?.role] || ''}</p>
+            </div>
           </div>
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium transition-colors"
+          className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-red-600/90 hover:bg-red-600 text-white rounded-xl text-xs font-medium transition-all duration-200 ease-ios"
         >
           <LogOut size={14} />
           Çıkış Yap
@@ -128,22 +132,22 @@ export default function Sidebar() {
       {/* Hamburger butonu - sadece mobilde görünür */}
       <button
         onClick={() => setOpen(true)}
-        className="lg:hidden fixed top-3 left-3 z-[60] p-2 bg-primary-900 text-white rounded-lg shadow-lg"
+        className="lg:hidden fixed top-3 left-3 z-[60] p-2 bg-primary-900/95 backdrop-blur-xl text-white rounded-xl shadow-soft"
         aria-label="Menü"
       >
         <Menu size={22} />
       </button>
 
       {/* Masaüstü sidebar - lg ve üstü */}
-      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-primary-900 text-white flex-col z-50">
+      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-primary-900/95 backdrop-blur-xl text-white flex-col z-50">
         {sidebarContent}
       </aside>
 
       {/* Mobil sidebar - overlay */}
       {open && (
         <>
-          <div className="lg:hidden fixed inset-0 bg-black/50 z-[55]" onClick={() => setOpen(false)} />
-          <aside className="lg:hidden fixed left-0 top-0 h-screen w-72 bg-primary-900 text-white flex flex-col z-[56] shadow-2xl animate-in slide-in-from-left duration-200">
+          <div className="lg:hidden fixed inset-0 bg-black/25 backdrop-blur-sm z-[55] animate-fade-in" onClick={() => setOpen(false)} />
+          <aside className="lg:hidden fixed left-0 top-0 h-screen w-72 bg-primary-900/95 backdrop-blur-xl text-white flex flex-col z-[56] shadow-float animate-in slide-in-from-left duration-200">
             {sidebarContent}
           </aside>
         </>

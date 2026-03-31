@@ -1,6 +1,6 @@
 import { prisma } from '../index';
 import { generateInspectionPdfBuffer } from './pdf-generator';
-import { sendEmail, getManagementEmails } from './email';
+import { sendEmail, getManagementEmails, buildEmailHtml } from './email';
 import { logActivity } from './activity-logger';
 import { createAndPushNotification } from './push-notification';
 
@@ -25,7 +25,9 @@ export async function checkAndFinalizeInspection(inspectionId: string, nonCritic
     where: { id: inspectionId },
     include: {
       branch: { include: { manager: true } },
-      inspector: true,
+      inspector: {
+        select: { id: true, fullName: true, email: true, emailNotifications: true },
+      },
       template: true,
       responses: {
         include: {
@@ -96,18 +98,20 @@ export async function checkAndFinalizeInspection(inspectionId: string, nonCritic
         ? ` (${nonCriticalCount} eksiklik mevcut)`
         : '';
 
+      const nonCriticalHtml = nonCriticalCount && nonCriticalCount > 0
+        ? `<p style="color:#E65100;font-weight:600;">&#9888; ${nonCriticalCount} adet kritik olmayan eksiklik tespit edilmistir.</p>`
+        : '';
+
       await sendEmail({
         to: managementEmails,
         subject: `ERTANSA Denetim Raporu - ${inspection.branch.name} - ${completedDate}${deficiencyNote}`,
-        html: `
-          <h2>Denetim Raporu</h2>
-          <p><strong>${inspection.branch.name}</strong> şubesinde yapılan denetim tamamlanmıştır.</p>
-          <p>Genel Puan: <strong>%${Math.round(Number(inspection.scorePercentage || 0))}</strong></p>
-          ${nonCriticalCount && nonCriticalCount > 0 ? `<p style="color:#E65100;"><strong>⚠ ${nonCriticalCount} adet kritik olmayan eksiklik tespit edilmiştir.</strong></p>` : ''}
-          <p>Detaylı rapor ekte sunulmuştur.</p>
-          <br>
-          <p style="color:#999;font-size:12px;">Bu e-posta ERTANSA Denetim Sistemi tarafından otomatik olarak gönderilmiştir.</p>
-        `,
+        html: buildEmailHtml(
+          'Denetim Raporu',
+          `<p><strong>${inspection.branch.name}</strong> subesinde yapilan denetim tamamlanmistir.</p>
+           <p>Genel Puan: <strong>%${Math.round(Number(inspection.scorePercentage || 0))}</strong></p>
+           ${nonCriticalHtml}
+           <p>Detayli rapor ekte sunulmustur.</p>`,
+        ),
         attachments: [{
           filename: `denetim-raporu-${inspection.branch.name.replace(/\s+/g, '-')}-${completedDate}.pdf`,
           content: pdfBuffer,
@@ -157,6 +161,42 @@ export async function checkAndFinalizeInspection(inspectionId: string, nonCritic
       `${inspection.branch.name} şubesindeki denetim süreci tamamlandı.${pdfSuccess ? ' Rapor üst yönetime gönderildi.' : ' Rapor oluşturulamadı.'}`,
       { inspectionId, type: 'flow_completed' },
     );
+  }
+
+  // Denetçiye bilgilendirme maili
+  if (inspection.inspector?.emailNotifications && inspection.inspector?.email) {
+    await sendEmail({
+      to: inspection.inspector.email,
+      subject: `ERTANSA - Denetiminiz Onaylandı: ${inspection.branch.name}`,
+      html: buildEmailHtml(
+        'Denetiminiz Onaylandı',
+        `<p>Sayın <strong>${inspection.inspector.fullName}</strong>,</p>
+         <p><strong>${inspection.branch.name}</strong> şubesinde gerçekleştirdiğiniz denetim süreci tamamlanmış ve onaylanmıştır.</p>
+         <p>Genel Puan: <strong>%${Math.round(Number(inspection.scorePercentage || 0))}</strong></p>
+         <p>Detaylı bilgi için sisteme giriş yapabilirsiniz.</p>`,
+      ),
+    }).catch(() => {});
+  }
+
+  // Müdüre bilgilendirme maili
+  if (inspection.branch.managerId) {
+    const mgr = await prisma.user.findUnique({
+      where: { id: inspection.branch.managerId },
+      select: { emailNotifications: true, email: true, fullName: true },
+    });
+    if (mgr?.emailNotifications && mgr?.email) {
+      await sendEmail({
+        to: mgr.email,
+        subject: `ERTANSA - Denetim Süreci Tamamlandı: ${inspection.branch.name}`,
+        html: buildEmailHtml(
+          'Denetim Süreci Tamamlandı',
+          `<p>Sayın <strong>${mgr.fullName}</strong>,</p>
+           <p><strong>${inspection.branch.name}</strong> şubesindeki denetim süreci tamamlanmış ve onaylanmıştır.</p>
+           <p>Genel Puan: <strong>%${Math.round(Number(inspection.scorePercentage || 0))}</strong></p>
+           <p>Detaylı bilgi için sisteme giriş yapabilirsiniz.</p>`,
+        ),
+      }).catch(() => {});
+    }
   }
 
   return true;

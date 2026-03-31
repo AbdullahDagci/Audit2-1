@@ -230,9 +230,9 @@ export default function SchedulesPage() {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div className="flex items-center justify-end">
-          <div className="h-10 w-28 bg-gray-200 rounded-lg animate-pulse" />
+          <div className="h-10 w-28 bg-gray-200 rounded-xl animate-pulse" />
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden p-8">
+        <div className="bg-white rounded-2xl shadow-soft border border-gray-100/50 overflow-hidden p-8">
           <div className="flex items-center justify-center gap-3 text-gray-500">
             <svg
               className="animate-spin h-5 w-5"
@@ -264,7 +264,7 @@ export default function SchedulesPage() {
   if (error) {
     return (
       <div className="space-y-4 sm:space-y-6">
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+        <div className="bg-red-50 border border-red-200 rounded-2xl shadow-soft p-6 text-center">
           <p className="text-red-700 text-sm">{error}</p>
         </div>
       </div>
@@ -278,17 +278,17 @@ export default function SchedulesPage() {
       <div className="flex items-center justify-end">
         <button
           onClick={openCreateModal}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-800 text-white rounded-lg text-sm font-medium hover:bg-primary-900 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-primary-800 text-white rounded-xl text-sm font-medium hover:bg-primary-900 transition-all duration-300 ease-ios hover:shadow-soft-lg"
         >
           <Plus size={16} />
           Yeni Plan
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
+      <div className="bg-white rounded-2xl shadow-soft border border-gray-100/50 overflow-hidden overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-gray-200 bg-gray-50">
+            <tr className="border-b border-gray-200 bg-gray-50/80">
               <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
                 Sube
               </th>
@@ -333,7 +333,7 @@ export default function SchedulesPage() {
                 return (
                   <tr
                     key={schedule.id}
-                    className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${
+                    className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors duration-150 ${
                       status.variant === "danger" ? "bg-red-50/50" : ""
                     }`}
                   >
@@ -376,14 +376,14 @@ export default function SchedulesPage() {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => openEditModal(schedule)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-primary-700 hover:bg-primary-50 transition-colors"
+                          className="p-1.5 rounded-xl text-gray-400 hover:text-primary-700 hover:bg-primary-50 transition-all duration-300 ease-ios"
                           title="Duzenle"
                         >
                           <Pencil size={15} />
                         </button>
                         <button
                           onClick={() => setDeleteTarget(schedule)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          className="p-1.5 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all duration-300 ease-ios"
                           title="Sil"
                         >
                           <Trash2 size={15} />
@@ -412,7 +412,7 @@ export default function SchedulesPage() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             {formError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3">
                 <p className="text-red-700 text-sm">{formError}</p>
               </div>
             )}
@@ -427,7 +427,7 @@ export default function SchedulesPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, branchId: e.target.value })
                 }
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 ease-ios"
                 disabled={submitting}
               >
                 <option value="">Sube secin</option>
@@ -449,7 +449,7 @@ export default function SchedulesPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, templateId: e.target.value })
                 }
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 ease-ios"
                 disabled={submitting}
               >
                 <option value="">Sablon secin</option>
@@ -471,7 +471,7 @@ export default function SchedulesPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, inspectorId: e.target.value })
                 }
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 ease-ios"
                 disabled={submitting}
               >
                 <option value="">Denetci secin</option>
@@ -498,7 +498,7 @@ export default function SchedulesPage() {
                     frequencyDays: parseInt(e.target.value) || 1,
                   })
                 }
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 ease-ios"
                 disabled={submitting}
               />
             </div>
@@ -514,7 +514,7 @@ export default function SchedulesPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, nextDueDate: e.target.value })
                 }
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 ease-ios"
                 disabled={submitting}
               />
             </div>
@@ -525,14 +525,14 @@ export default function SchedulesPage() {
                 type="button"
                 onClick={closeModal}
                 disabled={submitting}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all duration-300 ease-ios disabled:opacity-50"
               >
                 Iptal
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-800 rounded-lg hover:bg-primary-900 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-800 rounded-xl hover:bg-primary-900 transition-all duration-300 ease-ios disabled:opacity-50"
               >
                 {submitting && <Loader2 size={16} className="animate-spin" />}
                 {editingSchedule ? "Guncelle" : "Olustur"}
@@ -560,14 +560,14 @@ export default function SchedulesPage() {
             <button
               onClick={() => setDeleteTarget(null)}
               disabled={deleting}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all duration-300 ease-ios disabled:opacity-50"
             >
               Vazgec
             </button>
             <button
               onClick={handleDelete}
               disabled={deleting}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 transition-all duration-300 ease-ios disabled:opacity-50"
             >
               {deleting && <Loader2 size={16} className="animate-spin" />}
               Evet, Sil

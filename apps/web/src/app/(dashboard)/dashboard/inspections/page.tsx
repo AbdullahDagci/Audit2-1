@@ -159,7 +159,7 @@ export default function InspectionsPage() {
               placeholder="Sube ara..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
+              className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none transition-all duration-300 ease-ios"
             />
           </div>
 
@@ -170,7 +170,7 @@ export default function InspectionsPage() {
               setFacilityTypeFilter(e.target.value);
               setPage(1);
             }}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
+            className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none transition-all duration-300 ease-ios"
           >
             {Object.entries(FACILITY_TYPES).map(([value, label]) => (
               <option key={value} value={value}>
@@ -180,7 +180,7 @@ export default function InspectionsPage() {
           </select>
         </div>
 
-        <button className="flex items-center gap-2 px-4 py-2 bg-primary-800 text-white rounded-lg text-sm font-medium hover:bg-primary-900 transition-colors">
+        <button className="flex items-center gap-2 px-4 py-2 bg-primary-800 text-white rounded-xl text-sm font-medium hover:bg-primary-900 transition-all duration-300 ease-ios hover:shadow-soft-lg">
           <Download size={16} />
           <span className="hidden sm:inline">Disari Aktar</span>
         </button>
@@ -195,9 +195,9 @@ export default function InspectionsPage() {
               setStatusFilter(value);
               setPage(1);
             }}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ease-ios ${
               statusFilter === value
-                ? "bg-primary-800 text-white"
+                ? "bg-primary-800 text-white shadow-soft"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
@@ -207,7 +207,7 @@ export default function InspectionsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
+      <div className="bg-white rounded-2xl shadow-soft border border-gray-100/50 overflow-hidden overflow-x-auto">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 size={32} className="animate-spin text-primary-800" />
@@ -221,7 +221,7 @@ export default function InspectionsPage() {
           <>
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
+                <tr className="border-b border-gray-200 bg-gray-50/80">
                   <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
                     Tarih
                   </th>
@@ -252,7 +252,7 @@ export default function InspectionsPage() {
                     onClick={() =>
                       router.push(`/dashboard/inspections/${item.id}`)
                     }
-                    className="border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer"
+                    className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors duration-150 cursor-pointer"
                   >
                     <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">
                       {formatDate(item.scheduledDate || item.createdAt)}
@@ -281,7 +281,7 @@ export default function InspectionsPage() {
                           <button
                             onClick={(e) => handleDelete(e, item.id)}
                             disabled={deleting === item.id}
-                            className="text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
+                            className="text-red-500 hover:text-red-700 transition-colors duration-150 disabled:opacity-50"
                             title="Sil"
                           >
                             {deleting === item.id ? (
@@ -309,7 +309,7 @@ export default function InspectionsPage() {
                   <button
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    className="w-8 h-8 rounded-lg text-sm font-medium hover:bg-gray-100 text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="w-8 h-8 rounded-xl text-sm font-medium hover:bg-gray-100 text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-300 ease-ios"
                   >
                     &lt;
                   </button>
@@ -339,9 +339,9 @@ export default function InspectionsPage() {
                         <button
                           key={p}
                           onClick={() => setPage(p)}
-                          className={`w-8 h-8 rounded-lg text-sm font-medium ${
+                          className={`w-8 h-8 rounded-xl text-sm font-medium transition-all duration-300 ease-ios ${
                             p === page
-                              ? "bg-primary-800 text-white"
+                              ? "bg-primary-800 text-white shadow-soft"
                               : "hover:bg-gray-100 text-gray-600"
                           }`}
                         >
@@ -354,7 +354,7 @@ export default function InspectionsPage() {
                       setPage((p) => Math.min(totalPages, p + 1))
                     }
                     disabled={page === totalPages}
-                    className="w-8 h-8 rounded-lg text-sm font-medium hover:bg-gray-100 text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="w-8 h-8 rounded-xl text-sm font-medium hover:bg-gray-100 text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-300 ease-ios"
                   >
                     &gt;
                   </button>

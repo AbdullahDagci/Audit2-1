@@ -80,15 +80,57 @@ async function checkPendingEvidence(): Promise<void> {
   }
 }
 
+async function checkScheduledInspections(): Promise<void> {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Bugün planlanmış denetimleri bul
+    const schedules = await prisma.inspectionSchedule.findMany({
+      where: {
+        isActive: true,
+        nextDueDate: { gte: today, lt: tomorrow },
+      },
+      include: {
+        branch: true,
+        inspector: {
+          select: { id: true, email: true, fullName: true, emailNotifications: true, pushNotifications: true },
+        },
+      },
+    });
+
+    for (const schedule of schedules) {
+      if (!schedule.inspector) continue;
+
+      // Push + email bildirim (createAndPushNotification her ikisini de yapar)
+      await createAndPushNotification(
+        schedule.inspector.id,
+        'Bugün Denetim Planlandı',
+        `${schedule.branch.name} şubesinde bugün denetim yapmanız gerekmektedir.`,
+        { type: 'scheduled_reminder', branchId: schedule.branchId, scheduleId: schedule.id },
+      );
+    }
+
+    if (schedules.length > 0) {
+      console.log(`[Planlama] ${schedules.length} planlı denetim hatırlatması gönderildi.`);
+    }
+  } catch (error) {
+    console.error('[Planlama] Hata:', error);
+  }
+}
+
 export function startReminderScheduler(): void {
   // Her gün sabah 09:00'da çalış (Türkiye saati)
   cron.schedule('0 9 * * *', () => {
     console.log('[Hatırlatma] Günlük kontrol başlatılıyor...');
     checkPendingEvidence();
+    checkScheduledInspections();
   });
 
   console.log('Hatırlatma zamanlayıcı aktif (her gün 09:00)');
 }
 
 // Manuel tetikleme (test için)
-export { checkPendingEvidence };
+export { checkPendingEvidence, checkScheduledInspections };

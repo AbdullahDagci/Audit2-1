@@ -1,4 +1,5 @@
 import { prisma } from '../index';
+import { sendEmail, buildEmailHtml } from './email';
 
 interface PushMessage {
   to: string;
@@ -44,7 +45,7 @@ async function sendPushToDevice(tokens: any[], title: string, body: string, data
   }
 }
 
-// Bildirim oluştur + push gönder (tercih kontrolü ile)
+// Bildirim oluştur + push gönder + email gönder (tercih kontrolü ile)
 export async function createAndPushNotification(
   userId: string,
   title: string,
@@ -54,7 +55,7 @@ export async function createAndPushNotification(
   // Kullanıcının tercihlerini al
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { pushNotifications: true, criticalAlerts: true, emailNotifications: true },
+    select: { pushNotifications: true, criticalAlerts: true, emailNotifications: true, email: true },
   });
 
   // Bildirim her zaman DB'ye kaydet (uygulama içi bildirim listesi için)
@@ -72,6 +73,15 @@ export async function createAndPushNotification(
   if (user.pushNotifications) {
     const tokens = await prisma.pushToken.findMany({ where: { userId } });
     await sendPushToDevice(tokens, title, body, data);
+  }
+
+  // Email bildirim tercihi kontrolü
+  if (user.emailNotifications && user.email) {
+    await sendEmail({
+      to: user.email,
+      subject: `ERTANSA Denetim - ${title}`,
+      html: buildEmailHtml(title, `<p>${body}</p>`),
+    }).catch(() => {}); // Email hatası bildirim akışını bozmasın
   }
 }
 

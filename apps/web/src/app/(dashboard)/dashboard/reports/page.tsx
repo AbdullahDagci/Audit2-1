@@ -202,7 +202,7 @@ export default function ReportsPage() {
           <p className="text-gray-500 text-sm">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 transition-colors"
+            className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-xl text-sm hover:bg-primary-700 transition-all duration-300 ease-ios"
           >
             Tekrar Dene
           </button>
@@ -221,7 +221,7 @@ export default function ReportsPage() {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="px-2 sm:px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
+              className="px-2 sm:px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none transition-all duration-300 ease-ios"
             />
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
@@ -230,14 +230,14 @@ export default function ReportsPage() {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="px-2 sm:px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
+              className="px-2 sm:px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none transition-all duration-300 ease-ios"
             />
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportCsv}
-            className="flex items-center gap-2 px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-green-700 text-white rounded-xl text-sm font-medium hover:bg-green-800 transition-all duration-300 ease-ios hover:shadow-soft-lg"
           >
             <Download size={16} />
             <span className="hidden sm:inline">Disari Aktar (CSV)</span>
@@ -251,7 +251,7 @@ export default function ReportsPage() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-all duration-300 ease-ios whitespace-nowrap ${
               activeTab === tab.key
                 ? "border-primary-800 text-primary-800"
                 : "border-transparent text-gray-500 hover:text-gray-700"
@@ -262,24 +262,24 @@ export default function ReportsPage() {
         ))}
       </div>
 
-      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-soft border border-gray-100/50">
         {activeTab === "comparison" && (
           <div>
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Sube Karsilastirma</h3>
+            <h3 className="text-base font-semibold text-gray-800 uppercase tracking-wide mb-4">Sube Karsilastirma</h3>
             <BranchComparison branches={branches} />
           </div>
         )}
 
         {activeTab === "trend" && (
           <div>
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Trend Analizi</h3>
+            <h3 className="text-base font-semibold text-gray-800 uppercase tracking-wide mb-4">Trend Analizi</h3>
             <TrendAnalysis data={trendData} />
           </div>
         )}
 
         {activeTab === "category" && (
           <div>
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Kategori Analizi</h3>
+            <h3 className="text-base font-semibold text-gray-800 uppercase tracking-wide mb-4">Kategori Analizi</h3>
             {categoryData.length === 0 ? (
               <div className="flex items-center justify-center h-48 sm:h-64 text-gray-500">
                 Kategori analizi icin yeterli veri bulunmuyor.
@@ -294,7 +294,7 @@ export default function ReportsPage() {
                     {/* @ts-ignore */}
                     <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
                     {/* @ts-ignore */}
-                    <Tooltip contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }} />
+                    <Tooltip contentStyle={{ borderRadius: "12px", border: "1px solid #e5e7eb" }} />
                     {/* @ts-ignore */}
                     <Legend />
                   </BarChart>

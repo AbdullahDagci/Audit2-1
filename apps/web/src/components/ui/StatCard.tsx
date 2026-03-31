@@ -26,11 +26,11 @@ export default function StatCard({
   variant = "green",
 }: StatCardProps) {
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+    <div className="bg-white rounded-2xl p-6 shadow-soft border border-gray-100/50 hover:shadow-soft-lg hover:-translate-y-0.5 transition-all duration-300 ease-ios">
       <div className="flex items-start justify-between">
         <div
           className={cn(
-            "w-12 h-12 rounded-lg flex items-center justify-center",
+            "w-12 h-12 rounded-xl flex items-center justify-center",
             variantStyles[variant]
           )}
         >

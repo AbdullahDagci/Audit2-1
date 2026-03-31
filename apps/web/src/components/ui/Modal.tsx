@@ -40,12 +40,12 @@ export default function Modal({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/25 backdrop-blur-sm animate-fade-in"
       onClick={(e) => e.target === overlayRef.current && onClose()}
     >
       <div
         className={cn(
-          "bg-white rounded-2xl shadow-xl max-w-[calc(100%-2rem)] sm:max-w-lg w-full mx-4 max-h-[85vh] overflow-y-auto",
+          "bg-white rounded-3xl shadow-float max-w-[calc(100%-2rem)] sm:max-w-lg w-full mx-4 max-h-[85vh] overflow-y-auto animate-scale-in",
           className
         )}
       >
@@ -54,7 +54,7 @@ export default function Modal({
             <h2 className="text-base sm:text-lg font-semibold text-gray-900">{title}</h2>
             <button
               onClick={onClose}
-              className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+              className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors duration-200"
             >
               <X size={20} className="text-gray-400" />
             </button>
