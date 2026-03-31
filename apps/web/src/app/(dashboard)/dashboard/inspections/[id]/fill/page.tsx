@@ -78,8 +78,8 @@ export default function InspectionFillPage() {
           const findings = await api.getPreviousFindings(insp.branchId);
           if (Array.isArray(findings)) {
             setPreviousFindings(findings);
-          } else if (findings?.findings) {
-            setPreviousFindings(findings.findings);
+          } else if ((findings as any)?.findings) {
+            setPreviousFindings((findings as any).findings);
           }
         } catch {
           setPreviousFindings([]);
