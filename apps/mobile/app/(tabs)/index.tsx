@@ -47,6 +47,7 @@ export default function HomeScreen() {
 
   const [inspections, setInspections] = useState<any[]>([]);
   const [dashboard, setDashboard] = useState<any>(null);
+  const [nonconformities, setNonconformities] = useState<any[]>([]);
   const [facilityTypes, setFacilityTypes] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -70,6 +71,10 @@ export default function HomeScreen() {
         try {
           const dash = await api.getDashboard();
           setDashboard(dash);
+        } catch {}
+        try {
+          const nc = await api.getTopNonconformities();
+          setNonconformities(nc || []);
         } catch {}
       }
     } catch {
@@ -256,6 +261,36 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* En Çok Uygunsuzluk Alan Maddeler */}
+        {nonconformities.length > 0 && (
+          <Card style={styles.chartCard}>
+            <View style={styles.ncHeader}>
+              <MaterialIcons name="report-problem" size={20} color="#C62828" />
+              <Text style={styles.chartTitle}>En Çok Uygunsuzluk Alan Maddeler</Text>
+            </View>
+            <Text style={styles.chartSubtitle}>Son 30 gün</Text>
+            {nonconformities.slice(0, 10).map((item: any, idx: number) => {
+              const maxCount = nonconformities[0]?.count || 1;
+              const pct = (item.count / maxCount) * 100;
+              return (
+                <View key={idx} style={styles.ncRow}>
+                  <View style={styles.ncInfo}>
+                    <View style={styles.ncBranchRow}>
+                      <Text style={styles.ncBranch}>{item.branchName}</Text>
+                      {item.isCritical && <MaterialIcons name="error" size={14} color="#C62828" />}
+                    </View>
+                    <Text style={styles.ncItem} numberOfLines={1}>{item.itemText}</Text>
+                  </View>
+                  <Text style={styles.ncCount}>{item.count}</Text>
+                  <View style={styles.ncBarBg}>
+                    <View style={[styles.ncBar, { width: `${pct}%`, backgroundColor: item.isCritical ? '#C62828' : '#FF9800' }]} />
+                  </View>
+                </View>
+              );
+            })}
+          </Card>
+        )}
+
         {/* Son Denetimler */}
         {inspections.length > 0 && (
           <Card style={styles.chartCard}>
@@ -386,6 +421,15 @@ const styles = StyleSheet.create({
   rankBarBg: { flex: 1, height: 10, backgroundColor: '#F0F0F0', borderRadius: 5, overflow: 'hidden' },
   rankBar: { height: '100%', borderRadius: 5 },
   rankPct: { width: 40, fontSize: 13, fontWeight: '700', textAlign: 'right' },
+  ncHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
+  ncRow: { marginBottom: 12 },
+  ncInfo: { marginBottom: 4 },
+  ncBranchRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  ncBranch: { fontSize: 12, fontWeight: '700', color: '#2E7D32' },
+  ncItem: { fontSize: 12, color: '#666' },
+  ncCount: { position: 'absolute', right: 0, top: 0, fontSize: 14, fontWeight: '800', color: '#333' },
+  ncBarBg: { height: 6, backgroundColor: '#F0F0F0', borderRadius: 3, overflow: 'hidden' },
+  ncBar: { height: '100%', borderRadius: 3 },
   recentRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
   recentBranch: { fontSize: 14, fontWeight: '600', color: '#333' },
   recentMeta: { fontSize: 11, color: '#999' },

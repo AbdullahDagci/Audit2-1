@@ -142,6 +142,7 @@ export const api = {
 
   // Reports
   getDashboard: () => request<any>('/api/reports/dashboard'),
+  getTopNonconformities: () => request<any[]>('/api/reports/top-nonconformities'),
   getBranchComparison: (startDate?: string, endDate?: string) => {
     const params = new URLSearchParams();
     if (startDate) params.set('startDate', startDate);
@@ -238,10 +239,10 @@ export const api = {
     }),
 
   // Password
-  changePassword: (userId: string, currentPassword: string, newPassword: string) =>
+  changePassword: (userId: string, data: { currentPassword?: string; newPassword: string }) =>
     request<any>(`/api/users/${userId}/password`, {
       method: 'PUT',
-      body: JSON.stringify({ currentPassword, newPassword }),
+      body: JSON.stringify(data),
     }),
 
   // User Preferences

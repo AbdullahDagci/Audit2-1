@@ -16,12 +16,17 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     }
     if (facilityType) where.facilityType = facilityType;
 
+    // Admin/manager arsivlenmis kategori/maddeleri de gorur (sablon duzenleme icin)
+    const categoryWhere = isAdminOrManager ? {} : { isActive: true };
+    const itemWhere = isAdminOrManager ? {} : { isActive: true };
+
     const templates = await prisma.checklistTemplate.findMany({
       where,
       include: {
         categories: {
+          where: categoryWhere,
           orderBy: { sortOrder: 'asc' },
-          include: { items: { orderBy: { sortOrder: 'asc' } } },
+          include: { items: { where: itemWhere, orderBy: { sortOrder: 'asc' } } },
         },
       },
       orderBy: { name: 'asc' },
@@ -35,12 +40,17 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 // GET /api/templates/:id
 router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    const isAdminOrManager = req.userRole === 'admin' || req.userRole === 'manager';
+    const categoryWhere = isAdminOrManager ? {} : { isActive: true };
+    const itemWhere = isAdminOrManager ? {} : { isActive: true };
+
     const template = await prisma.checklistTemplate.findUnique({
       where: { id: req.params.id as string },
       include: {
         categories: {
+          where: categoryWhere,
           orderBy: { sortOrder: 'asc' },
-          include: { items: { orderBy: { sortOrder: 'asc' } } },
+          include: { items: { where: itemWhere, orderBy: { sortOrder: 'asc' } } },
         },
       },
     });
@@ -104,8 +114,24 @@ router.put('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, 
 // DELETE /api/templates/:id
 router.delete('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, res: Response) => {
   try {
-    await prisma.checklistTemplate.delete({ where: { id: req.params.id as string } });
-    res.json({ success: true });
+    const templateId = req.params.id as string;
+
+    const inspectionCount = await prisma.inspection.count({
+      where: { templateId },
+    });
+
+    if (inspectionCount > 0) {
+      // Soft delete: denetimi olan sablonu arsivle
+      await prisma.checklistTemplate.update({
+        where: { id: templateId },
+        data: { isActive: false },
+      });
+      return res.json({ success: true, softDeleted: true, message: 'Sablon arsivlendi. Gecmis denetimler etkilenmedi.' });
+    }
+
+    // Hard delete: denetimi olmayan sablonu gercekten sil
+    await prisma.checklistTemplate.delete({ where: { id: templateId } });
+    res.json({ success: true, softDeleted: false });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -159,8 +185,31 @@ router.put('/categories/:categoryId', authenticate, requireRole('admin'), async 
 // DELETE /api/templates/categories/:categoryId
 router.delete('/categories/:categoryId', authenticate, requireRole('admin'), async (req: AuthRequest, res: Response) => {
   try {
-    await prisma.checklistCategory.delete({ where: { id: req.params.categoryId as string } });
-    res.json({ success: true });
+    const categoryId = req.params.categoryId as string;
+
+    // Kategorideki item'larda inspection response var mi kontrol et
+    const responseCount = await prisma.inspectionResponse.count({
+      where: { checklistItem: { categoryId } },
+    });
+
+    if (responseCount > 0) {
+      // Soft delete: kategori ve item'larini arsivle
+      await prisma.$transaction([
+        prisma.checklistItem.updateMany({
+          where: { categoryId },
+          data: { isActive: false },
+        }),
+        prisma.checklistCategory.update({
+          where: { id: categoryId },
+          data: { isActive: false },
+        }),
+      ]);
+      return res.json({ success: true, softDeleted: true });
+    }
+
+    // Hard delete: kullanimda degil, gercekten sil
+    await prisma.checklistCategory.delete({ where: { id: categoryId } });
+    res.json({ success: true, softDeleted: false });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -220,8 +269,24 @@ router.put('/items/:itemId', authenticate, requireRole('admin'), async (req: Aut
 // DELETE /api/templates/items/:itemId
 router.delete('/items/:itemId', authenticate, requireRole('admin'), async (req: AuthRequest, res: Response) => {
   try {
-    await prisma.checklistItem.delete({ where: { id: req.params.itemId as string } });
-    res.json({ success: true });
+    const itemId = req.params.itemId as string;
+
+    const responseCount = await prisma.inspectionResponse.count({
+      where: { checklistItemId: itemId },
+    });
+
+    if (responseCount > 0) {
+      // Soft delete: kullanimda olan maddeyi arsivle
+      await prisma.checklistItem.update({
+        where: { id: itemId },
+        data: { isActive: false },
+      });
+      return res.json({ success: true, softDeleted: true });
+    }
+
+    // Hard delete: kullanimda degil, gercekten sil
+    await prisma.checklistItem.delete({ where: { id: itemId } });
+    res.json({ success: true, softDeleted: false });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

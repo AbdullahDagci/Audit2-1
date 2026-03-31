@@ -7,11 +7,28 @@ import { logActivity } from '../services/activity-logger';
 
 const router = Router();
 
+// Yetki kontrol helper
+async function canAccessInspection(inspectionId: string, req: AuthRequest): Promise<boolean> {
+  if (req.userRole === 'admin') return true;
+  const inspection = await prisma.inspection.findUnique({
+    where: { id: inspectionId },
+    include: { branch: { select: { managerId: true } } },
+  });
+  if (!inspection) return false;
+  if (req.userRole === 'manager') return inspection.branch.managerId === req.userId;
+  return inspection.inspectorId === req.userId;
+}
+
 // GET /api/corrective-actions/inspection/:inspectionId - Denetimin düzeltici faaliyetleri
 router.get('/inspection/:inspectionId', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    const inspectionId = req.params.inspectionId as string;
+    if (!(await canAccessInspection(inspectionId, req))) {
+      return res.status(403).json({ error: 'Bu denetime erişim yetkiniz yok' });
+    }
+
     const actions = await prisma.correctiveAction.findMany({
-      where: { inspectionId: req.params.inspectionId as string },
+      where: { inspectionId },
       include: {
         response: {
           include: {
@@ -32,8 +49,13 @@ router.get('/inspection/:inspectionId', authenticate, async (req: AuthRequest, r
 // GET /api/corrective-actions/inspection/:inspectionId/deficiencies - Eksik maddelerin listesi
 router.get('/inspection/:inspectionId/deficiencies', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    const inspectionId = req.params.inspectionId as string;
+    if (!(await canAccessInspection(inspectionId, req))) {
+      return res.status(403).json({ error: 'Bu denetime erişim yetkiniz yok' });
+    }
+
     const inspection = await prisma.inspection.findUnique({
-      where: { id: req.params.inspectionId as string },
+      where: { id: inspectionId },
       include: {
         responses: {
           include: {
@@ -100,11 +122,10 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
 
     if (!inspection) return res.status(404).json({ error: 'Denetim bulunamadı' });
 
-    // Yetki kontrolü: şube sorumlusu veya admin
+    // Yetki kontrolü: sadece şube sorumlusu
     const isManager = inspection.branch.managerId === req.userId;
-    const isAdmin = req.userRole === 'admin';
-    if (!isManager && !isAdmin) {
-      return res.status(403).json({ error: 'Düzeltici faaliyet ekleme yetkiniz yok' });
+    if (!isManager) {
+      return res.status(403).json({ error: 'Bu işlemi sadece şube sorumlusu yapabilir.' });
     }
 
     if (inspection.status !== 'completed' && inspection.status !== 'pending_action') {
@@ -184,9 +205,8 @@ router.post('/batch', authenticate, async (req: AuthRequest, res: Response) => {
     if (!inspection) return res.status(404).json({ error: 'Denetim bulunamadı' });
 
     const isManager = inspection.branch.managerId === req.userId;
-    const isAdmin = req.userRole === 'admin';
-    if (!isManager && !isAdmin) {
-      return res.status(403).json({ error: 'Düzeltici faaliyet ekleme yetkiniz yok' });
+    if (!isManager) {
+      return res.status(403).json({ error: 'Bu işlemi sadece şube sorumlusu yapabilir.' });
     }
 
     if (inspection.status !== 'completed' && inspection.status !== 'pending_action') {
@@ -268,11 +288,10 @@ router.post('/:id/evidence', authenticate, upload.single('photo'), async (req: A
 
     if (!action) return res.status(404).json({ error: 'Düzeltici faaliyet bulunamadı' });
 
-    // Yetki kontrolü
+    // Yetki kontrolü - sadece şube sorumlusu kanıt yükleyebilir
     const isManager = action.inspection.branch.managerId === req.userId;
-    const isAdmin = req.userRole === 'admin';
-    if (!isManager && !isAdmin) {
-      return res.status(403).json({ error: 'Kanıt yükleme yetkiniz yok' });
+    if (!isManager) {
+      return res.status(403).json({ error: 'Kanıt yükleme yetkiniz yok. Bu işlemi sadece şube sorumlusu yapabilir.' });
     }
 
     // Sharp ile sıkıştır
@@ -326,9 +345,8 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     if (!action) return res.status(404).json({ error: 'Düzeltici faaliyet bulunamadı' });
 
     const isManager = action.inspection.branch.managerId === req.userId;
-    const isAdmin = req.userRole === 'admin';
-    if (!isManager && !isAdmin) {
-      return res.status(403).json({ error: 'Güncelleme yetkiniz yok' });
+    if (!isManager) {
+      return res.status(403).json({ error: 'Bu işlemi sadece şube sorumlusu yapabilir.' });
     }
 
     const updated = await prisma.correctiveAction.update({

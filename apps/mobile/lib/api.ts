@@ -1,18 +1,39 @@
-import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Config } from '@/constants/config';
 
 const API_URL = Config.API_URL;
+const TOKEN_KEY = 'auth_token';
 
 async function getToken(): Promise<string | null> {
-  return SecureStore.getItemAsync('auth_token');
+  try {
+    if (Platform.OS === 'web') {
+      return localStorage.getItem(TOKEN_KEY);
+    }
+    return await AsyncStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
 }
 
 async function setToken(token: string): Promise<void> {
-  await SecureStore.setItemAsync('auth_token', token);
+  try {
+    if (Platform.OS === 'web') {
+      localStorage.setItem(TOKEN_KEY, token);
+      return;
+    }
+    await AsyncStorage.setItem(TOKEN_KEY, token);
+  } catch {}
 }
 
 async function removeToken(): Promise<void> {
-  await SecureStore.deleteItemAsync('auth_token');
+  try {
+    if (Platform.OS === 'web') {
+      localStorage.removeItem(TOKEN_KEY);
+      return;
+    }
+    await AsyncStorage.removeItem(TOKEN_KEY);
+  } catch {}
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -216,6 +237,10 @@ export const api = {
     return request<any>('/api/reports/dashboard');
   },
 
+  async getTopNonconformities() {
+    return request<any[]>('/api/reports/top-nonconformities');
+  },
+
   // Users (admin)
   async getUsers() {
     return request<any[]>('/api/users');
@@ -360,10 +385,10 @@ export const api = {
   },
 
   // Password change
-  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+  async changePassword(userId: string, data: { currentPassword?: string; newPassword: string }) {
     return request<any>(`/api/users/${userId}/password`, {
       method: 'PUT',
-      body: JSON.stringify({ currentPassword, newPassword }),
+      body: JSON.stringify(data),
     });
   },
 

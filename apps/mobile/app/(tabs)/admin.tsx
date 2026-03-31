@@ -167,6 +167,23 @@ function UsersTab() {
   const [form, setForm] = useState({ fullName: '', email: '', password: '', role: 'inspector', phone: '' });
   const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [resetTarget, setResetTarget] = useState<any>(null);
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetConfirm, setResetConfirm] = useState('');
+
+  const handleResetPassword = async () => {
+    if (resetPassword.length < 6) { Alert.alert('Hata', 'Şifre en az 6 karakter olmalıdır'); return; }
+    if (resetPassword !== resetConfirm) { Alert.alert('Hata', 'Şifreler eşleşmiyor'); return; }
+    try {
+      await api.changePassword(resetTarget.id, { newPassword: resetPassword });
+      Alert.alert('Başarılı', `${resetTarget.fullName} kullanıcısının şifresi güncellendi`);
+      setResetTarget(null);
+      setResetPassword('');
+      setResetConfirm('');
+    } catch (e: any) {
+      Alert.alert('Hata', e.message || 'Şifre güncellenemedi');
+    }
+  };
 
   const fetch = useCallback(async () => {
     try {
@@ -242,6 +259,7 @@ function UsersTab() {
               </View>
               <View style={{ gap: 6 }}>
                 <TouchableOpacity onPress={() => openEdit(item)} style={S.iconBtn}><MaterialIcons name="edit" size={18} color="#2E7D32" /></TouchableOpacity>
+                <TouchableOpacity onPress={() => { setResetTarget(item); setResetPassword(''); setResetConfirm(''); }} style={S.iconBtn}><MaterialIcons name="key" size={18} color="#E65100" /></TouchableOpacity>
                 <TouchableOpacity onPress={() => toggleActive(item)} style={S.iconBtn}><MaterialIcons name={item.isActive ? 'person-off' : 'person'} size={18} color={item.isActive ? '#F44336' : '#4CAF50'} /></TouchableOpacity>
               </View>
             </View>
@@ -314,6 +332,24 @@ function UsersTab() {
             <TouchableOpacity onPress={save} style={S.saveBtn} disabled={saving}><Text style={S.saveText}>{saving ? '...' : 'Kaydet'}</Text></TouchableOpacity>
           </View>
         </View></ScrollView></View>
+      </RNModal>
+
+      {/* Şifre Sıfırlama Modal */}
+      <RNModal visible={!!resetTarget} animationType="fade" transparent>
+        <View style={S.modalBg}><View style={S.modalCard}>
+          <Text style={S.modalTitle}>Şifre Sıfırla</Text>
+          <Text style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>
+            <Text style={{ fontWeight: '700' }}>{resetTarget?.fullName}</Text> kullanıcısının şifresini sıfırlıyorsunuz.
+          </Text>
+          <TextInput style={S.input} placeholder="Yeni Şifre (en az 6 karakter)" value={resetPassword} onChangeText={setResetPassword} secureTextEntry />
+          <TextInput style={S.input} placeholder="Yeni Şifre (Tekrar)" value={resetConfirm} onChangeText={setResetConfirm} secureTextEntry />
+          <View style={S.modalBtns}>
+            <TouchableOpacity onPress={() => setResetTarget(null)} style={S.cancelBtn}><Text style={S.cancelText}>İptal</Text></TouchableOpacity>
+            <TouchableOpacity onPress={handleResetPassword} style={[S.saveBtn, { backgroundColor: '#E65100' }]} disabled={!resetPassword || !resetConfirm}>
+              <Text style={S.saveText}>Şifreyi Güncelle</Text>
+            </TouchableOpacity>
+          </View>
+        </View></View>
       </RNModal>
     </View>
   );

@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Download, Search, Loader2, Trash2 } from "lucide-react";
+import { Download, Search, Loader2, Trash2, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 import { api } from "@/lib/api";
 
-// Map API status values to Turkish display labels
 const STATUS_MAP: Record<string, string> = {
   all: "Tumu",
   scheduled: "Planlanmis",
@@ -19,21 +18,21 @@ const STATUS_MAP: Record<string, string> = {
 
 const STATUS_CHIPS = Object.entries(STATUS_MAP);
 
-// Map API facilityType values to Turkish labels
 const FACILITY_TYPES: Record<string, string> = {
   all: "Tum Turler",
-  restaurant: "Restoran",
-  cafe: "Kafe",
-  hotel: "Otel",
-  factory: "Fabrika",
-  warehouse: "Depo",
+  magaza: "Magaza",
+  kesimhane: "Kesimhane",
+  ahir: "Ahir",
+  yufka: "Yufka",
+  depo: "Depo",
 };
 
 function getScoreBadge(score: number | null | undefined) {
   if (score == null) return <Badge variant="neutral">-</Badge>;
-  if (score >= 80) return <Badge variant="success">{score}</Badge>;
-  if (score >= 60) return <Badge variant="warning">{score}</Badge>;
-  return <Badge variant="danger">{score}</Badge>;
+  const rounded = Math.round(Number(score));
+  if (rounded >= 80) return <Badge variant="success">{rounded}</Badge>;
+  if (rounded >= 60) return <Badge variant="warning">{rounded}</Badge>;
+  return <Badge variant="danger">{rounded}</Badge>;
 }
 
 function getStatusBadge(status: string) {
@@ -44,13 +43,8 @@ function getStatusBadge(status: string) {
     case "completed":
       return <Badge variant="info">{label}</Badge>;
     case "pending_action":
-      return <Badge variant="warning">{label}</Badge>;
     case "in_progress":
       return <Badge variant="warning">{label}</Badge>;
-    case "scheduled":
-      return <Badge variant="neutral">{label}</Badge>;
-    case "draft":
-      return <Badge variant="neutral">{label}</Badge>;
     default:
       return <Badge variant="neutral">{label}</Badge>;
   }
@@ -77,11 +71,16 @@ interface Inspection {
   template: { name: string };
 }
 
+type SortField = "date" | "score" | "status" | "branch";
+
 export default function InspectionsPage() {
   const router = useRouter();
   const [statusFilter, setStatusFilter] = useState("all");
   const [facilityTypeFilter, setFacilityTypeFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [sortField, setSortField] = useState<SortField>("date");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -90,15 +89,30 @@ export default function InspectionsPage() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
 
+  const searchTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced search
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      setSearchQuery(value);
+      setPage(1);
+    }, 400);
+  };
+
   const fetchInspections = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, string> = {
         page: String(page),
         limit: String(pageSize),
+        sort: sortField,
+        order: sortOrder,
       };
       if (statusFilter !== "all") params.status = statusFilter;
       if (facilityTypeFilter !== "all") params.facilityType = facilityTypeFilter;
+      if (searchQuery.trim()) params.search = searchQuery.trim();
 
       const result = await api.getInspections(params);
       setInspections(result.data);
@@ -110,20 +124,30 @@ export default function InspectionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, statusFilter, facilityTypeFilter]);
+  }, [page, pageSize, statusFilter, facilityTypeFilter, searchQuery, sortField, sortOrder]);
 
   useEffect(() => {
     fetchInspections();
   }, [fetchInspections]);
 
-  // Client-side search filter on branch name
-  const filtered = searchQuery
-    ? inspections.filter((i) =>
-        i.branch?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : inspections;
-
   const totalPages = Math.ceil(total / pageSize);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortOrder(field === "date" ? "desc" : "asc");
+    }
+    setPage(1);
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ChevronsUpDown size={14} className="text-gray-300" />;
+    return sortOrder === "asc"
+      ? <ChevronUp size={14} className="text-primary-800" />
+      : <ChevronDown size={14} className="text-primary-800" />;
+  };
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -156,10 +180,10 @@ export default function InspectionsPage() {
             />
             <input
               type="text"
-              placeholder="Sube ara..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none transition-all duration-300 ease-ios"
+              placeholder="Sube, denetci veya sablon ara..."
+              value={searchInput}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none transition-all duration-300 ease-ios w-64"
             />
           </div>
 
@@ -180,10 +204,9 @@ export default function InspectionsPage() {
           </select>
         </div>
 
-        <button className="flex items-center gap-2 px-4 py-2 bg-primary-800 text-white rounded-xl text-sm font-medium hover:bg-primary-900 transition-all duration-300 ease-ios hover:shadow-soft-lg">
-          <Download size={16} />
-          <span className="hidden sm:inline">Disari Aktar</span>
-        </button>
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <span>Toplam: <strong className="text-gray-900">{total}</strong></span>
+        </div>
       </div>
 
       {/* Status chips */}
@@ -213,20 +236,32 @@ export default function InspectionsPage() {
             <Loader2 size={32} className="animate-spin text-primary-800" />
             <span className="ml-3 text-sm text-gray-500">Yukleniyor...</span>
           </div>
-        ) : filtered.length === 0 ? (
+        ) : inspections.length === 0 ? (
           <div className="flex items-center justify-center py-20">
-            <span className="text-sm text-gray-500">Denetim bulunamadi.</span>
+            <span className="text-sm text-gray-500">
+              {searchQuery ? `"${searchQuery}" icin sonuc bulunamadi.` : "Denetim bulunamadi."}
+            </span>
           </div>
         ) : (
           <>
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50/80">
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
-                    Tarih
+                  <th
+                    onClick={() => handleSort("date")}
+                    className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap cursor-pointer hover:text-gray-700 select-none"
+                  >
+                    <span className="flex items-center gap-1">
+                      Tarih <SortIcon field="date" />
+                    </span>
                   </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
-                    Sube
+                  <th
+                    onClick={() => handleSort("branch")}
+                    className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap cursor-pointer hover:text-gray-700 select-none"
+                  >
+                    <span className="flex items-center gap-1">
+                      Sube <SortIcon field="branch" />
+                    </span>
                   </th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
                     Denetci
@@ -234,11 +269,21 @@ export default function InspectionsPage() {
                   <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
                     Sablon
                   </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
-                    Puan
+                  <th
+                    onClick={() => handleSort("score")}
+                    className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap cursor-pointer hover:text-gray-700 select-none"
+                  >
+                    <span className="flex items-center gap-1">
+                      Puan <SortIcon field="score" />
+                    </span>
                   </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
-                    Durum
+                  <th
+                    onClick={() => handleSort("status")}
+                    className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap cursor-pointer hover:text-gray-700 select-none"
+                  >
+                    <span className="flex items-center gap-1">
+                      Durum <SortIcon field="status" />
+                    </span>
                   </th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
                     Islem
@@ -246,7 +291,7 @@ export default function InspectionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((item) => (
+                {inspections.map((item) => (
                   <tr
                     key={item.id}
                     onClick={() =>

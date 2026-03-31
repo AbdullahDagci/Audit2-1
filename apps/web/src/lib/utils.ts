@@ -11,8 +11,9 @@ export function formatDate(date: string | Date, pattern: string = "dd MMM yyyy")
   return format(new Date(date), pattern, { locale: tr });
 }
 
-export function formatScore(score: number): string {
-  return score.toFixed(1);
+export function formatScore(score: number | null | undefined): string {
+  if (score == null) return "-";
+  return Math.round(Number(score)).toString();
 }
 
 export function getScoreColor(score: number): string {

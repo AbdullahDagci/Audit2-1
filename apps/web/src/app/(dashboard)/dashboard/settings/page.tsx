@@ -212,7 +212,7 @@ export default function SettingsPage() {
 
     setPasswordChanging(true);
     try {
-      await api.changePassword(userId, currentPassword, newPassword);
+      await api.changePassword(userId, { currentPassword, newPassword });
       setSuccessMsg("Sifreniz basariyla guncellendi");
       setCurrentPassword("");
       setNewPassword("");

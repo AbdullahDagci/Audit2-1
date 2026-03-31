@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl, Modal, TextInput, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/auth-store';
@@ -62,18 +62,25 @@ export default function ProfileScreen() {
   const initials = name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
   const role = user?.role === 'admin' ? 'Yönetici' : user?.role === 'manager' ? 'Müdür' : 'Denetçi';
 
-  const handleSignOut = () => {
-    Alert.alert('Çıkış', 'Çıkış yapmak istediğinize emin misiniz?', [
-      { text: 'İptal', style: 'cancel' },
-      {
-        text: 'Çıkış Yap',
-        style: 'destructive',
-        onPress: async () => {
-          await signOut();
-          router.replace('/(auth)/login');
+  const handleSignOut = async () => {
+    if (Platform.OS === 'web') {
+      if (window.confirm('Çıkış yapmak istediğinize emin misiniz?')) {
+        await signOut();
+        router.replace('/(auth)/login');
+      }
+    } else {
+      Alert.alert('Çıkış', 'Çıkış yapmak istediğinize emin misiniz?', [
+        { text: 'İptal', style: 'cancel' },
+        {
+          text: 'Çıkış Yap',
+          style: 'destructive',
+          onPress: async () => {
+            await signOut();
+            router.replace('/(auth)/login');
+          },
         },
-      },
-    ]);
+      ]);
+    }
   };
 
   const handleChangePassword = async () => {
@@ -96,7 +103,7 @@ export default function ProfileScreen() {
 
     setChangingPassword(true);
     try {
-      await api.changePassword(user.id, currentPassword, newPassword);
+      await api.changePassword(user.id, { currentPassword, newPassword });
       Alert.alert('Başarılı', 'Şifreniz başarıyla değiştirildi');
       setPasswordModal(false);
       setCurrentPassword('');

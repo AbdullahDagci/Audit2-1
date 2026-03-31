@@ -60,8 +60,10 @@ router.get('/dashboard', authenticate, requireRole('admin', 'manager'), async (r
     }));
 
     // Son denetimler
+    const recentWhere: any = { status: { in: ['completed', 'reviewed'] } };
+    if (req.userRole === 'manager') recentWhere.branch = { managerId: req.userId };
     const recentInspections = await prisma.inspection.findMany({
-      where: { status: { in: ['completed', 'reviewed'] } },
+      where: recentWhere,
       include: {
         branch: { select: { name: true } },
         inspector: { select: { fullName: true } },
@@ -90,6 +92,9 @@ router.get('/branch-comparison', authenticate, requireRole('admin', 'manager'), 
   try {
     const { startDate, endDate } = req.query;
     const where: any = { status: 'completed' as const };
+    if (req.userRole === 'manager') {
+      where.branch = { managerId: req.userId };
+    }
     if (startDate) where.completedAt = { gte: new Date(startDate as string) };
     if (endDate) where.completedAt = { ...where.completedAt, lte: new Date(endDate as string) };
 
@@ -119,6 +124,59 @@ router.get('/branch-comparison', authenticate, requireRole('admin', 'manager'), 
     }));
 
     res.json(result.sort((a, b) => b.avgScore - a.avgScore));
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/reports/top-nonconformities
+router.get('/top-nonconformities', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res: Response) => {
+  try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const branchWhere: any = { isActive: true };
+    if (req.userRole === 'manager') branchWhere.managerId = req.userId;
+
+    const failedResponses = await prisma.inspectionResponse.findMany({
+      where: {
+        passed: false,
+        inspection: {
+          status: { in: ['completed', 'reviewed', 'pending_action'] },
+          completedAt: { gte: thirtyDaysAgo },
+          branch: branchWhere,
+        },
+      },
+      select: {
+        checklistItem: {
+          select: { id: true, questionText: true, isCritical: true },
+        },
+        inspection: {
+          select: { branch: { select: { id: true, name: true } } },
+        },
+      },
+    });
+
+    // Sube + madde kombinasyonuna gore grupla
+    const grouped: Record<string, { branchName: string; itemText: string; isCritical: boolean; count: number }> = {};
+    for (const r of failedResponses) {
+      const key = `${r.inspection.branch.id}__${r.checklistItem.id}`;
+      if (!grouped[key]) {
+        grouped[key] = {
+          branchName: r.inspection.branch.name,
+          itemText: r.checklistItem.questionText,
+          isCritical: r.checklistItem.isCritical,
+          count: 0,
+        };
+      }
+      grouped[key].count++;
+    }
+
+    const result = Object.values(grouped)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 15);
+
+    res.json(result);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

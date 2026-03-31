@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Plus, Pencil, Trash2, Eye, Loader2 } from "lucide-react";
+import { FileText, Plus, Pencil, Trash2, Eye, Loader2, Archive } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
 import { api } from "@/lib/api";
@@ -55,6 +55,7 @@ export default function TemplatesPage() {
   const [detailTemplate, setDetailTemplate] = useState<TemplateRow | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<TemplateRow | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Form state
   const [form, setForm] = useState<TemplateFormData>({
@@ -164,12 +165,13 @@ export default function TemplatesPage() {
   const handleDelete = async () => {
     if (!deleteConfirm) return;
     setSaving(true);
+    setDeleteError(null);
     try {
       await api.deleteTemplate(deleteConfirm.id);
       setDeleteConfirm(null);
       await fetchTemplates();
     } catch (err: any) {
-      setError(err.message);
+      setDeleteError(err.message);
     }
     setSaving(false);
   };
@@ -283,8 +285,8 @@ export default function TemplatesPage() {
                 onClick={() => setDeleteConfirm(template)}
                 className="flex items-center gap-1 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-auto"
               >
-                <Trash2 size={14} />
-                Sil
+                <Archive size={14} />
+                Kaldir
               </button>
             </div>
           </div>
@@ -323,32 +325,54 @@ export default function TemplatesPage() {
         />
       </Modal>
 
-      {/* ---- DELETE CONFIRM MODAL ---- */}
+      {/* ---- DELETE/ARCHIVE CONFIRM MODAL ---- */}
       <Modal
         isOpen={!!deleteConfirm}
-        onClose={() => setDeleteConfirm(null)}
-        title="Sablonu Sil"
+        onClose={() => { setDeleteConfirm(null); setDeleteError(null); }}
+        title="Sablonu Kaldir"
       >
-        <p className="text-sm text-gray-600 mb-6">
-          <strong>{deleteConfirm?.name}</strong> sablonunu silmek istediginize
-          emin misiniz? Bu islem geri alinamaz ve sablona bagli tum kategoriler
-          ve maddeler de silinecektir.
-        </p>
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={() => setDeleteConfirm(null)}
-            className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Iptal
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={saving}
-            className="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-          >
-            {saving ? "Siliniyor..." : "Sil"}
-          </button>
-        </div>
+        {deleteError ? (
+          <div className="space-y-4">
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+              {deleteError}
+            </p>
+            <div className="flex justify-end">
+              <button
+                onClick={() => { setDeleteConfirm(null); setDeleteError(null); }}
+                className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Kapat
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-gray-600 mb-4">
+              <strong>{deleteConfirm?.name}</strong> sablonunu kaldirmak istediginize
+              emin misiniz?
+            </p>
+            <p className="text-xs text-gray-500 mb-6 bg-gray-50 p-3 rounded-lg">
+              Bu sablonla yapilmis gecmis denetimler etkilenmeyecektir.
+              Sablon denetimde kullanilmissa arsivlenir ve daha sonra tekrar aktif edilebilir.
+              Kullanilmamissa kalici olarak silinir.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Iptal
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={saving}
+                className="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {saving ? "Kaldiriliyor..." : "Kaldir"}
+              </button>
+            </div>
+          </>
+        )}
       </Modal>
 
       {/* ---- DETAIL MODAL ---- */}

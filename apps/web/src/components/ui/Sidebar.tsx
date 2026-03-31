@@ -22,14 +22,14 @@ import {
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "manager", "inspector"] },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin"] },
   { href: "/dashboard/manager", label: "Şube Paneli", icon: Building2, roles: ["manager"] },
   { href: "/dashboard/inspections", label: "Denetimler", icon: ClipboardCheck, roles: ["admin", "manager", "inspector"] },
-  { href: "/dashboard/branches", label: "Şubeler", icon: Building2, roles: ["admin", "manager"] },
-  { href: "/dashboard/templates", label: "Şablonlar", icon: FileText, roles: ["admin", "manager"] },
+  { href: "/dashboard/branches", label: "Şubeler", icon: Building2, roles: ["admin"] },
+  { href: "/dashboard/templates", label: "Şablonlar", icon: FileText, roles: ["admin"] },
   { href: "/dashboard/users", label: "Kullanıcılar", icon: Users, roles: ["admin"] },
   { href: "/dashboard/schedules", label: "Takvim", icon: Calendar, roles: ["admin", "manager"] },
-  { href: "/dashboard/reports", label: "Raporlar", icon: BarChart3, roles: ["admin", "manager"] },
+  { href: "/dashboard/reports", label: "Raporlar", icon: BarChart3, roles: ["admin"] },
   { href: "/dashboard/activity-logs", label: "Aktivite Kayıtları", icon: History, roles: ["admin"] },
   { href: "/dashboard/notifications", label: "Bildirimler", icon: Bell, roles: ["admin", "manager", "inspector"] },
   { href: "/dashboard/settings", label: "Ayarlar", icon: Settings, roles: ["admin"] },
@@ -62,6 +62,7 @@ export default function Sidebar() {
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user");
     document.cookie = "auth-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie = "user-role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     router.push("/login");
   };
 

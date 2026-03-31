@@ -1,139 +1,241 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView } from 'react-native';
-import { Colors } from '@/constants/colors';
-import { Button } from '@/components/ui/Button';
+import React, { useState, useRef } from 'react';
+import {
+  View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform,
+  TouchableOpacity, ScrollView, Image, StatusBar, Dimensions,
+  ActivityIndicator,
+} from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/stores/auth-store';
 
-const QUICK_USERS = [
-  { label: 'Admin', email: 'admin@ertansa.com', password: '123456', color: '#1B5E20' },
-  { label: 'Denetçi', email: 'denetci@ertansa.com', password: '123456', color: '#E65100' },
-  { label: 'Müdür', email: 'mudur@ertansa.com', password: '123456', color: '#1565C0' },
-];
+const { width } = Dimensions.get('window');
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
   const { signIn, isLoading, error } = useAuthStore();
+  const passwordRef = useRef<TextInput>(null);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) return;
     await signIn(email.trim(), password);
   };
 
-  const quickLogin = async (user: typeof QUICK_USERS[0]) => {
-    setEmail(user.email);
-    setPassword(user.password);
-    await signIn(user.email, user.password);
-  };
-
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>E</Text>
-          </View>
-          <Text style={styles.title}>ERTANSA</Text>
-          <Text style={styles.subtitle}>Denetim Sistemi</Text>
-        </View>
+    <View style={S.root}>
+      <StatusBar barStyle="light-content" />
 
-        <View style={styles.form}>
-          {error && (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
+      {/* Ust yesil gradient alan */}
+      <LinearGradient
+        colors={['#1B5E20', '#2E7D32', '#43A047']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={S.header}
+      >
+        <View style={S.headerDecor} />
+        <View style={S.headerDecor2} />
+
+        <Animated.View entering={FadeInDown.delay(100).springify()} style={S.logoWrap}>
+          <View style={S.logoShadow}>
+            <Image
+              source={require('@/assets/images/ertansa-logo.png')}
+              style={S.logo}
+              resizeMode="contain"
+            />
+          </View>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(200).springify()} style={S.headerTextWrap}>
+          <Text style={S.headerTitle}>ERTANSA</Text>
+          <Text style={S.headerSubtitle}>Denetim Yönetim Sistemi</Text>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(300).springify()} style={S.headerBadge}>
+          <MaterialIcons name="verified-user" size={14} color="#A5D6A7" />
+          <Text style={S.headerBadgeText}>Kalite & Gıda Güvenliği</Text>
+        </Animated.View>
+      </LinearGradient>
+
+      {/* Form alani */}
+      <KeyboardAvoidingView style={S.formArea} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          contentContainerStyle={S.formScroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Animated.View entering={FadeInUp.delay(300).springify()} style={S.card}>
+            {error && (
+              <View style={S.errorBox}>
+                <MaterialIcons name="error-outline" size={18} color="#C62828" />
+                <Text style={S.errorText}>{error}</Text>
+              </View>
+            )}
+
+            {/* E-posta */}
+            <View style={[S.inputWrap, focusedField === 'email' && S.inputWrapFocused]}>
+              <MaterialIcons name="mail-outline" size={20} color={focusedField === 'email' ? '#2E7D32' : '#999'} />
+              <TextInput
+                style={S.input}
+                placeholder={'E-posta adresiniz'}
+                placeholderTextColor="#BDBDBD"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => setFocusedField(null)}
+                returnKeyType="next"
+                onSubmitEditing={() => passwordRef.current?.focus()}
+              />
             </View>
-          )}
 
-          <Text style={styles.label}>E-posta</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="ornek@ertansa.com"
-            placeholderTextColor={Colors.textLight}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-
-          <Text style={styles.label}>Şifre</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Şifrenizi girin"
-            placeholderTextColor={Colors.textLight}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-
-          <Button
-            title="Giriş Yap"
-            onPress={handleLogin}
-            loading={isLoading}
-            disabled={!email.trim() || !password.trim()}
-            size="lg"
-            style={{ marginTop: 8 }}
-          />
-
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>Hızlı Giriş</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <View style={styles.quickButtons}>
-            {QUICK_USERS.map((u) => (
-              <TouchableOpacity
-                key={u.email}
-                style={[styles.quickBtn, { backgroundColor: u.color }]}
-                onPress={() => quickLogin(u)}
-                disabled={isLoading}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.quickBtnTitle}>{u.label}</Text>
-                <Text style={styles.quickBtnEmail}>{u.email}</Text>
+            {/* Sifre */}
+            <View style={[S.inputWrap, focusedField === 'password' && S.inputWrapFocused]}>
+              <MaterialIcons name="lock-outline" size={20} color={focusedField === 'password' ? '#2E7D32' : '#999'} />
+              <TextInput
+                ref={passwordRef}
+                style={S.input}
+                placeholder="Şifreniz"
+                placeholderTextColor="#BDBDBD"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                onFocus={() => setFocusedField('password')}
+                onBlur={() => setFocusedField(null)}
+                returnKeyType="go"
+                onSubmitEditing={handleLogin}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <MaterialIcons name={showPassword ? 'visibility' : 'visibility-off'} size={20} color="#999" />
               </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            </View>
+
+            {/* Giris butonu */}
+            <TouchableOpacity
+              style={[S.loginBtn, (!email.trim() || !password.trim()) && S.loginBtnDisabled]}
+              onPress={handleLogin}
+              disabled={isLoading || !email.trim() || !password.trim()}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={(!email.trim() || !password.trim()) ? ['#BDBDBD', '#9E9E9E'] : ['#2E7D32', '#1B5E20']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={S.loginBtnGradient}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#FFF" size="small" />
+                ) : (
+                  <>
+                    <MaterialIcons name="login" size={20} color="#FFF" />
+                    <Text style={S.loginBtnText}>Giriş Yap</Text>
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* Footer */}
+          <Animated.View entering={FadeInUp.delay(550).springify()} style={S.footer}>
+            <MaterialIcons name="shield" size={14} color="#BDBDBD" />
+            <Text style={S.footerText}>Güvenli bağlantı ile korunmaktadır</Text>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 32, paddingVertical: 40 },
-  logoContainer: { alignItems: 'center', marginBottom: 40 },
-  logoCircle: {
-    width: 80, height: 80, borderRadius: 40, backgroundColor: Colors.primary,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+const S = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#F5F5F5' },
+
+  // Header
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 48,
+    paddingBottom: 32,
+    alignItems: 'center',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    overflow: 'hidden',
   },
-  logoText: { fontSize: 36, fontWeight: '700', color: Colors.white },
-  title: { fontSize: 28, fontWeight: '700', color: Colors.primary },
-  subtitle: { fontSize: 16, color: Colors.textSecondary, marginTop: 4 },
-  form: { gap: 4 },
-  label: { fontSize: 14, fontWeight: '600', color: Colors.text, marginTop: 12, marginBottom: 4 },
-  input: {
-    backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
-    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
-    fontSize: 16, color: Colors.text,
+  headerDecor: {
+    position: 'absolute', top: -40, right: -40,
+    width: 160, height: 160, borderRadius: 80,
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
+  headerDecor2: {
+    position: 'absolute', bottom: -20, left: -30,
+    width: 120, height: 120, borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  logoWrap: { alignItems: 'center', marginBottom: 12 },
+  logoShadow: {
+    width: 96, height: 96, borderRadius: 24,
+    backgroundColor: '#FFF',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15, shadowRadius: 12,
+    elevation: 8,
+  },
+  logo: { width: 72, height: 72 },
+  headerTextWrap: { alignItems: 'center', marginBottom: 8 },
+  headerTitle: { fontSize: 26, fontWeight: '800', color: '#FFF', letterSpacing: 2 },
+  headerSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 4, fontWeight: '500' },
+  headerBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
+    marginTop: 4,
+  },
+  headerBadgeText: { fontSize: 11, color: '#C8E6C9', fontWeight: '600' },
+
+  // Form
+  formArea: { flex: 1 },
+  formScroll: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 40 },
+
+  card: {
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06, shadowRadius: 12,
+    elevation: 3,
+    gap: 14,
+  },
+
   errorBox: {
-    backgroundColor: '#FFEBEE', padding: 12, borderRadius: 8, marginBottom: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#FFEBEE', padding: 12, borderRadius: 12,
+    borderLeftWidth: 3, borderLeftColor: '#C62828',
   },
-  errorText: { color: Colors.danger, fontSize: 14 },
-  divider: {
-    flexDirection: 'row', alignItems: 'center', marginTop: 24, marginBottom: 16,
+  errorText: { color: '#C62828', fontSize: 13, flex: 1, fontWeight: '500' },
+
+  inputWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#F8F9FA', borderWidth: 1.5, borderColor: '#E8E8E8',
+    borderRadius: 14, paddingHorizontal: 14, minHeight: 52,
   },
-  dividerLine: { flex: 1, height: 1, backgroundColor: Colors.border },
-  dividerText: { marginHorizontal: 12, fontSize: 13, color: Colors.textSecondary },
-  quickButtons: { gap: 10 },
-  quickBtn: {
-    borderRadius: 12, paddingVertical: 14, paddingHorizontal: 16, alignItems: 'center',
+  inputWrapFocused: { borderColor: '#2E7D32', backgroundColor: '#F1F8E9' },
+  input: { flex: 1, fontSize: 15, color: '#212121', paddingVertical: 14 },
+
+  loginBtn: { borderRadius: 14, overflow: 'hidden', marginTop: 4 },
+  loginBtnDisabled: { opacity: 0.7 },
+  loginBtnGradient: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, paddingVertical: 16, borderRadius: 14,
   },
-  quickBtnTitle: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  quickBtnEmail: { fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
+  loginBtnText: { fontSize: 16, fontWeight: '700', color: '#FFF' },
+
+  // Footer
+  footer: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, marginTop: 32,
+  },
+  footerText: { fontSize: 11, color: '#BDBDBD' },
 });

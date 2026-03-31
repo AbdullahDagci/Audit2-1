@@ -5,11 +5,28 @@ import { logActivity } from '../services/activity-logger';
 
 const router = Router();
 
+// Yetki kontrol helper
+async function canAccessInspection(inspectionId: string, req: AuthRequest): Promise<boolean> {
+  if (req.userRole === 'admin') return true;
+  const inspection = await prisma.inspection.findUnique({
+    where: { id: inspectionId },
+    include: { branch: { select: { managerId: true } } },
+  });
+  if (!inspection) return false;
+  if (req.userRole === 'manager') return inspection.branch.managerId === req.userId;
+  return inspection.inspectorId === req.userId;
+}
+
 // GET /api/tutanak/inspection/:inspectionId - Denetimin tutanaklari
 router.get('/inspection/:inspectionId', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    const inspectionId = req.params.inspectionId as string;
+    if (!(await canAccessInspection(inspectionId, req))) {
+      return res.status(403).json({ error: 'Bu denetime erişim yetkiniz yok' });
+    }
+
     const tutanaklar = await prisma.tutanak.findMany({
-      where: { inspectionId: req.params.inspectionId as string },
+      where: { inspectionId },
       include: {
         createdBy: { select: { id: true, fullName: true } },
       },
@@ -31,13 +48,17 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
         createdBy: { select: { id: true, fullName: true } },
         inspection: {
           include: {
-            branch: { select: { id: true, name: true } },
+            branch: { select: { id: true, name: true, managerId: true } },
           },
         },
       },
     });
 
     if (!tutanak) return res.status(404).json({ error: 'Tutanak bulunamadı' });
+
+    if (!(await canAccessInspection(tutanak.inspectionId, req))) {
+      return res.status(403).json({ error: 'Bu tutanağa erişim yetkiniz yok' });
+    }
 
     res.json(tutanak);
   } catch (err: any) {
@@ -52,6 +73,10 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
 
     if (!inspectionId || !content) {
       return res.status(400).json({ error: 'inspectionId ve content alanları gereklidir' });
+    }
+
+    if (!(await canAccessInspection(inspectionId, req))) {
+      return res.status(403).json({ error: 'Bu denetim için tutanak oluşturma yetkiniz yok' });
     }
 
     const inspection = await prisma.inspection.findUnique({
@@ -97,6 +122,10 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
     if (!tutanak) return res.status(404).json({ error: 'Tutanak bulunamadı' });
 
+    if (!(await canAccessInspection(tutanak.inspectionId, req))) {
+      return res.status(403).json({ error: 'Bu tutanağı güncelleme yetkiniz yok' });
+    }
+
     if (tutanak.status !== 'draft') {
       return res.status(400).json({ error: 'Sadece taslak durumdaki tutanaklar güncellenebilir' });
     }
@@ -137,6 +166,10 @@ router.post('/:id/send', authenticate, async (req: AuthRequest, res: Response) =
     });
 
     if (!tutanak) return res.status(404).json({ error: 'Tutanak bulunamadı' });
+
+    if (!(await canAccessInspection(tutanak.inspectionId, req))) {
+      return res.status(403).json({ error: 'Bu tutanağı gönderme yetkiniz yok' });
+    }
 
     if (tutanak.status !== 'draft') {
       return res.status(400).json({ error: 'Bu tutanak zaten gönderilmiş' });

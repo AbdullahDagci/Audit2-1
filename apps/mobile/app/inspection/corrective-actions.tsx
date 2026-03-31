@@ -8,6 +8,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { api } from '@/lib/api';
 import { Config } from '@/constants/config';
+import { useAuthStore } from '@/stores/auth-store';
 import ToastMessage from 'react-native-toast-message';
 import { haptic } from '@/lib/haptics';
 
@@ -16,6 +17,8 @@ const screenWidth = Dimensions.get('window').width;
 export default function CorrectiveActionsScreen() {
   const router = useRouter();
   const { inspectionId } = useLocalSearchParams<{ inspectionId: string }>();
+  const user = useAuthStore((s) => s.user);
+  const canEdit = user?.role === 'manager';
 
   // Data state
   const [deficiencies, setDeficiencies] = useState<any[]>([]);
@@ -258,7 +261,13 @@ export default function CorrectiveActionsScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Geri butonu */}
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/(tabs)');
+          }
+        }}>
           <MaterialIcons name="arrow-back-ios" size={20} color="#2E7D32" />
           <Text style={styles.backText}>Geri</Text>
         </TouchableOpacity>
@@ -381,8 +390,8 @@ export default function CorrectiveActionsScreen() {
                     </View>
                   )}
                 </View>
-              ) : (
-                /* Form: description + fotoğraf */
+              ) : canEdit ? (
+                /* Form: description + fotoğraf (sadece manager/admin) */
                 <View style={styles.formSection}>
                   <Text style={styles.formLabel}>
                     {isCritical
@@ -427,6 +436,14 @@ export default function CorrectiveActionsScreen() {
                     </TouchableOpacity>
                   )}
                 </View>
+              ) : (
+                /* Denetçi: düzeltici faaliyet henüz eklenmemiş bilgisi */
+                <View style={styles.inspectorNote}>
+                  <MaterialIcons name="hourglass-empty" size={16} color="#FF9800" />
+                  <Text style={styles.inspectorNoteText}>
+                    Şube sorumlusu tarafından düzeltici faaliyet bekleniyor
+                  </Text>
+                </View>
               )}
             </View>
           );
@@ -436,8 +453,8 @@ export default function CorrectiveActionsScreen() {
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      {/* Sabit "Hepsini Kaydet" butonu */}
-      {deficiencies.length > 0 && summary.saved < summary.total && (
+      {/* Sabit "Hepsini Kaydet" butonu - sadece manager/admin */}
+      {canEdit && deficiencies.length > 0 && summary.saved < summary.total && (
         <View style={styles.fixedBottom}>
           <TouchableOpacity
             style={[
@@ -745,6 +762,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#E0E0E0',
   },
+
+  // Inspector note
+  inspectorNote: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginTop: 12, backgroundColor: '#FFF8E1', borderRadius: 10,
+    padding: 12, borderWidth: 1, borderColor: '#FFE082',
+  },
+  inspectorNoteText: { fontSize: 13, color: '#F57F17', flex: 1 },
 
   // Form
   formSection: {

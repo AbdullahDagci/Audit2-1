@@ -480,8 +480,9 @@ export default function InspectionDetailPage() {
     ? `${reviewedBy.firstName || ""} ${reviewedBy.lastName || ""}`.trim() || reviewedBy.email
     : null;
 
-  const score =
-    scorePercentage ?? (maxPossibleScore > 0 ? Math.round((totalScore / maxPossibleScore) * 100) : 0);
+  const score = Math.round(
+    Number(scorePercentage ?? (maxPossibleScore > 0 ? (totalScore / maxPossibleScore) * 100 : 0))
+  );
 
   // Build category data for score breakdown
   const categories = (template?.categories || []).map((cat: any) => {
@@ -515,9 +516,11 @@ export default function InspectionDetailPage() {
     });
   });
 
+  const isManager = currentUser?.role === "manager";
   const isManagerOrAdmin = currentUser?.role === "manager" || currentUser?.role === "admin";
   const showCorrectiveSection =
-    isManagerOrAdmin && (status === "completed" || status === "pending_action" || status === "reviewed");
+    (status === "completed" || status === "pending_action" || status === "reviewed");
+  const canUploadEvidence = isManager;
 
   return (
     <div className="space-y-6">
@@ -907,8 +910,8 @@ export default function InspectionDetailPage() {
                           </div>
                         )}
 
-                        {/* Upload evidence form (if action exists but no evidence yet) */}
-                        {!existingAction.evidence_photo_path && status !== "reviewed" && (
+                        {/* Upload evidence form (sadece şube sorumlusu) */}
+                        {!existingAction.evidence_photo_path && status !== "reviewed" && canUploadEvidence && (
                           <div className="mt-3 flex items-end gap-2 flex-wrap">
                             <div className="flex-1 min-w-[200px]">
                               <label className="block text-xs text-gray-500 mb-1">
@@ -966,8 +969,8 @@ export default function InspectionDetailPage() {
                       </div>
                     )}
 
-                    {/* Create corrective action form */}
-                    {!existingAction && status !== "reviewed" && (
+                    {/* Create corrective action form (sadece şube sorumlusu) */}
+                    {!existingAction && status !== "reviewed" && canUploadEvidence && (
                       <div className="mt-3 border-t border-gray-200 pt-3">
                         {isMandatory ? (
                           /* Mandatory form for critical deficiencies */

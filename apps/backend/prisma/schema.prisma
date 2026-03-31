@@ -130,6 +130,7 @@ model ChecklistCategory {
   name       String
   sortOrder  Int      @default(0) @map("sort_order")
   weight     Decimal  @default(1.0) @db.Decimal(5, 2)
+  isActive   Boolean  @default(true) @map("is_active")
   createdAt  DateTime @default(now()) @map("created_at")
 
   template ChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
@@ -148,6 +149,7 @@ model ChecklistItem {
   photoRequired Boolean           @default(false) @map("photo_required")
   helpText      String?           @map("help_text")
   sortOrder     Int               @default(0) @map("sort_order")
+  isActive      Boolean           @default(true) @map("is_active")
   createdAt     DateTime          @default(now()) @map("created_at")
 
   category  ChecklistCategory    @relation(fields: [categoryId], references: [id], onDelete: Cascade)

@@ -69,6 +69,7 @@ export default function TemplateDetailPage() {
 
   // Delete confirm
   const [deleteTarget, setDeleteTarget] = useState<{ type: "category" | "item"; id: string; name: string } | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
 
@@ -179,6 +180,7 @@ export default function TemplateDetailPage() {
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     setSaving(true);
+    setDeleteError(null);
     try {
       if (deleteTarget.type === "category") {
         await api.deleteCategory(deleteTarget.id);
@@ -188,7 +190,7 @@ export default function TemplateDetailPage() {
       setDeleteTarget(null);
       await fetchTemplate();
     } catch (err: any) {
-      setError(err.message);
+      setDeleteError(err.message);
     }
     setSaving(false);
   };
@@ -271,7 +273,7 @@ export default function TemplateDetailPage() {
                     <button
                       onClick={() => setDeleteTarget({ type: "category", id: category.id, name: category.name })}
                       className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                      title="Kategoriyi Sil"
+                      title="Kategoriyi Kaldir"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -317,7 +319,7 @@ export default function TemplateDetailPage() {
                             <button
                               onClick={() => setDeleteTarget({ type: "item", id: item.id, name: item.questionText })}
                               className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                              title="Maddeyi Sil"
+                              title="Maddeyi Kaldir"
                             >
                               <Trash2 size={14} />
                             </button>
@@ -482,24 +484,45 @@ export default function TemplateDetailPage() {
       {/* ===== DELETE CONFIRM ===== */}
       <Modal
         isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        title={deleteTarget?.type === "category" ? "Kategoriyi Sil" : "Maddeyi Sil"}
+        onClose={() => { setDeleteTarget(null); setDeleteError(null); }}
+        title={deleteTarget?.type === "category" ? "Kategoriyi Kaldir" : "Maddeyi Kaldir"}
       >
-        <p className="text-sm text-gray-600 mb-6">
-          <strong>{deleteTarget?.name}</strong> {deleteTarget?.type === "category" ? "kategorisini ve içindeki tüm maddeleri" : "maddesini"} silmek istediğinize emin misiniz?
-        </p>
-        <div className="flex justify-end gap-3">
-          <button onClick={() => setDeleteTarget(null)} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
-            İptal
-          </button>
-          <button
-            onClick={confirmDelete}
-            disabled={saving}
-            className="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
-          >
-            {saving ? "Siliniyor..." : "Sil"}
-          </button>
-        </div>
+        {deleteError ? (
+          <div className="space-y-4">
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+              {deleteError}
+            </p>
+            <div className="flex justify-end">
+              <button
+                onClick={() => { setDeleteTarget(null); setDeleteError(null); }}
+                className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Kapat
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-gray-600 mb-4">
+              <strong>{deleteTarget?.name}</strong> {deleteTarget?.type === "category" ? "kategorisini ve icindeki tum maddeleri" : "maddesini"} kaldirmak istediginize emin misiniz?
+            </p>
+            <p className="text-xs text-gray-500 mb-6 bg-gray-50 p-3 rounded-lg">
+              Gecmis denetimlerde kullanilmissa arsivlenir, kullanilmamissa kalici olarak silinir.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setDeleteTarget(null)} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
+                Iptal
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={saving}
+                className="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                {saving ? "Kaldiriliyor..." : "Kaldir"}
+              </button>
+            </div>
+          </>
+        )}
       </Modal>
     </div>
   );

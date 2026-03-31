@@ -28,27 +28,27 @@ interface BranchFormData {
   longitude: string;
 }
 
-const facilityTypes = ["Tumu", "Magaza", "Kesimhane", "Ahir", "Yufka", "Depo"];
+const facilityTypes = ["tumu", "magaza", "kesimhane", "ahir", "yufka", "depo"];
 
 const facilityTypeLabels: Record<string, string> = {
-  Magaza: "Magaza",
-  Kesimhane: "Kesimhane",
-  Ahir: "Ahir",
-  Yufka: "Yufka",
-  Depo: "Depo",
+  magaza: "Magaza",
+  kesimhane: "Kesimhane",
+  ahir: "Ahir",
+  yufka: "Yufka",
+  depo: "Depo",
 };
 
 const facilityTypeOptions = [
-  { value: "Magaza", label: "Magaza" },
-  { value: "Kesimhane", label: "Kesimhane" },
-  { value: "Ahir", label: "Ahir" },
-  { value: "Yufka", label: "Yufka" },
-  { value: "Depo", label: "Depo" },
+  { value: "magaza", label: "Magaza" },
+  { value: "kesimhane", label: "Kesimhane" },
+  { value: "ahir", label: "Ahir" },
+  { value: "yufka", label: "Yufka" },
+  { value: "depo", label: "Depo" },
 ];
 
 const emptyForm: BranchFormData = {
   name: "",
-  facilityType: "Magaza",
+  facilityType: "magaza",
   address: "",
   city: "",
   latitude: "",
@@ -62,7 +62,7 @@ function getStatusBadge(isActive: boolean) {
 }
 
 export default function BranchesPage() {
-  const [activeType, setActiveType] = useState("Tumu");
+  const [activeType, setActiveType] = useState("tumu");
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +85,7 @@ export default function BranchesPage() {
     setLoading(true);
     setError(null);
     try {
-      const facilityParam = activeType === "Tumu" ? undefined : activeType;
+      const facilityParam = activeType === "tumu" ? undefined : activeType;
       const data = await api.getBranches(facilityParam);
       setBranches(data);
     } catch (err: any) {
@@ -117,7 +117,7 @@ export default function BranchesPage() {
     setEditingBranch(branch);
     setFormData({
       name: branch.name || "",
-      facilityType: branch.facilityType || "Magaza",
+      facilityType: branch.facilityType || "magaza",
       address: branch.address || "",
       city: branch.city || "",
       latitude: branch.latitude != null ? String(branch.latitude) : "",
@@ -229,7 +229,7 @@ export default function BranchesPage() {
                   : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
               }`}
             >
-              {type === "Tumu" ? "Tumu" : facilityTypeLabels[type] || type}
+              {type === "tumu" ? "Tumu" : facilityTypeLabels[type] || type}
             </button>
           ))}
         </div>

@@ -13,6 +13,9 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     const branchId = qs(req.query.branchId);
     const status = qs(req.query.status);
     const facilityType = qs(req.query.facilityType);
+    const search = qs(req.query.search);
+    const sort = qs(req.query.sort) || 'date';
+    const order = (qs(req.query.order) || 'desc') as 'asc' | 'desc';
     const page = parseInt(qs(req.query.page) || '1');
     const limit = parseInt(qs(req.query.limit) || '20');
     const where: any = {};
@@ -20,12 +23,29 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     if (req.userRole === 'inspector') {
       where.inspectorId = req.userId;
     } else if (req.userRole === 'manager') {
-      // Manager sadece yonettigi subelerin denetimlerini gorur
       where.branch = { managerId: req.userId };
     }
     if (branchId) where.branchId = branchId;
     if (status) where.status = status;
     if (facilityType) where.branch = { ...where.branch, facilityType };
+
+    // Arama: sube adi, denetci adi veya sablon adi
+    if (search) {
+      where.OR = [
+        { branch: { ...where.branch, name: { contains: search, mode: 'insensitive' } } },
+        { inspector: { fullName: { contains: search, mode: 'insensitive' } } },
+        { template: { name: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    // Siralama
+    const orderByMap: Record<string, any> = {
+      date: { createdAt: order },
+      score: { scorePercentage: order },
+      status: { status: order },
+      branch: { branch: { name: order } },
+    };
+    const orderBy = orderByMap[sort] || { createdAt: 'desc' };
 
     const skip = (page - 1) * limit;
     const [inspections, total] = await Promise.all([
@@ -36,7 +56,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
           inspector: { select: { id: true, fullName: true } },
           template: { select: { id: true, name: true } },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         skip,
         take: limit,
       }),
@@ -48,6 +68,13 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Yetki kontrol helper: denetçi kendi denetimi, manager kendi şubesi, admin hepsi
+function canAccessInspection(inspection: any, req: AuthRequest): boolean {
+  if (req.userRole === 'admin') return true;
+  if (req.userRole === 'manager') return inspection.branch?.managerId === req.userId;
+  return inspection.inspectorId === req.userId;
+}
 
 router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
@@ -63,6 +90,9 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       },
     });
     if (!inspection) return res.status(404).json({ error: 'Denetim bulunamadı' });
+    if (!canAccessInspection(inspection, req)) {
+      return res.status(403).json({ error: 'Bu denetime erişim yetkiniz yok' });
+    }
     res.json(inspection);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -105,9 +135,12 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
 
 router.post('/:id/responses', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const { responses } = req.body;
     const inspectionId = req.params.id as string;
+    const inspection = await prisma.inspection.findUnique({ where: { id: inspectionId }, include: { branch: true } });
+    if (!inspection) return res.status(404).json({ error: 'Denetim bulunamadı' });
+    if (!canAccessInspection(inspection, req)) return res.status(403).json({ error: 'Bu denetime erişim yetkiniz yok' });
 
+    const { responses } = req.body;
     const created = await prisma.$transaction(
       responses.map((r: any) =>
         prisma.inspectionResponse.upsert({
@@ -147,6 +180,10 @@ router.post('/:id/photos', authenticate, upload.single('photo'), async (req: Aut
   try {
     if (!req.file) return res.status(400).json({ error: 'Fotoğraf gerekli' });
 
+    const inspection = await prisma.inspection.findUnique({ where: { id: req.params.id as string }, include: { branch: true } });
+    if (!inspection) return res.status(404).json({ error: 'Denetim bulunamadı' });
+    if (!canAccessInspection(inspection, req)) return res.status(403).json({ error: 'Bu denetime erişim yetkiniz yok' });
+
     // Sharp ile sıkıştır + thumbnail oluştur
     const compressedName = await compressImage(req.file.path);
     const thumbName = await createThumbnail(req.file.path.replace(req.file.filename, compressedName));
@@ -182,6 +219,7 @@ router.post('/:id/complete', authenticate, async (req: AuthRequest, res: Respons
     });
 
     if (!inspection) return res.status(404).json({ error: 'Denetim bulunamadı' });
+    if (!canAccessInspection(inspection as any, req)) return res.status(403).json({ error: 'Bu denetime erişim yetkiniz yok' });
 
     const inspData = inspection as any;
     let totalWeight = 0;
@@ -353,9 +391,20 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 // GET /api/inspections/previous-findings/:branchId - Önceki denetimin kritik eksiklikleri
 router.get('/previous-findings/:branchId', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    // Şube erişim kontrolü
+    const branchId = req.params.branchId as string;
+    if (req.userRole === 'manager') {
+      const branch = await prisma.branch.findUnique({ where: { id: branchId } });
+      if (!branch || branch.managerId !== req.userId) return res.status(403).json({ error: 'Bu şubeye erişim yetkiniz yok' });
+    } else if (req.userRole === 'inspector') {
+      // Denetçi sadece kendi denetimi olan şubeyi görebilir
+      const hasAccess = await prisma.inspection.count({ where: { branchId, inspectorId: req.userId } });
+      if (hasAccess === 0) return res.status(403).json({ error: 'Bu şubeye erişim yetkiniz yok' });
+    }
+
     const lastInspection = await prisma.inspection.findFirst({
       where: {
-        branchId: req.params.branchId as string,
+        branchId,
         status: { in: ['completed', 'pending_action', 'reviewed'] },
       },
       orderBy: { completedAt: 'desc' },

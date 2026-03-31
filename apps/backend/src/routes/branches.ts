@@ -42,6 +42,14 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       },
     });
     if (!branch) return res.status(404).json({ error: 'Şube bulunamadı' });
+    // Erişim kontrolü
+    if (req.userRole === 'manager' && branch.managerId !== req.userId) {
+      return res.status(403).json({ error: 'Bu şubeye erişim yetkiniz yok' });
+    }
+    if (req.userRole === 'inspector') {
+      const hasAccess = await prisma.inspection.count({ where: { branchId: branch.id, inspectorId: req.userId } });
+      if (hasAccess === 0) return res.status(403).json({ error: 'Bu şubeye erişim yetkiniz yok' });
+    }
     res.json(branch);
   } catch (err: any) {
     res.status(500).json({ error: err.message });

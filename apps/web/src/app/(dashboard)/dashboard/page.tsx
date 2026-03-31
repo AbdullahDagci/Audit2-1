@@ -7,6 +7,7 @@ import StatCard from "@/components/ui/StatCard";
 import BranchPerformance from "@/components/dashboard/BranchPerformance";
 import RecentInspections from "@/components/dashboard/RecentInspections";
 import CriticalAlerts from "@/components/dashboard/CriticalAlerts";
+import TopNonconformities from "@/components/dashboard/TopNonconformities";
 
 interface DashboardStats {
   totalInspections: number;
@@ -34,6 +35,7 @@ export default function DashboardPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [inspections, setInspections] = useState<Inspection[]>([]);
   const [allInspections, setAllInspections] = useState<any[]>([]);
+  const [nonconformities, setNonconformities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,16 +45,18 @@ export default function DashboardPage() {
         setLoading(true);
         setError(null);
 
-        const [dashboardRes, inspectionsRes, allInspectionsRes] = await Promise.all([
+        const [dashboardRes, inspectionsRes, allInspectionsRes, nonconformitiesRes] = await Promise.all([
           api.getDashboard(),
           api.getInspections({ limit: "5", sort: "date", order: "desc" }),
           api.getInspections({ limit: "200", sort: "date", order: "desc" }),
+          api.getTopNonconformities().catch(() => []),
         ]);
 
         setStats(dashboardRes.stats);
         setBranches(dashboardRes.branches || []);
         setInspections(inspectionsRes.data || []);
         setAllInspections(allInspectionsRes.data || []);
+        setNonconformities(nonconformitiesRes || []);
       } catch (err: any) {
         console.error("Dashboard veri yüklemesi başarısız:", err);
         setError(err.message || "Veriler yüklenirken bir hata oluştu");
@@ -104,7 +108,7 @@ export default function DashboardPage() {
         <StatCard
           icon={Target}
           label="Ortalama Puan"
-          value={stats?.avgScore?.toFixed(1) ?? "0"}
+          value={stats?.avgScore != null ? Math.round(stats.avgScore) : 0}
           variant="blue"
         />
         <StatCard
@@ -127,6 +131,8 @@ export default function DashboardPage() {
         <RecentInspections inspections={inspections} />
         <CriticalAlerts inspections={allInspections} />
       </div>
+
+      <TopNonconformities data={nonconformities} />
     </div>
   );
 }
