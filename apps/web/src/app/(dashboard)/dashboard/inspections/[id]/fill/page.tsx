@@ -34,7 +34,7 @@ interface ResponseData {
 export default function InspectionFillPage() {
   const router = useRouter();
   const params = useParams();
-  const id = params.id as string;
+  const id = (params?.id || "") as string;
 
   const [inspection, setInspection] = useState<any>(null);
   const [categories, setCategories] = useState<any[]>([]);
