@@ -328,10 +328,12 @@ export default function InspectionFillPage() {
       await api.saveResponses(id, payload);
 
       // Fotograflari yukle
-      for (const [itemId, itemPhotos] of photos.entries()) {
-        for (const photo of itemPhotos) {
+      const photoEntries = Array.from(photos.entries());
+      for (let i = 0; i < photoEntries.length; i++) {
+        const [itemId, itemPhotos] = photoEntries[i];
+        for (let j = 0; j < itemPhotos.length; j++) {
           try {
-            await api.uploadInspectionPhoto(id, photo, itemId);
+            await api.uploadInspectionPhoto(id, itemPhotos[j], itemId);
           } catch {
             // Sessizce devam et
           }
