@@ -32,6 +32,7 @@ export default function NewInspectionScreen() {
   const [selectedBranch, setSelectedBranch] = useState<any>(null);
   const [branches, setBranches] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [checking, setChecking] = useState(false);
   const [scheduling, setScheduling] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -59,7 +60,9 @@ export default function NewInspectionScreen() {
     const fetchTemplates = async () => {
       try {
         const data = await api.getTemplates(selectedType);
-        setTemplates(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data) ? data : [];
+        setTemplates(list);
+        setSelectedTemplate(list.length > 0 ? list[0] : null);
       } catch {
         setTemplates([]);
       }
@@ -67,13 +70,10 @@ export default function NewInspectionScreen() {
     fetchTemplates();
   }, [selectedType]);
 
-  const getTemplate = () => templates.length > 0 ? templates[0] : null;
-
   // ===== DENETIM PLANLA (ileri tarih) =====
   const handleSchedule = async () => {
     if (!selectedBranch) return;
-    const template = getTemplate();
-    if (!template) {
+    if (!selectedTemplate) {
       Alert.alert('Hata', 'Bu tesis tipi için denetim şablonu bulunamadı.');
       return;
     }
@@ -82,7 +82,7 @@ export default function NewInspectionScreen() {
     try {
       await api.createInspection({
         branchId: selectedBranch.id,
-        templateId: template.id,
+        templateId: selectedTemplate.id,
         status: 'scheduled',
         scheduledDate: scheduledDate.toISOString().split('T')[0],
       });
@@ -101,8 +101,7 @@ export default function NewInspectionScreen() {
   // ===== DENETIME HEMEN BASLA (sadece denetci) =====
   const handleStartInspection = async () => {
     if (!selectedBranch || !isInspector) return;
-    const template = getTemplate();
-    if (!template) {
+    if (!selectedTemplate) {
       Alert.alert('Hata', 'Bu tesis tipi için denetim şablonu bulunamadı.');
       return;
     }
@@ -120,7 +119,7 @@ export default function NewInspectionScreen() {
     const isNear = distance <= (selectedBranch.geofenceRadiusMeters || 200);
 
     if (isNear) {
-      doStart(selectedBranch, template, location.latitude, location.longitude, true);
+      doStart(selectedBranch, selectedTemplate, location.latitude, location.longitude, true);
     } else {
       Alert.alert(
         'Konum Doğrulanamadı',
@@ -226,6 +225,33 @@ export default function NewInspectionScreen() {
             <MaterialIcons name="store" size={18} color="#2E7D32" />
             <Text style={styles.selectedName}>{selectedBranch.name}</Text>
           </View>
+
+          {/* Sablon secimi */}
+          {templates.length > 1 && (
+            <View style={{ marginBottom: 8 }}>
+              <Text style={{ fontSize: 12, color: '#757575', marginBottom: 6 }}>Sablon Secin</Text>
+              {templates.map((t: any) => (
+                <TouchableOpacity
+                  key={t.id}
+                  style={[
+                    styles.branchCard,
+                    { marginBottom: 6, padding: 10, borderWidth: 2 },
+                    selectedTemplate?.id === t.id
+                      ? { borderColor: '#2E7D32', backgroundColor: '#F1F8E9' }
+                      : { borderColor: 'transparent' },
+                  ]}
+                  onPress={() => setSelectedTemplate(t)}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={[styles.radioOuter, selectedTemplate?.id === t.id && { borderColor: '#2E7D32' }]}>
+                      {selectedTemplate?.id === t.id && <View style={styles.radioInner} />}
+                    </View>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#212121' }}>{t.name}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
 
           {/* Tarih secici */}
           <TouchableOpacity style={styles.dateRow} onPress={() => setShowDatePicker(true)}>

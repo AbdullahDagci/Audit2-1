@@ -27,6 +27,7 @@ export default function NewInspectionPage() {
   const [selectedBranch, setSelectedBranch] = useState<any>(null);
   const [branches, setBranches] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [loadingBranches, setLoadingBranches] = useState(true);
   const [creating, setCreating] = useState(false);
   const [scheduledDate, setScheduledDate] = useState(
@@ -67,7 +68,9 @@ export default function NewInspectionPage() {
     const fetchTemplates = async () => {
       try {
         const data = await api.getTemplates(selectedType);
-        setTemplates(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data) ? data : [];
+        setTemplates(list);
+        setSelectedTemplate(list.length > 0 ? list[0] : null);
       } catch {
         setTemplates([]);
       }
@@ -75,13 +78,10 @@ export default function NewInspectionPage() {
     fetchTemplates();
   }, [selectedType]);
 
-  const getTemplate = () => (templates.length > 0 ? templates[0] : null);
-
   // Denetim olustur (scheduled)
   const handleCreate = async () => {
     if (!selectedBranch) return;
-    const template = getTemplate();
-    if (!template) {
+    if (!selectedTemplate) {
       alert("Bu tesis tipi icin denetim sablonu bulunamadi.");
       return;
     }
@@ -94,7 +94,7 @@ export default function NewInspectionPage() {
     try {
       await api.createInspection({
         branchId: selectedBranch.id,
-        templateId: template.id,
+        templateId: selectedTemplate.id,
         status: "scheduled",
         scheduledDate,
       });
@@ -202,12 +202,46 @@ export default function NewInspectionPage() {
             <span className="text-sm font-semibold text-primary-800">
               {selectedBranch.name}
             </span>
-            {getTemplate() && (
-              <span className="text-xs text-gray-400 ml-2">
-                Sablon: {getTemplate()?.name}
-              </span>
-            )}
           </div>
+
+          {/* Sablon secimi */}
+          {templates.length > 1 ? (
+            <div className="mb-3">
+              <label className="text-xs font-medium text-gray-500 mb-1.5 block">
+                Sablon Secin
+              </label>
+              <div className="grid gap-2">
+                {templates.map((t: any) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setSelectedTemplate(t)}
+                    className={`flex items-center gap-3 p-3 rounded-xl text-left text-sm transition-all duration-200 ${
+                      selectedTemplate?.id === t.id
+                        ? "bg-primary-50 border-2 border-primary-800"
+                        : "bg-gray-50 border-2 border-transparent hover:border-gray-200"
+                    }`}
+                  >
+                    <div
+                      className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                        selectedTemplate?.id === t.id
+                          ? "border-primary-800"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      {selectedTemplate?.id === t.id && (
+                        <div className="w-2 h-2 rounded-full bg-primary-800" />
+                      )}
+                    </div>
+                    <span className="font-medium text-gray-800">{t.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : selectedTemplate ? (
+            <div className="mb-3 text-xs text-gray-400">
+              Sablon: {selectedTemplate.name}
+            </div>
+          ) : null}
 
           {/* Tarih secici */}
           <div className="flex items-center gap-3 bg-blue-50 rounded-xl px-4 py-3 mb-3">
