@@ -22,6 +22,7 @@ function statusBadge(status: string) {
     case 'reviewed': return { text: 'Onaylandı', variant: 'success' as const };
     case 'in_progress': return { text: 'Devam Ediyor', variant: 'info' as const };
     case 'draft': return { text: 'Taslak', variant: 'neutral' as const };
+    case 'pending_action': return { text: 'İşlem Bekliyor', variant: 'warning' as const };
     default: return { text: status, variant: 'neutral' as const };
   }
 }

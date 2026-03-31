@@ -99,7 +99,7 @@ export default function ScheduleScreen() {
             facilityType: s.branch?.facilityType || '',
             date,
             daysLeft: diff,
-            status: diff < 0 ? 'overdue' : 'upcoming',
+            status: diff < 0 ? 'overdue' : 'scheduled',
           });
         });
       } catch {}
@@ -262,8 +262,12 @@ export default function ScheduleScreen() {
               iconColor = '#E65100'; iconName = 'pending-actions'; statusText = 'Onay Bekliyor'; statusVariant = 'warning'; break;
             case 'reviewed':
               iconColor = '#2E7D32'; iconName = 'check-circle'; statusText = 'Onaylandı'; statusVariant = 'success'; break;
+            case 'pending_action':
+              iconColor = '#E65100'; iconName = 'assignment-late'; statusText = 'İşlem Bekliyor'; statusVariant = 'warning'; break;
             case 'overdue':
               iconColor = '#F44336'; iconName = 'warning'; statusText = 'Gecikti'; statusVariant = 'danger'; break;
+            case 'draft':
+              iconColor = '#9E9E9E'; iconName = 'edit'; statusText = 'Taslak'; statusVariant = 'neutral'; break;
             default:
               iconColor = '#999'; iconName = 'event'; statusText = item.status; break;
           }

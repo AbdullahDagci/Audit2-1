@@ -23,30 +23,26 @@ function getScoreBadge(score: number) {
 
 function getStatusLabel(status: string): string {
   switch (status) {
-    case "completed":
-      return "Tamamlandı";
-    case "pending":
-      return "Onay Bekliyor";
-    case "in_progress":
-      return "Devam Ediyor";
-    case "draft":
-      return "Taslak";
-    default:
-      return status;
+    case "scheduled": return "Planlanmış";
+    case "draft": return "Taslak";
+    case "in_progress": return "Devam Ediyor";
+    case "completed": return "Gönderildi";
+    case "pending_action": return "İşlem Bekliyor";
+    case "reviewed": return "Onaylandı";
+    default: return status;
   }
 }
 
 function getStatusBadge(status: string) {
   const label = getStatusLabel(status);
   switch (status) {
-    case "completed":
-      return <Badge variant="success">{label}</Badge>;
-    case "pending":
-      return <Badge variant="info">{label}</Badge>;
-    case "in_progress":
-      return <Badge variant="warning">{label}</Badge>;
-    default:
-      return <Badge variant="neutral">{label}</Badge>;
+    case "reviewed": return <Badge variant="success">{label}</Badge>;
+    case "completed": return <Badge variant="info">{label}</Badge>;
+    case "pending_action": return <Badge variant="warning">{label}</Badge>;
+    case "in_progress": return <Badge variant="warning">{label}</Badge>;
+    case "scheduled": return <Badge variant="info">{label}</Badge>;
+    case "draft": return <Badge variant="neutral">{label}</Badge>;
+    default: return <Badge variant="neutral">{label}</Badge>;
   }
 }
 
