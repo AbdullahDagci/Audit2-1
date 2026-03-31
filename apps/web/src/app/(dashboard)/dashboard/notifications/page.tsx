@@ -27,12 +27,12 @@ function getRelativeTime(dateStr: string): string {
   const diffWeeks = Math.floor(diffDays / 7);
   const diffMonths = Math.floor(diffDays / 30);
 
-  if (diffSeconds < 60) return "Az once";
-  if (diffMinutes < 60) return `${diffMinutes} dakika once`;
-  if (diffHours < 24) return `${diffHours} saat once`;
-  if (diffDays < 7) return `${diffDays} gun once`;
-  if (diffWeeks < 4) return `${diffWeeks} hafta once`;
-  return `${diffMonths} ay once`;
+  if (diffSeconds < 60) return "Az önce";
+  if (diffMinutes < 60) return `${diffMinutes} dakika önce`;
+  if (diffHours < 24) return `${diffHours} saat önce`;
+  if (diffDays < 7) return `${diffDays} gün önce`;
+  if (diffWeeks < 4) return `${diffWeeks} hafta önce`;
+  return `${diffMonths} ay önce`;
 }
 
 function getNotificationIcon(title: string) {
@@ -146,7 +146,7 @@ export default function NotificationsPage() {
           <h1 className="text-xl font-semibold text-gray-900">Bildirimler</h1>
           {unreadCount > 0 && (
             <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
-              {unreadCount} okunmamis
+              {unreadCount} okunmamış
             </span>
           )}
         </div>
@@ -162,7 +162,7 @@ export default function NotificationsPage() {
               : "text-gray-600 hover:text-gray-900"
           }`}
         >
-          Tumu
+          Tümü
         </button>
         <button
           onClick={() => setActiveTab("unread")}
@@ -172,7 +172,7 @@ export default function NotificationsPage() {
               : "text-gray-600 hover:text-gray-900"
           }`}
         >
-          Okunmamis
+          Okunmamış
           {unreadCount > 0 && (
             <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-xs bg-blue-500 text-white rounded-full">
               {unreadCount}
@@ -190,8 +190,8 @@ export default function NotificationsPage() {
             </div>
             <p className="text-sm text-gray-500">
               {activeTab === "unread"
-                ? "Okunmamis bildiriminiz bulunmuyor."
-                : "Henuz bildiriminiz bulunmuyor."}
+                ? "Okunmamış bildiriminiz bulunmuyor."
+                : "Henüz bildiriminiz bulunmuyor."}
             </p>
           </div>
         ) : (

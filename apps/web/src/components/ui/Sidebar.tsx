@@ -21,19 +21,19 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "manager", "inspector"] },
-  { href: "/dashboard/manager", label: "Sube Paneli", icon: Building2, roles: ["manager"] },
+  { href: "/dashboard/manager", label: "Şube Paneli", icon: Building2, roles: ["manager"] },
   { href: "/dashboard/inspections", label: "Denetimler", icon: ClipboardCheck, roles: ["admin", "manager", "inspector"] },
-  { href: "/dashboard/branches", label: "Subeler", icon: Building2, roles: ["admin", "manager"] },
-  { href: "/dashboard/templates", label: "Sablonlar", icon: FileText, roles: ["admin", "manager"] },
-  { href: "/dashboard/users", label: "Kullanicilar", icon: Users, roles: ["admin"] },
+  { href: "/dashboard/branches", label: "Şubeler", icon: Building2, roles: ["admin", "manager"] },
+  { href: "/dashboard/templates", label: "Şablonlar", icon: FileText, roles: ["admin", "manager"] },
+  { href: "/dashboard/users", label: "Kullanıcılar", icon: Users, roles: ["admin"] },
   { href: "/dashboard/schedules", label: "Takvim", icon: Calendar, roles: ["admin", "manager"] },
   { href: "/dashboard/reports", label: "Raporlar", icon: BarChart3, roles: ["admin", "manager"] },
-  { href: "/dashboard/activity-logs", label: "Aktivite Kayitlari", icon: History, roles: ["admin"] },
+  { href: "/dashboard/activity-logs", label: "Aktivite Kayıtları", icon: History, roles: ["admin"] },
   { href: "/dashboard/notifications", label: "Bildirimler", icon: Bell, roles: ["admin", "manager", "inspector"] },
   { href: "/dashboard/settings", label: "Ayarlar", icon: Settings, roles: ["admin"] },
 ];
 
-const ROLE_LABELS: Record<string, string> = { admin: 'Yonetici', manager: 'Mudur', inspector: 'Denetci' };
+const ROLE_LABELS: Record<string, string> = { admin: 'Yönetici', manager: 'Müdür', inspector: 'Denetçi' };
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -106,7 +106,7 @@ export default function Sidebar() {
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{user?.fullName || 'Kullanici'}</p>
+            <p className="text-sm font-medium truncate">{user?.fullName || 'Kullanıcı'}</p>
             <p className="text-xs text-primary-300 truncate">{ROLE_LABELS[user?.role] || user?.role || ''}</p>
           </div>
         </div>
@@ -115,7 +115,7 @@ export default function Sidebar() {
           className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
         >
           <LogOut size={16} />
-          Cikis Yap
+          Çıkış Yap
         </button>
       </div>
     </aside>

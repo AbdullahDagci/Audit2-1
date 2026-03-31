@@ -8,7 +8,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
 
 const ITEM_TYPES = [
-  { value: 'boolean', label: 'Evet/Hayir' },
+  { value: 'boolean', label: 'Evet/Hayır' },
   { value: 'score', label: 'Puan (0-10)' },
   { value: 'text', label: 'Metin' },
   { value: 'photo_required', label: 'Foto Zorunlu' },
@@ -92,8 +92,8 @@ export default function TemplateDetailScreen() {
   };
 
   const deleteCat = (cat: any) => {
-    Alert.alert('Kategori Sil', `"${cat.name}" kategorisi ve icindeki tum maddeler silinecek. Emin misiniz?`, [
-      { text: 'Iptal', style: 'cancel' },
+    Alert.alert('Kategori Sil', `"${cat.name}" kategorisi ve içindeki tüm maddeler silinecek. Emin misiniz?`, [
+      { text: 'İptal', style: 'cancel' },
       {
         text: 'Sil', style: 'destructive',
         onPress: async () => {
@@ -153,7 +153,7 @@ export default function TemplateDetailScreen() {
 
   const deleteItem = (item: any) => {
     Alert.alert('Madde Sil', `"${item.questionText}" maddesini silmek istiyor musunuz?`, [
-      { text: 'Iptal', style: 'cancel' },
+      { text: 'İptal', style: 'cancel' },
       {
         text: 'Sil', style: 'destructive',
         onPress: async () => {
@@ -283,21 +283,21 @@ export default function TemplateDetailScreen() {
       <RNModal visible={catModal} animationType="slide" transparent>
         <View style={S.modalBg}>
           <View style={S.modalCard}>
-            <Text style={S.modalTitle}>{editingCat ? 'Kategori Duzenle' : 'Yeni Kategori'}</Text>
+            <Text style={S.modalTitle}>{editingCat ? 'Kategori Düzenle' : 'Yeni Kategori'}</Text>
             <TextInput
               style={S.input}
-              placeholder="Kategori adi (orn. Temizlik ve Hijyen)"
+              placeholder="Kategori adı (örn. Temizlik ve Hijyen)"
               value={catForm.name}
               onChangeText={t => setCatForm({ ...catForm, name: t })}
             />
             <TextInput
               style={S.input}
-              placeholder="Agirlik (orn. 1.0)"
+              placeholder="Ağırlık (örn. 1.0)"
               value={catForm.weight}
               onChangeText={t => setCatForm({ ...catForm, weight: t })}
               keyboardType="decimal-pad"
             />
-            <Text style={S.helpText}>Yuksek agirlik = puanlamada daha etkili</Text>
+            <Text style={S.helpText}>Yüksek ağırlık = puanlamada daha etkili</Text>
             <View style={S.modalBtns}>
               <TouchableOpacity onPress={() => setCatModal(false)} style={S.cancelBtn}>
                 <Text style={S.cancelText}>Iptal</Text>
@@ -315,16 +315,16 @@ export default function TemplateDetailScreen() {
         <View style={S.modalBg}>
           <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 20 }}>
             <View style={S.modalCard}>
-              <Text style={S.modalTitle}>{editingItem ? 'Madde Duzenle' : 'Yeni Madde'}</Text>
+              <Text style={S.modalTitle}>{editingItem ? 'Madde Düzenle' : 'Yeni Madde'}</Text>
               <TextInput
                 style={[S.input, { minHeight: 60, textAlignVertical: 'top' }]}
-                placeholder="Soru metni (orn. Zemin temiz mi?)"
+                placeholder="Soru metni (örn. Zemin temiz mi?)"
                 value={itemForm.questionText}
                 onChangeText={t => setItemForm({ ...itemForm, questionText: t })}
                 multiline
               />
 
-              <Text style={S.label}>Yanit Tipi</Text>
+              <Text style={S.label}>Yanıt Tipi</Text>
               <View style={S.chipRow}>
                 {ITEM_TYPES.map(t => (
                   <TouchableOpacity
@@ -339,7 +339,7 @@ export default function TemplateDetailScreen() {
 
               <TextInput
                 style={S.input}
-                placeholder="Maks puan (orn. 10)"
+                placeholder="Maks puan (örn. 10)"
                 value={itemForm.maxScore}
                 onChangeText={t => setItemForm({ ...itemForm, maxScore: t })}
                 keyboardType="number-pad"
@@ -355,7 +355,7 @@ export default function TemplateDetailScreen() {
               </View>
 
               <View style={S.switchRow}>
-                <Text style={S.switchLabel}>Fotograf Zorunlu</Text>
+                <Text style={S.switchLabel}>Fotoğraf Zorunlu</Text>
                 <Switch
                   value={itemForm.photoRequired}
                   onValueChange={v => setItemForm({ ...itemForm, photoRequired: v })}
@@ -365,7 +365,7 @@ export default function TemplateDetailScreen() {
 
               <TextInput
                 style={S.input}
-                placeholder="Yardim metni (opsiyonel)"
+                placeholder="Yardım metni (opsiyonel)"
                 value={itemForm.helpText}
                 onChangeText={t => setItemForm({ ...itemForm, helpText: t })}
               />

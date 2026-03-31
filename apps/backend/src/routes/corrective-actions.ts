@@ -111,6 +111,14 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Sadece tamamlanmış veya işlem bekleyen denetimlere düzeltici faaliyet eklenebilir' });
     }
 
+    // Mükerrer kontrol
+    const existing = await prisma.correctiveAction.findFirst({
+      where: { inspectionId, responseId },
+    });
+    if (existing) {
+      return res.status(409).json({ error: 'Bu madde için zaten düzeltici faaliyet mevcut' });
+    }
+
     // Response'ın bu denetime ait olduğunu kontrol et
     const response = await prisma.inspectionResponse.findUnique({
       where: { id: responseId },

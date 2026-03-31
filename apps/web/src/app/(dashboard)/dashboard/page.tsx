@@ -54,8 +54,8 @@ export default function DashboardPage() {
         setInspections(inspectionsRes.data || []);
         setAllInspections(allInspectionsRes.data || []);
       } catch (err: any) {
-        console.error("Dashboard veri yuklemesi basarisiz:", err);
-        setError(err.message || "Veriler yuklenirken bir hata olustu");
+        console.error("Dashboard veri yüklemesi başarısız:", err);
+        setError(err.message || "Veriler yüklenirken bir hata oluştu");
       } finally {
         setLoading(false);
       }
@@ -69,7 +69,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-center h-96">
         <div className="flex flex-col items-center gap-3">
           <Loader2 size={40} className="animate-spin text-green-600" />
-          <p className="text-sm text-gray-500">Veriler yukleniyor...</p>
+          <p className="text-sm text-gray-500">Veriler yükleniyor...</p>
         </div>
       </div>
     );

@@ -3,10 +3,12 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Dim
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Colors } from '@/constants/colors';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { ScoreIndicator } from '@/components/inspection/ScoreIndicator';
+import { SkeletonDashboard, SkeletonCard } from '@/components/ui/SkeletonCard';
 import { useAuthStore } from '@/stores/auth-store';
 import { api } from '@/lib/api';
 import { BarChart, LineChart } from 'react-native-chart-kit';
@@ -88,7 +90,7 @@ export default function HomeScreen() {
   const onRefresh = () => { setRefreshing(true); fetchData(); };
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color="#2E7D32" /></View>;
+    return <View style={styles.container}><SkeletonDashboard /></View>;
   }
 
   const completedInspections = inspections.filter(i => i.status === 'completed' || i.status === 'reviewed');
@@ -317,20 +319,22 @@ export default function HomeScreen() {
             )}
           </>
         }
-        renderItem={({ item }) => {
+        renderItem={({ item, index }) => {
           const score = Number(item.scorePercentage || 0);
           const status = statusBadge(item.status);
           return (
-            <Card style={styles.inspectionCard} onPress={() => item.status === 'in_progress' ? router.push(`/inspection/${item.id}`) : router.push(`/inspection/review?id=${item.id}`)}>
-              <View style={styles.cardRow}>
-                <View style={styles.cardInfo}>
-                  <Text style={styles.branchName}>{item.branch?.name || 'Şube'}</Text>
-                  <Text style={styles.dateText}>{new Date(item.completedAt || item.createdAt).toLocaleDateString('tr-TR')}</Text>
-                  <Badge text={status.text} variant={status.variant} />
+            <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
+              <Card style={styles.inspectionCard} onPress={() => item.status === 'in_progress' ? router.push(`/inspection/${item.id}`) : router.push(`/inspection/review?id=${item.id}`)}>
+                <View style={styles.cardRow}>
+                  <View style={styles.cardInfo}>
+                    <Text style={styles.branchName}>{item.branch?.name || 'Sube'}</Text>
+                    <Text style={styles.dateText}>{new Date(item.completedAt || item.createdAt).toLocaleDateString('tr-TR')}</Text>
+                    <Badge text={status.text} variant={status.variant} />
+                  </View>
+                  {score > 0 && <ScoreIndicator percentage={score} size="sm" showLabel={false} />}
                 </View>
-                {score > 0 && <ScoreIndicator percentage={score} size="sm" showLabel={false} />}
-              </View>
-            </Card>
+              </Card>
+            </Animated.View>
           );
         }}
         contentContainerStyle={styles.list}

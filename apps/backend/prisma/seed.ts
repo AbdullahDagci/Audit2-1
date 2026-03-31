@@ -199,13 +199,286 @@ async function main() {
 
   console.log('Şablonlar oluşturuldu');
 
-  // Sistem ayarları - varsayılan management email
+  // Sistem ayarları
   await prisma.systemSetting.upsert({
     where: { key: 'management_emails' },
     create: { key: 'management_emails', value: JSON.stringify(['abdullah.dagci@ertansa.com.tr']) },
     update: {},
   });
   console.log('Sistem ayarları oluşturuldu');
+
+  // =============================================
+  // GERÇEKÇI TEST VERİLERİ - DENETİMLER
+  // =============================================
+  const allTemplates = await prisma.checklistTemplate.findMany({
+    include: { categories: { include: { items: true }, orderBy: { sortOrder: 'asc' } } },
+  });
+  const magazaTpl = allTemplates.find(t => t.name.includes('Mağaza Genel'));
+  const kesimhaneTpl = allTemplates.find(t => t.facilityType === 'kesimhane');
+  const isgTpl = allTemplates.find(t => t.name.includes('ISG'));
+
+  if (magazaTpl && kesimhaneTpl) {
+    // Helper: Rastgele tarih (son 60 gün içinde)
+    const daysAgo = (n: number) => {
+      const d = new Date();
+      d.setDate(d.getDate() - n);
+      return d;
+    };
+
+    // --- DENETİM 1: Merkez Mağaza - Tamamlanmış (reviewed), iyi puan ---
+    const insp1 = await prisma.inspection.create({
+      data: {
+        branchId: branches[0].id,
+        inspectorId: inspector.id,
+        templateId: magazaTpl.id,
+        status: 'reviewed',
+        totalScore: 248,
+        maxPossibleScore: 280,
+        scorePercentage: 88.57,
+        startedAt: daysAgo(45),
+        completedAt: daysAgo(45),
+        reviewedAt: daysAgo(43),
+        locationVerified: true,
+        latitude: 37.8746,
+        longitude: 32.4932,
+      },
+    });
+
+    // Yanıtlar - çoğu başarılı
+    const insp1Items = magazaTpl.categories.flatMap(c => c.items);
+    for (const item of insp1Items) {
+      const isFail = item.isCritical && Math.random() < 0.1; // %10 kritik eksik
+      await prisma.inspectionResponse.create({
+        data: {
+          inspectionId: insp1.id,
+          checklistItemId: item.id,
+          passed: item.itemType === 'boolean' ? !isFail : null,
+          score: item.itemType === 'score' ? (isFail ? 3 : 8) : (isFail ? 0 : item.maxScore),
+          notes: isFail ? 'Eksiklik tespit edildi' : null,
+        },
+      });
+    }
+
+    // --- DENETİM 2: Merkez Mağaza - Tamamlanmış (pending_action), kritik eksikler var ---
+    const insp2 = await prisma.inspection.create({
+      data: {
+        branchId: branches[0].id,
+        inspectorId: inspector.id,
+        templateId: magazaTpl.id,
+        status: 'pending_action',
+        totalScore: 185,
+        maxPossibleScore: 280,
+        scorePercentage: 66.07,
+        startedAt: daysAgo(7),
+        completedAt: daysAgo(7),
+        locationVerified: true,
+        latitude: 37.8746,
+        longitude: 32.4932,
+      },
+    });
+
+    let criticalResponseIds: string[] = [];
+    for (const item of insp1Items) {
+      const isCriticalFail = item.isCritical; // Tüm kritik maddeler başarısız
+      const isNormalFail = !item.isCritical && Math.random() < 0.3;
+      const isFail = isCriticalFail || isNormalFail;
+      const resp = await prisma.inspectionResponse.create({
+        data: {
+          inspectionId: insp2.id,
+          checklistItemId: item.id,
+          passed: item.itemType === 'boolean' ? !isFail : null,
+          score: item.itemType === 'score' ? (isFail ? 2 : 9) : (isFail ? 0 : item.maxScore),
+          notes: isFail ? (isCriticalFail ? 'KRİTİK: Acil düzeltme gerekli' : 'Eksiklik mevcut') : null,
+          severity: isCriticalFail ? 'critical' : (isNormalFail ? 'minor' : null),
+        },
+      });
+      if (isCriticalFail) criticalResponseIds.push(resp.id);
+    }
+
+    // Düzeltici faaliyetler (bazıları kanıtlı, bazıları bekliyor)
+    if (criticalResponseIds.length > 0) {
+      await prisma.correctiveAction.create({
+        data: {
+          inspectionId: insp2.id,
+          responseId: criticalResponseIds[0],
+          description: 'SKT geçmiş ürünler raftan kaldırıldı, imha edildi.',
+          isCritical: true,
+          createdById: manager.id,
+          status: 'evidence_uploaded',
+          evidencePhotoPath: '/uploads/1774869849525-x3ljv6ubk1h.jpg',
+          evidenceNotes: 'Ürünler imha edildikten sonra fotoğraflandı',
+          evidenceUploadedAt: daysAgo(5),
+        },
+      });
+      if (criticalResponseIds.length > 1) {
+        await prisma.correctiveAction.create({
+          data: {
+            inspectionId: insp2.id,
+            responseId: criticalResponseIds[1],
+            description: 'Tezgahlar dezenfekte edildi.',
+            isCritical: true,
+            createdById: manager.id,
+            status: 'pending',
+          },
+        });
+      }
+    }
+
+    // --- DENETİM 3: Şube 2 Mağaza - Tamamlanmış (reviewed), mükemmel puan ---
+    const insp3 = await prisma.inspection.create({
+      data: {
+        branchId: branches[1].id,
+        inspectorId: inspector.id,
+        templateId: magazaTpl.id,
+        status: 'reviewed',
+        totalScore: 270,
+        maxPossibleScore: 280,
+        scorePercentage: 96.43,
+        startedAt: daysAgo(30),
+        completedAt: daysAgo(30),
+        reviewedAt: daysAgo(30),
+        locationVerified: true,
+        latitude: 37.885,
+        longitude: 32.48,
+      },
+    });
+    for (const item of insp1Items) {
+      await prisma.inspectionResponse.create({
+        data: {
+          inspectionId: insp3.id,
+          checklistItemId: item.id,
+          passed: item.itemType === 'boolean' ? true : null,
+          score: item.itemType === 'score' ? 9 : item.maxScore,
+        },
+      });
+    }
+
+    // --- DENETİM 4: Kesimhane - completed (gönderildi, müdüre düşmüş) ---
+    const kesimhaneItems = kesimhaneTpl.categories.flatMap(c => c.items);
+    const insp4 = await prisma.inspection.create({
+      data: {
+        branchId: branches[2].id,
+        inspectorId: inspector.id,
+        templateId: kesimhaneTpl.id,
+        status: 'completed',
+        totalScore: 78,
+        maxPossibleScore: 120,
+        scorePercentage: 65.0,
+        startedAt: daysAgo(3),
+        completedAt: daysAgo(3),
+        locationVerified: true,
+        latitude: 37.91,
+        longitude: 32.52,
+      },
+    });
+    for (const item of kesimhaneItems) {
+      const isFail = item.isCritical && Math.random() < 0.5;
+      await prisma.inspectionResponse.create({
+        data: {
+          inspectionId: insp4.id,
+          checklistItemId: item.id,
+          passed: item.itemType === 'boolean' ? !isFail : null,
+          score: item.itemType === 'score' ? (isFail ? 3 : 8) : (isFail ? 0 : item.maxScore),
+          notes: isFail ? 'Hijyen standardı karşılanmıyor' : null,
+          severity: isFail ? 'critical' : null,
+        },
+      });
+    }
+
+    // --- DENETİM 5: Merkez Mağaza - scheduled (gelecek hafta) ---
+    await prisma.inspection.create({
+      data: {
+        branchId: branches[0].id,
+        inspectorId: inspector.id,
+        templateId: magazaTpl.id,
+        status: 'scheduled',
+        scheduledDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        locationVerified: false,
+      },
+    });
+
+    // --- DENETİM 6: Yufka Üretim - in_progress (devam ediyor) ---
+    if (isgTpl) {
+      const isgItems = isgTpl.categories.flatMap(c => c.items);
+      const insp6 = await prisma.inspection.create({
+        data: {
+          branchId: branches[4].id,
+          inspectorId: inspector.id,
+          templateId: isgTpl.id,
+          status: 'in_progress',
+          startedAt: daysAgo(1),
+          locationVerified: true,
+          latitude: 37.86,
+          longitude: 32.51,
+        },
+      });
+      // Yarısı yanıtlanmış
+      for (let i = 0; i < Math.floor(isgItems.length / 2); i++) {
+        const item = isgItems[i];
+        await prisma.inspectionResponse.create({
+          data: {
+            inspectionId: insp6.id,
+            checklistItemId: item.id,
+            passed: item.itemType === 'boolean' ? true : null,
+            score: item.itemType === 'score' ? 7 : item.maxScore,
+          },
+        });
+      }
+    }
+
+    // --- TUTANAK ---
+    await prisma.tutanak.create({
+      data: {
+        inspectionId: insp2.id,
+        createdById: inspector.id,
+        title: 'Mağaza Hijyen Tutanağı',
+        content: { fields: [
+          { label: 'Konu', value: 'Merkez Mağaza hijyen denetimi bulguları' },
+          { label: 'Tespit Edilen Durum', value: 'Tezgah hijyeni yetersiz, SKT geçmiş ürün tespit edildi' },
+          { label: 'Alınan Önlem', value: 'Ürünler imha edildi, tezgahlar dezenfekte edildi' },
+          { label: 'Sonuç', value: 'Düzeltici faaliyetler başlatıldı, takip edilecek' },
+        ]},
+        status: 'sent',
+        sentAt: daysAgo(6),
+      },
+    });
+
+    // --- BİLDİRİMLER ---
+    await prisma.notification.createMany({
+      data: [
+        { userId: manager.id, title: 'Yeni Denetim - Düzeltici Faaliyet Gerekli', body: 'Merkez Mağaza şubesinde 3 kritik eksik tespit edildi.', data: { inspectionId: insp2.id, type: 'corrective_action_required' } },
+        { userId: manager.id, title: 'Denetim Tamamlandı', body: 'Kesimhane şubesinde denetim tamamlandı. Puan: %65', data: { inspectionId: insp4.id, type: 'inspection_completed' } },
+        { userId: inspector.id, title: 'Düzeltici Faaliyet Kanıtı Yüklendi', body: 'Merkez Mağaza - SKT maddesi için kanıt yüklendi.', data: { inspectionId: insp2.id, type: 'evidence_uploaded' } },
+        { userId: admin.id, title: 'Denetim Süreci Tamamlandı', body: 'Şube 2 Mağaza denetim süreci tamamlandı. Rapor gönderildi.', data: { inspectionId: insp3.id, type: 'flow_completed' } },
+        { userId: admin.id, title: 'Kritik Bulgular Tespit Edildi', body: 'Merkez Mağaza şubesinde 3 kritik bulgu tespit edildi.', data: { inspectionId: insp2.id, type: 'critical_findings' } },
+      ],
+    });
+
+    // --- AKTİVİTE LOGLARI ---
+    await prisma.activityLog.createMany({
+      data: [
+        { userId: inspector.id, action: 'INSPECTION_COMPLETED', entityType: 'inspection', entityId: insp1.id, details: { branchName: 'Merkez Mağaza', scorePercentage: 88.57 }, createdAt: daysAgo(45) },
+        { userId: inspector.id, action: 'INSPECTION_COMPLETED', entityType: 'inspection', entityId: insp3.id, details: { branchName: 'Şube 2 Mağaza', scorePercentage: 96.43 }, createdAt: daysAgo(30) },
+        { userId: inspector.id, action: 'INSPECTION_COMPLETED', entityType: 'inspection', entityId: insp2.id, details: { branchName: 'Merkez Mağaza', scorePercentage: 66.07 }, createdAt: daysAgo(7) },
+        { userId: manager.id, action: 'CORRECTIVE_ACTION_CREATED', entityType: 'corrective_action', entityId: insp2.id, details: { inspectionId: insp2.id, isCritical: true }, createdAt: daysAgo(6) },
+        { userId: manager.id, action: 'EVIDENCE_UPLOADED', entityType: 'corrective_action', entityId: insp2.id, details: { inspectionId: insp2.id }, createdAt: daysAgo(5) },
+        { userId: inspector.id, action: 'INSPECTION_COMPLETED', entityType: 'inspection', entityId: insp4.id, details: { branchName: 'Kesimhane', scorePercentage: 65.0 }, createdAt: daysAgo(3) },
+        { userId: null, action: 'INSPECTION_FINALIZED', entityType: 'inspection', entityId: insp1.id, details: { branchName: 'Merkez Mağaza', pdfGenerated: true }, createdAt: daysAgo(43) },
+        { userId: null, action: 'REPORT_EMAIL_SENT', entityType: 'inspection', entityId: insp3.id, details: { recipients: ['abdullah.dagci@ertansa.com.tr'] }, createdAt: daysAgo(30) },
+      ],
+    });
+
+    // --- DENETİM PLANLARI ---
+    await prisma.inspectionSchedule.createMany({
+      data: [
+        { branchId: branches[0].id, templateId: magazaTpl.id, inspectorId: inspector.id, frequencyDays: 30, nextDueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), lastInspectionDate: daysAgo(23) },
+        { branchId: branches[1].id, templateId: magazaTpl.id, inspectorId: inspector.id, frequencyDays: 30, nextDueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) },
+        { branchId: branches[2].id, templateId: kesimhaneTpl.id, inspectorId: inspector.id, frequencyDays: 15, nextDueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), lastInspectionDate: daysAgo(12) },
+      ],
+    });
+
+    console.log('Test denetimleri oluşturuldu (6 denetim, düzeltici faaliyetler, tutanak, bildirimler, loglar)');
+  }
 
   console.log('---');
   console.log('Giriş bilgileri:');

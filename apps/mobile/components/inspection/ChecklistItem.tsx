@@ -4,6 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/colors';
 import { useInspectionStore } from '@/stores/inspection-store';
 import { useCamera } from '@/hooks/useCamera';
+import { haptic } from '@/lib/haptics';
 
 interface ChecklistItemProps {
   item: {
@@ -25,10 +26,14 @@ export function ChecklistItem({ item }: ChecklistItemProps) {
   const photos = getPhotos(item.id);
 
   const handleBoolean = (passed: boolean) => {
+    haptic.selection();
+    if (item.is_critical) haptic.medium();
     updateResponse(item.id, { passed });
   };
 
   const handleScore = (score: number) => {
+    haptic.light();
+    if (item.is_critical) haptic.medium();
     updateResponse(item.id, { score: Math.min(score, item.max_score) });
   };
 

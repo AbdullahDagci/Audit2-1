@@ -8,6 +8,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { api } from '@/lib/api';
 import { Config } from '@/constants/config';
+import ToastMessage from 'react-native-toast-message';
+import { haptic } from '@/lib/haptics';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -29,7 +31,7 @@ export default function CorrectiveActionsScreen() {
   const [saving, setSaving] = useState(false);
   const [saveProgress, setSaveProgress] = useState('');
 
-  // Fotograf goruntuleme
+  // Fotoğraf görüntüleme
   const [viewPhoto, setViewPhoto] = useState<string | null>(null);
 
   // ---- Yardimci fonksiyonlar ----
@@ -78,14 +80,14 @@ export default function CorrectiveActionsScreen() {
       setDeficiencies(defList);
       setCorrectiveActions(Array.isArray(actions) ? actions : []);
     } catch (err: any) {
-      setError(err.message || 'Veriler yuklenemedi');
+      setError(err.message || 'Veriler yüklenemedi');
     }
     setLoading(false);
   }, [inspectionId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // ---- Fotograf islemleri ----
+  // ---- Fotoğraf işlemleri ----
 
   const pickPhoto = async (responseId: string) => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -101,7 +103,7 @@ export default function CorrectiveActionsScreen() {
   const takePhoto = async (responseId: string) => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Izin Gerekli', 'Kamera izni vermeniz gerekiyor.');
+      Alert.alert('İzin Gerekli', 'Kamera izni vermeniz gerekiyor.');
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -114,10 +116,10 @@ export default function CorrectiveActionsScreen() {
   };
 
   const showPhotoOptions = (responseId: string) => {
-    Alert.alert('Fotograf Sec', 'Fotograf kaynagi secin', [
+    Alert.alert('Fotoğraf Seç', 'Fotoğraf kaynağı seçin', [
       { text: 'Kamera', onPress: () => takePhoto(responseId) },
       { text: 'Galeri', onPress: () => pickPhoto(responseId) },
-      { text: 'Iptal', style: 'cancel' },
+      { text: 'İptal', style: 'cancel' },
     ]);
   };
 
@@ -145,13 +147,13 @@ export default function CorrectiveActionsScreen() {
       const names = unsavedCriticals.map((d) => `- ${d.questionText}`).join('\n');
       Alert.alert(
         'Kritik Eksiklikler',
-        `Asagidaki kritik eksiklikler icin duzeltici faaliyet zorunludur:\n\n${names}`,
+        `Aşağıdaki kritik eksiklikler için düzeltici faaliyet zorunludur:\n\n${names}`,
       );
       return;
     }
 
     if (pendingActions.length === 0) {
-      Alert.alert('Uyari', 'Kaydedilecek duzeltici faaliyet bulunamadi. Lutfen en az bir aciklama yazin.');
+      ToastMessage.show({ type: 'info', text1: 'Uyari', text2: 'Kaydedilecek düzeltici faaliyet bulunamadı. Lütfen en az bir açıklama yazın.' });
       return;
     }
 
@@ -168,7 +170,7 @@ export default function CorrectiveActionsScreen() {
       setSaveProgress(`Faaliyetler kaydediliyor...`);
       const result = await api.batchCreateCorrectiveActions(inspectionId!, batchPayload);
 
-      // 2. Fotograflari siraliyla yukle
+      // 2. Fotoğrafları sıralıyla yükle
       const actionsWithPhotos = pendingActions.filter((d) => photos[d.responseId]);
 
       if (actionsWithPhotos.length > 0 && result.actions) {
@@ -181,11 +183,11 @@ export default function CorrectiveActionsScreen() {
           );
 
           if (createdAction && photoUri) {
-            setSaveProgress(`Fotograf yukleniyor ${i + 1}/${actionsWithPhotos.length}...`);
+            setSaveProgress(`Fotoğraf yükleniyor ${i + 1}/${actionsWithPhotos.length}...`);
             try {
               await api.uploadEvidence(createdAction.id, photoUri);
             } catch {
-              // Fotograf yuklenemezse devam et, ama kullaniciyi bilgilendir
+              // Fotoğraf yüklenemezse devam et, ama kullanıcıyı bilgilendir
               // (batch kayit basarili oldugundan kritik degil)
             }
           }
@@ -200,15 +202,14 @@ export default function CorrectiveActionsScreen() {
       setSaving(false);
       setSaveProgress('');
 
-      Alert.alert(
-        'Basarili',
-        `${result.created} duzeltici faaliyet kaydedildi.`,
-        [{ text: 'Tamam', onPress: () => router.back() }],
-      );
+      haptic.success();
+      ToastMessage.show({ type: 'success', text1: 'Basarili', text2: `${result.created} düzeltici faaliyet kaydedildi.` });
+      setTimeout(() => router.back(), 1500);
     } catch (err: any) {
       setSaving(false);
       setSaveProgress('');
-      Alert.alert('Hata', err.message || 'Duzeltici faaliyetler kaydedilemedi.');
+      haptic.error();
+      ToastMessage.show({ type: 'error', text1: 'Hata', text2: err.message || 'Düzeltici faaliyetler kaydedilemedi.' });
     }
   };
 
@@ -268,7 +269,7 @@ export default function CorrectiveActionsScreen() {
             <MaterialIcons name="build" size={28} color="#E65100" />
           </View>
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Duzeltici Faaliyetler</Text>
+            <Text style={styles.headerTitle}>Düzeltici Faaliyetler</Text>
             <Text style={styles.headerSub}>
               {summary.total} eksiklik, {summary.critical} kritik, {summary.saved} kaydedildi
             </Text>
@@ -292,7 +293,7 @@ export default function CorrectiveActionsScreen() {
           <View style={styles.summaryItem}>
             <MaterialIcons name="check-circle" size={18} color="#2E7D32" />
             <Text style={[styles.summaryValue, { color: '#2E7D32' }]}>{summary.saved}</Text>
-            <Text style={styles.summaryLabel}>Kayitli</Text>
+            <Text style={styles.summaryLabel}>Kayıtlı</Text>
           </View>
         </View>
 
@@ -300,7 +301,7 @@ export default function CorrectiveActionsScreen() {
         {deficiencies.length === 0 && (
           <View style={styles.emptyBox}>
             <MaterialIcons name="check-circle" size={48} color="#4CAF50" />
-            <Text style={styles.emptyText}>Eksiklik bulunamadi</Text>
+            <Text style={styles.emptyText}>Eksiklik bulunamadı</Text>
           </View>
         )}
 
@@ -337,7 +338,7 @@ export default function CorrectiveActionsScreen() {
                 </View>
               )}
 
-              {/* Denetci notlari */}
+              {/* Denetçi notları */}
               {def.notes && (
                 <View style={styles.notesBox}>
                   <MaterialIcons name="note" size={14} color="#999" />
@@ -350,14 +351,14 @@ export default function CorrectiveActionsScreen() {
                 <View style={styles.existingAction}>
                   <View style={styles.existingHeader}>
                     <MaterialIcons name="check-circle" size={18} color="#2E7D32" />
-                    <Text style={styles.existingTitle}>Duzeltici Faaliyet Kayitli</Text>
+                    <Text style={styles.existingTitle}>Düzeltici Faaliyet Kayıtlı</Text>
                   </View>
                   <Text style={styles.existingDesc}>{existingAction.description}</Text>
                   {existingAction.evidence && existingAction.evidence.length > 0 ? (
                     <View style={styles.evidenceRow}>
                       <MaterialIcons name="photo" size={16} color="#4CAF50" />
                       <Text style={styles.evidenceText}>
-                        {existingAction.evidence.length} kanit yuklendi
+                        {existingAction.evidence.length} kanıt yüklendi
                       </Text>
                       {existingAction.evidence.map((ev: any) => (
                         <TouchableOpacity
@@ -375,25 +376,25 @@ export default function CorrectiveActionsScreen() {
                     <View style={styles.evidenceRow}>
                       <MaterialIcons name="photo" size={16} color="#FF9800" />
                       <Text style={[styles.evidenceText, { color: '#FF9800' }]}>
-                        Kanit bekleniyor
+                        Kanıt bekleniyor
                       </Text>
                     </View>
                   )}
                 </View>
               ) : (
-                /* Form: description + fotograf */
+                /* Form: description + fotoğraf */
                 <View style={styles.formSection}>
                   <Text style={styles.formLabel}>
                     {isCritical
-                      ? 'Duzeltici faaliyet aciklamasi (zorunlu)'
-                      : 'Duzeltici faaliyet aciklamasi'}
+                      ? 'Düzeltici faaliyet açıklaması (zorunlu)'
+                      : 'Düzeltici faaliyet açıklaması'}
                   </Text>
                   <TextInput
                     style={[
                       styles.formInput,
                       isCritical && !descriptions[responseId]?.trim() && styles.formInputCriticalEmpty,
                     ]}
-                    placeholder="Duzeltici faaliyet aciklamasi..."
+                    placeholder="Düzeltici faaliyet açıklaması..."
                     placeholderTextColor="#BDBDBD"
                     value={descriptions[responseId] || ''}
                     onChangeText={(t) =>
@@ -402,7 +403,7 @@ export default function CorrectiveActionsScreen() {
                     multiline
                   />
 
-                  {/* Fotograf */}
+                  {/* Fotoğraf */}
                   {photos[responseId] ? (
                     <View style={styles.photoPreview}>
                       <Image
@@ -422,7 +423,7 @@ export default function CorrectiveActionsScreen() {
                       onPress={() => showPhotoOptions(responseId)}
                     >
                       <MaterialIcons name="add-a-photo" size={20} color="#2E7D32" />
-                      <Text style={styles.photoBtnText}>Kanit Fotografi Ekle</Text>
+                      <Text style={styles.photoBtnText}>Kanıt Fotoğrafı Ekle</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -455,7 +456,7 @@ export default function CorrectiveActionsScreen() {
         </View>
       )}
 
-      {/* Tam ekran fotograf goruntuleme */}
+      {/* Tam ekran fotoğraf görüntüleme */}
       <RNModal
         visible={!!viewPhoto}
         transparent

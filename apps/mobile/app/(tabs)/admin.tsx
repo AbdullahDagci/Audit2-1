@@ -538,7 +538,7 @@ function moveMarker(lat,lng){
 
   const deleteBranch = (item: any) => {
     Alert.alert('Subeyi Sil', `"${item.name}" subesini silmek istiyor musunuz?`, [
-      { text: 'Iptal', style: 'cancel' },
+      { text: 'İptal', style: 'cancel' },
       { text: 'Sil', style: 'destructive', onPress: async () => {
         try { await api.deleteBranch(item.id); await fetchData(); }
         catch (e: any) { Alert.alert('Hata', e.message); }
@@ -861,7 +861,7 @@ function EmailTab() {
     setLoading(true);
     api.getManagementEmails()
       .then(r => { setEmails(r.emails || []); })
-      .catch(() => { Alert.alert('Hata', 'Email listesi yuklenemedi'); })
+      .catch(() => { Alert.alert('Hata', 'Email listesi yüklenemedi'); })
       .finally(() => setLoading(false));
   }, []));
 
@@ -893,7 +893,7 @@ function EmailTab() {
       'Email Kaldir',
       `"${email}" adresini listeden kaldirmak istiyor musunuz?`,
       [
-        { text: 'Iptal', style: 'cancel' },
+        { text: 'İptal', style: 'cancel' },
         {
           text: 'Kaldir',
           style: 'destructive',
@@ -917,7 +917,7 @@ function EmailTab() {
     setTestingEmail(email);
     try {
       await api.sendTestEmail(email);
-      Alert.alert('Basarili', `Test maili ${email} adresine gonderildi`);
+      Alert.alert('Basarili', `Test maili ${email} adresine gönderildi`);
     } catch (e: any) {
       Alert.alert('Hata', e.message);
     }
@@ -982,7 +982,7 @@ function EmailTab() {
         ListEmptyComponent={
           <View style={S.emptyBox}>
             <MaterialIcons name="email" size={40} color="#E0E0E0" />
-            <Text style={S.emptyText}>Henuz email adresi eklenmemis</Text>
+            <Text style={S.emptyText}>Henüz email adresi eklenmemis</Text>
           </View>
         }
       />

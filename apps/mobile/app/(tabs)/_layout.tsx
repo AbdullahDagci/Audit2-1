@@ -70,7 +70,7 @@ export default function TabsLayout() {
         options={{
           title: 'Yönetim',
           tabBarIcon: ({ color }) => <MaterialIcons name="admin-panel-settings" size={26} color={color} />,
-          href: isAdmin ? '/admin' : null, // Denetci için gizle
+          href: isAdmin ? '/admin' : null, // Denetçi için gizle
         }}
       />
       <Tabs.Screen

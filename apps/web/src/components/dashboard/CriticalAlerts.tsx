@@ -28,7 +28,7 @@ export default function CriticalAlerts({ inspections }: CriticalAlertsProps) {
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        Kritik Uyarilar
+        Kritik Uyarılar
       </h3>
       {pendingInspections.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-8 text-gray-400">
@@ -39,7 +39,7 @@ export default function CriticalAlerts({ inspections }: CriticalAlertsProps) {
         <div className="space-y-3">
           {pendingInspections.map((insp: any) => {
             const branchName =
-              insp.branch?.name || insp.branchName || "Bilinmeyen Sube";
+              insp.branch?.name || insp.branchName || "Bilinmeyen Şube";
             const score =
               insp.scorePercentage ??
               (insp.maxPossibleScore > 0
@@ -67,7 +67,7 @@ export default function CriticalAlerts({ inspections }: CriticalAlertsProps) {
                     <p className="text-sm font-medium text-gray-900">
                       {branchName}
                     </p>
-                    <Badge variant="warning">Islem Bekliyor</Badge>
+                    <Badge variant="warning">İşlem Bekliyor</Badge>
                   </div>
                   <div className="flex items-center gap-3 mt-1">
                     <span className="text-sm text-gray-600">

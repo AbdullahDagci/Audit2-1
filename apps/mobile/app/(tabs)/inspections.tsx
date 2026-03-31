@@ -4,12 +4,16 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Colors } from '@/constants/colors';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { ScoreIndicator } from '@/components/inspection/ScoreIndicator';
+import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { useAuthStore } from '@/stores/auth-store';
 import { api } from '@/lib/api';
+import ToastMessage from 'react-native-toast-message';
+import { haptic } from '@/lib/haptics';
 
 function statusBadge(status: string) {
   switch (status) {
@@ -291,59 +295,67 @@ export default function InspectionsScreen() {
 
       {/* Liste */}
       {loading ? (
-        <View style={S.loadingCenter}><ActivityIndicator size="large" color="#2E7D32" /></View>
+        <View style={S.loadingCenter}>
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </View>
       ) : (
         <FlatList
           data={filteredInspections}
           keyExtractor={(item) => item.id}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2E7D32']} tintColor="#2E7D32" />}
-          renderItem={({ item }) => {
+          renderItem={({ item, index }) => {
             const score = Number(item.scorePercentage || 0);
             const status = statusBadge(item.status);
             return (
-              <Card style={S.card} onPress={() => {
-                if (item.status === 'in_progress') {
-                  router.push(`/inspection/${item.id}`);
-                } else {
-                  router.push(`/inspection/review?id=${item.id}`);
-                }
-              }}>
-                <View style={S.cardRow}>
-                  <View style={S.info}>
-                    <Text style={S.branch}>{item.branch?.name || 'Şube'}</Text>
-                    <Text style={S.meta}>
-                      {item.scheduledDate
-                        ? `Planlanan: ${new Date(item.scheduledDate).toLocaleDateString('tr-TR')}`
-                        : new Date(item.completedAt || item.createdAt).toLocaleDateString('tr-TR')}
-                      {isManagerOrAdmin && item.inspector?.fullName ? ` — ${item.inspector.fullName}` : ''}
-                    </Text>
-                    <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-                      <Badge text={facilityTypes.find(f => f.key === item.branch?.facilityType)?.label || item.branch?.facilityType || ''} variant="info" />
-                      <Badge text={status.text} variant={status.variant} />
+              <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
+                <Card style={S.card} onPress={() => {
+                  if (item.status === 'in_progress') {
+                    router.push(`/inspection/${item.id}`);
+                  } else {
+                    router.push(`/inspection/review?id=${item.id}`);
+                  }
+                }}>
+                  <View style={S.cardRow}>
+                    <View style={S.info}>
+                      <Text style={S.branch}>{item.branch?.name || 'Şube'}</Text>
+                      <Text style={S.meta}>
+                        {item.scheduledDate
+                          ? `Planlanan: ${new Date(item.scheduledDate).toLocaleDateString('tr-TR')}`
+                          : new Date(item.completedAt || item.createdAt).toLocaleDateString('tr-TR')}
+                        {isManagerOrAdmin && item.inspector?.fullName ? ` — ${item.inspector.fullName}` : ''}
+                      </Text>
+                      <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                        <Badge text={facilityTypes.find(f => f.key === item.branch?.facilityType)?.label || item.branch?.facilityType || ''} variant="info" />
+                        <Badge text={status.text} variant={status.variant} />
+                      </View>
                     </View>
+                    {score > 0 && <ScoreIndicator percentage={score} size="sm" showLabel={false} />}
                   </View>
-                  {score > 0 && <ScoreIndicator percentage={score} size="sm" showLabel={false} />}
-                </View>
-                {canEditInspection(item) && (
-                  <View style={S.actions}>
-                    <TouchableOpacity style={S.actionBtn} onPress={(e) => { e.stopPropagation?.(); handleEditDate(item); }}>
-                      <MaterialIcons name="edit-calendar" size={16} color="#1565C0" />
-                      <Text style={S.actionBtnText}>Tarih Değiştir</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[S.actionBtn, S.actionBtnDanger]} onPress={(e) => { e.stopPropagation?.(); handleDelete(item); }}>
-                      <MaterialIcons name="delete-outline" size={16} color="#C62828" />
-                      <Text style={[S.actionBtnText, { color: '#C62828' }]}>Sil</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </Card>
+                  {canEditInspection(item) && (
+                    <View style={S.actions}>
+                      <TouchableOpacity style={S.actionBtn} onPress={(e) => { e.stopPropagation?.(); handleEditDate(item); }}>
+                        <MaterialIcons name="edit-calendar" size={16} color="#1565C0" />
+                        <Text style={S.actionBtnText}>Tarih Değiştir</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[S.actionBtn, S.actionBtnDanger]} onPress={(e) => { e.stopPropagation?.(); handleDelete(item); }}>
+                        <MaterialIcons name="delete-outline" size={16} color="#C62828" />
+                        <Text style={[S.actionBtnText, { color: '#C62828' }]}>Sil</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </Card>
+              </Animated.View>
             );
           }}
           contentContainerStyle={S.list}
           ListEmptyComponent={
             <View style={S.emptyBox}>
               <MaterialIcons name="assignment" size={48} color="#E0E0E0" />
-              <Text style={S.emptyText}>Denetim bulunamadı</Text>
+              <Text style={S.emptyText}>Denetim bulunamadi</Text>
               {(selectedType !== 'all' || hasDateFilter || searchQuery.trim()) && (
                 <TouchableOpacity onPress={clearFilters} style={{ marginTop: 12 }}>
                   <Text style={{ color: '#2E7D32', fontWeight: '600', fontSize: 14 }}>Filtreleri Temizle</Text>
@@ -412,7 +424,7 @@ const S = StyleSheet.create({
   modalItemOn: { backgroundColor: '#E8F5E9' },
   modalItemText: { fontSize: 15, color: '#333' },
   modalItemTextOn: { fontWeight: '600', color: '#2E7D32' },
-  loadingCenter: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingCenter: { flex: 1, padding: 16 },
   list: { padding: 16, paddingTop: 4 },
   card: { marginBottom: 10 },
   cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

@@ -40,7 +40,7 @@ const mockData = {
       name: 'Temizlik ve Hijyen', weight: 1.5, percentage: 60,
       items: [
         { question: 'Zemin temiz mi?', passed: true, score: 10, maxScore: 10, critical: false, photoRequired: true, notes: '' },
-        { question: 'Tezgahlar temiz mi?', passed: false, score: 0, maxScore: 10, critical: true, photoRequired: true, notes: 'Et tezgahi kirli, fotograf eklendi' },
+        { question: 'Tezgahlar temiz mi?', passed: false, score: 0, maxScore: 10, critical: true, photoRequired: true, notes: 'Et tezgahi kirli, fotoğraf eklendi' },
         { question: 'Cop kutulari bosaltilmis mi?', passed: true, score: 10, maxScore: 10, critical: false, photoRequired: false, notes: '' },
         { question: 'Sogutucu dolaplar temiz mi?', passed: false, score: 0, maxScore: 10, critical: true, photoRequired: true, notes: 'Ic temizlik yapılmamış' },
         { question: 'Tuvalet ve lavabo temiz mi?', passed: true, score: 10, maxScore: 10, critical: false, photoRequired: true, notes: '' },
@@ -119,7 +119,7 @@ function generateDetailedPdf(branch: string, date: string, inspectorName: string
           <tr style="background:#2E7D32;">
             <td colspan="3" style="padding:12px 14px;color:#FFFFFF;font-size:15px;font-weight:700;">
               ${catIdx + 1}. ${cat.name}
-              <span style="font-weight:400;font-size:12px;opacity:0.85;margin-left:8px;">(Agirlik: ${cat.weight})</span>
+              <span style="font-weight:400;font-size:12px;opacity:0.85;margin-left:8px;">(Ağırlık: ${cat.weight})</span>
             </td>
             <td style="padding:12px 14px;text-align:right;">
               <span style="background:rgba(255,255,255,0.25);color:#FFFFFF;padding:4px 14px;border-radius:6px;font-size:15px;font-weight:700;">%${cat.percentage}</span>
@@ -241,7 +241,7 @@ function generateDetailedPdf(branch: string, date: string, inspectorName: string
         <table style="border:1px solid #E0E0E0;">
           <tr style="background:#2E7D32;">
             <th style="padding:10px 14px;text-align:left;font-size:12px;color:#FFFFFF;text-transform:uppercase;">Kategori</th>
-            <th style="padding:10px 14px;text-align:center;font-size:12px;color:#FFFFFF;text-transform:uppercase;">Agirlik</th>
+            <th style="padding:10px 14px;text-align:center;font-size:12px;color:#FFFFFF;text-transform:uppercase;">Ağırlık</th>
             <th style="padding:10px 14px;text-align:center;font-size:12px;color:#FFFFFF;text-transform:uppercase;">Madde</th>
             <th style="padding:10px 14px;text-align:center;font-size:12px;color:#FFFFFF;text-transform:uppercase;">Puan</th>
           </tr>

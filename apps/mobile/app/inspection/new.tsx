@@ -251,7 +251,7 @@ export default function NewInspectionScreen() {
             </TouchableOpacity>
           )}
 
-          {/* Butonlar: Denetci -> Sadece Basla (konum dogrulamali), Admin/Manager -> sadece Planla */}
+          {/* Butonlar: Denetçi -> Sadece Basla (konum dogrulamali), Admin/Manager -> sadece Planla */}
           {isInspector ? (
             <View style={styles.btnRow}>
               <TouchableOpacity

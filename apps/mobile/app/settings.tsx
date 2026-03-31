@@ -47,7 +47,7 @@ export default function SettingsScreen() {
 
   const loadSettings = async () => {
     try {
-      // Oncelikle API'den tercihleri al
+      // Öncelikle API'den tercihleri al
       const me = await api.getMe();
       if (me && (me.emailNotifications !== undefined || me.pushNotifications !== undefined || me.criticalAlerts !== undefined)) {
         const apiSettings: Settings = {
@@ -56,13 +56,13 @@ export default function SettingsScreen() {
           criticalAlerts: me.criticalAlerts ?? DEFAULT_SETTINGS.criticalAlerts,
         };
         setSettings(apiSettings);
-        // Lokal cache'i de guncelle
+        // Lokal cache'i de güncelle
         try { Storage.setItemSync(STORAGE_KEY, JSON.stringify(apiSettings)); } catch {}
         setLoading(false);
         return;
       }
     } catch {
-      // API basarisiz olursa lokal cache'den oku
+      // API başarısız olursa lokal cache'den oku
     }
 
     try {
@@ -71,7 +71,7 @@ export default function SettingsScreen() {
         setSettings(JSON.parse(stored));
       }
     } catch {
-      // Varsayilan degerler kullanilir
+      // Varsayılan değerler kullanılır
     }
     setLoading(false);
   };
@@ -81,7 +81,7 @@ export default function SettingsScreen() {
       const updated = { ...settings, [key]: value };
       setSettings(updated);
 
-      // Lokal cache'i guncelle (optimistic)
+      // Lokal cache'i güncelle (optimistic)
       try {
         Storage.setItemSync(STORAGE_KEY, JSON.stringify(updated));
       } catch {}
@@ -91,10 +91,10 @@ export default function SettingsScreen() {
         try {
           await api.updatePreferences(user.id, { [key]: value });
         } catch (e: any) {
-          // API basarisiz olursa geri al
+          // API başarısız olursa geri al
           setSettings(settings);
           try { Storage.setItemSync(STORAGE_KEY, JSON.stringify(settings)); } catch {}
-          Alert.alert('Hata', e.message || 'Tercih guncellenemedi');
+          Alert.alert('Hata', e.message || 'Tercih güncellenemedi');
         }
       }
     },
@@ -104,9 +104,9 @@ export default function SettingsScreen() {
   const handleClearCache = () => {
     Alert.alert(
       'Cache Temizle',
-      'Uygulama onbellegi temizlenecek. Devam etmek istiyor musunuz?',
+      'Uygulama önbelleği temizlenecek. Devam etmek istiyor musunuz?',
       [
-        { text: 'Iptal', style: 'cancel' },
+        { text: 'İptal', style: 'cancel' },
         {
           text: 'Temizle',
           style: 'destructive',
@@ -115,9 +115,9 @@ export default function SettingsScreen() {
               Storage.clearSync();
               // Restore settings after clearing everything
               Storage.setItemSync(STORAGE_KEY, JSON.stringify(settings));
-              Alert.alert('Basarili', 'Onbellek temizlendi.');
+              Alert.alert('Başarılı', 'Önbellek temizlendi.');
             } catch {
-              Alert.alert('Hata', 'Onbellek temizlenirken bir hata olustu.');
+              Alert.alert('Hata', 'Önbellek temizlenirken bir hata oluştu.');
             }
           },
         },
@@ -143,7 +143,7 @@ export default function SettingsScreen() {
           <MaterialIcons name="email" size={22} color={TEXT2} />
           <View style={styles.rowContent}>
             <Text style={styles.rowText}>E-posta bildirimleri</Text>
-            <Text style={styles.rowSubtext}>Denetim sonuclarini e-posta ile alin</Text>
+            <Text style={styles.rowSubtext}>Denetim sonuçlarını e-posta ile alın</Text>
           </View>
           <Switch
             value={settings.emailNotifications}
@@ -157,7 +157,7 @@ export default function SettingsScreen() {
           <MaterialIcons name="notifications-active" size={22} color={TEXT2} />
           <View style={styles.rowContent}>
             <Text style={styles.rowText}>Push bildirimleri</Text>
-            <Text style={styles.rowSubtext}>Anlik bildirimler alin</Text>
+            <Text style={styles.rowSubtext}>Anlık bildirimler alın</Text>
           </View>
           <Switch
             value={settings.pushNotifications}
@@ -170,8 +170,8 @@ export default function SettingsScreen() {
         <View style={styles.row}>
           <MaterialIcons name="warning" size={22} color={TEXT2} />
           <View style={styles.rowContent}>
-            <Text style={styles.rowText}>Kritik bulgu uyarilari</Text>
-            <Text style={styles.rowSubtext}>Kritik bulgular icin aninda uyari alin</Text>
+            <Text style={styles.rowText}>Kritik bulgu uyarıları</Text>
+            <Text style={styles.rowSubtext}>Kritik bulgular için anında uyarı alın</Text>
           </View>
           <Switch
             value={settings.criticalAlerts}
@@ -184,7 +184,7 @@ export default function SettingsScreen() {
 
       {/* Uygulama Ayarlari */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Uygulama Ayarlari</Text>
+        <Text style={styles.sectionTitle}>Uygulama Ayarları</Text>
 
         <View style={styles.row}>
           <MaterialIcons name="info-outline" size={22} color={TEXT2} />
@@ -198,7 +198,7 @@ export default function SettingsScreen() {
           <MaterialIcons name="delete-outline" size={22} color={TEXT2} />
           <View style={styles.rowContent}>
             <Text style={styles.rowText}>Cache temizle</Text>
-            <Text style={styles.rowSubtext}>Uygulama onbellegini temizleyin</Text>
+            <Text style={styles.rowSubtext}>Uygulama önbelleğini temizleyin</Text>
           </View>
           <MaterialIcons name="chevron-right" size={22} color={BORDER} />
         </TouchableOpacity>

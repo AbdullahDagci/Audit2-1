@@ -23,12 +23,12 @@ function getRelativeTime(dateStr: string): string {
   const diffHour = Math.floor(diffMs / 3600000);
   const diffDay = Math.floor(diffMs / 86400000);
 
-  if (diffMin < 1) return 'Az once';
-  if (diffMin < 60) return `${diffMin} dk once`;
-  if (diffHour < 24) return `${diffHour} saat once`;
-  if (diffDay === 1) return 'Dun';
-  if (diffDay < 7) return `${diffDay} gun once`;
-  if (diffDay < 30) return `${Math.floor(diffDay / 7)} hafta once`;
+  if (diffMin < 1) return 'Az önce';
+  if (diffMin < 60) return `${diffMin} dk önce`;
+  if (diffHour < 24) return `${diffHour} saat önce`;
+  if (diffDay === 1) return 'Dün';
+  if (diffDay < 7) return `${diffDay} gün önce`;
+  if (diffDay < 30) return `${Math.floor(diffDay / 7)} hafta önce`;
   return date.toLocaleDateString('tr-TR');
 }
 
@@ -121,7 +121,7 @@ export default function NotificationsScreen() {
         <View style={styles.empty}>
           <MaterialIcons name="notifications-none" size={48} color={Colors.textLight} />
           <Text style={styles.emptyText}>Bildirim yok</Text>
-          <Text style={styles.emptyHint}>Yeni bildirimleriniz burada gorunecek</Text>
+          <Text style={styles.emptyHint}>Yeni bildirimleriniz burada görünecek</Text>
         </View>
       }
     />

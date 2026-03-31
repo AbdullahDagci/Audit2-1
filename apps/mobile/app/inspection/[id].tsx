@@ -10,6 +10,8 @@ import { useInspectionStore } from '@/stores/inspection-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { calculateCategoryScore, calculateOverallScore } from '@/lib/scoring';
 import { api } from '@/lib/api';
+import ToastMessage from 'react-native-toast-message';
+import { haptic } from '@/lib/haptics';
 
 export default function InspectionFormScreen() {
   const router = useRouter();
@@ -33,7 +35,7 @@ export default function InspectionFormScreen() {
       const insp = await api.getInspection(id);
       setInspection(insp);
 
-      // Onceki bulgulari cek
+      // Önceki bulguları cek
       if (insp.branchId) {
         try {
           const findings = await api.getPreviousFindings(insp.branchId);
@@ -78,7 +80,7 @@ export default function InspectionFormScreen() {
         }
       }
     } catch (err: any) {
-      Alert.alert('Hata', err.message || 'Denetim yuklenemedi.');
+      ToastMessage.show({ type: 'error', text1: 'Hata', text2: err.message || 'Denetim yüklenemedi.' });
     }
     setLoading(false);
   }, [id]);
@@ -124,7 +126,7 @@ export default function InspectionFormScreen() {
           continue;
         }
 
-        // Fotograf zorunlu mu?
+        // Fotoğraf zorunlu mu?
         if (item.photo_required) {
           const itemPhotos = photos.get(item.id) || [];
           if (itemPhotos.length === 0) {
@@ -169,20 +171,19 @@ export default function InspectionFormScreen() {
   const handleSaveDraft = () => {
     const payload = buildResponsePayload();
     if (payload.length === 0) {
-      Alert.alert('Uyari', 'Henuz hicbir soru cevaplanmamis. En az bir soruyu cevaplayin.');
+      ToastMessage.show({ type: 'info', text1: 'Uyari', text2: 'Henüz hiçbir soru cevaplanmamış. En az bir soruyu cevaplayın.' });
       return;
     }
 
     setSavingDraft(true);
     api.saveResponses(id!, payload)
       .then(() => {
-        Alert.alert('Kaydedildi', 'Denetim taslak olarak kaydedildi. Daha sonra devam edebilirsiniz.', [
-          { text: 'Devam Et' },
-          { text: 'Cikis', onPress: () => router.back() },
-        ]);
+        haptic.success();
+        ToastMessage.show({ type: 'success', text1: 'Kaydedildi', text2: 'Denetim taslak olarak kaydedildi.' });
       })
       .catch((err: any) => {
-        Alert.alert('Hata', err.message || 'Taslak kaydedilemedi.');
+        haptic.error();
+        ToastMessage.show({ type: 'error', text1: 'Hata', text2: err.message || 'Taslak kaydedilemedi.' });
       })
       .finally(() => {
         setSavingDraft(false);
@@ -198,7 +199,7 @@ export default function InspectionFormScreen() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       if (today > scheduled) {
-        Alert.alert('Suresi Gecmis', 'Bu denetimin tarihi gecmistir. Denetim tamamlanamaz.');
+        Alert.alert('Süresi Geçmiş', 'Bu denetimin tarihi geçmiştir. Denetim tamamlanamaz.');
         return;
       }
     }
@@ -208,25 +209,25 @@ export default function InspectionFormScreen() {
     if (!valid) {
       Alert.alert(
         'Eksik Maddeler',
-        errors.join('\n') + '\n\nTum sorulari cevaplayin ve zorunlu fotograflari ekleyin.',
+        errors.join('\n') + '\n\nTüm soruları cevaplayın ve zorunlu fotoğrafları ekleyin.',
       );
       return;
     }
 
     Alert.alert(
-      'Denetimi Gonder',
-      'Denetimi tamamlayip gondermek istediginize emin misiniz? Gonderdikten sonra degisiklik yapamazsiniz.',
+      'Denetimi Gönder',
+      'Denetimi tamamlayıp göndermek istediğinize emin misiniz? Gönderdikten sonra değişiklik yapamazsınız.',
       [
-        { text: 'Iptal', style: 'cancel' },
+        { text: 'İptal', style: 'cancel' },
         {
-          text: 'Gonder',
+          text: 'Gönder',
           onPress: () => {
             setSubmitting(true);
             const payload = buildResponsePayload();
 
             api.saveResponses(id!, payload)
               .then(async () => {
-                // Fotograflari yukle
+                // Fotoğrafları yükle
                 let failedPhotoCount = 0;
                 for (const [, itemPhotos] of photos.entries()) {
                   for (const photo of itemPhotos) {
@@ -240,10 +241,7 @@ export default function InspectionFormScreen() {
 
                 // Yuklenemeyen foto varsa kullaniciyi bildir
                 if (failedPhotoCount > 0) {
-                  Alert.alert(
-                    'Hata',
-                    `${failedPhotoCount} fotograf yuklenemedi. Lutfen tekrar deneyin.`
-                  );
+                  ToastMessage.show({ type: 'error', text1: 'Hata', text2: `${failedPhotoCount} fotoğraf yüklenemedi. Lütfen tekrar deneyin.` });
                 }
 
                 // Denetimi tamamla
@@ -251,14 +249,13 @@ export default function InspectionFormScreen() {
               })
               .then(() => {
                 resetInspection();
-                Alert.alert(
-                  'Denetim Gonderildi',
-                  'Denetim basariyla gonderildi. Sube sorumlusu bilgilendirildi.',
-                  [{ text: 'Tamam', onPress: () => router.replace('/(tabs)') }],
-                );
+                haptic.success();
+                ToastMessage.show({ type: 'success', text1: 'Denetim Gönderildi', text2: 'Denetim başarıyla gönderildi. Şube sorumlusu bilgilendirildi.' });
+                setTimeout(() => router.replace('/(tabs)'), 1500);
               })
               .catch((err: any) => {
-                Alert.alert('Hata', err.message || 'Denetim gonderilemedi.');
+                haptic.error();
+                ToastMessage.show({ type: 'error', text1: 'Hata', text2: err.message || 'Denetim gönderilemedi.' });
               })
               .finally(() => {
                 setSubmitting(false);
@@ -273,7 +270,7 @@ export default function InspectionFormScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ color: '#999', marginTop: 12 }}>Denetim formu yukleniyor...</Text>
+        <Text style={{ color: '#999', marginTop: 12 }}>Denetim formu yükleniyor...</Text>
       </View>
     );
   }
@@ -281,7 +278,7 @@ export default function InspectionFormScreen() {
   if (!inspection || categories.length === 0) {
     return (
       <View style={styles.center}>
-        <Text style={{ color: '#999', fontSize: 16 }}>Denetim formu bulunamadi</Text>
+        <Text style={{ color: '#999', fontSize: 16 }}>Denetim formu bulunamadı</Text>
 
       </View>
     );
@@ -303,13 +300,13 @@ export default function InspectionFormScreen() {
       <Text style={styles.progressText}>{totalAnswered}/{totalItems} madde tamamlandı</Text>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Onceki denetim bulgulari */}
+        {/* Önceki denetim bulgulari */}
         {previousFindings.length > 0 && (
           <View style={styles.findingsBanner}>
             <View style={styles.findingsHeader}>
               <MaterialIcons name="warning" size={20} color="#E65100" />
               <Text style={styles.findingsHeaderText}>
-                Onceki denetimden {previousFindings.length} kritik bulgu var
+                Önceki denetimden {previousFindings.length} kritik bulgu var
               </Text>
             </View>
             <TouchableOpacity
@@ -317,7 +314,7 @@ export default function InspectionFormScreen() {
               onPress={() => setFindingsExpanded(!findingsExpanded)}
             >
               <Text style={styles.findingsToggleText}>
-                {findingsExpanded ? 'Gizle' : 'Bulgulari Goster'}
+                {findingsExpanded ? 'Gizle' : 'Bulguları Göster'}
               </Text>
               <MaterialIcons
                 name={findingsExpanded ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
@@ -358,7 +355,7 @@ export default function InspectionFormScreen() {
           style={{ flex: 1 }}
         />
         <Button
-          title={submitting ? 'Gonderiliyor...' : 'Gonder'}
+          title={submitting ? 'Gönderiliyor...' : 'Gönder'}
           variant="primary"
           onPress={handleSubmit}
           disabled={savingDraft || submitting}

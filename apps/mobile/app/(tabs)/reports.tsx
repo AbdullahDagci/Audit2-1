@@ -15,7 +15,7 @@ import { formatScore } from '@/lib/scoring';
 
 const screenWidth = Dimensions.get('window').width - 64;
 
-const TURKISH_MONTHS = ['Oca', 'Sub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Agu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+const TURKISH_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
 
 const chartConfig = {
   backgroundColor: '#FFFFFF',
@@ -208,8 +208,8 @@ export default function ReportsScreen() {
       {/* Trend Analysis Line Chart */}
       {trendData && (
         <View style={styles.chartCard}>
-          <Text style={styles.chartTitle}>Aylik Trend Analizi</Text>
-          <Text style={styles.chartSubtitle}>Son aylardaki ortalama denetim puanlari</Text>
+          <Text style={styles.chartTitle}>Aylık Trend Analizi</Text>
+          <Text style={styles.chartSubtitle}>Son aylardaki ortalama denetim puanları</Text>
           <LineChart
             data={trendData}
             width={screenWidth}
@@ -233,9 +233,9 @@ export default function ReportsScreen() {
       {sortedBranches.length === 0 && inspections.length === 0 && (
         <View style={styles.emptyBox}>
           <MaterialIcons name="bar-chart" size={48} color="#E0E0E0" />
-          <Text style={styles.emptyText}>Henuz rapor verisi yok</Text>
+          <Text style={styles.emptyText}>Henüz rapor verisi yok</Text>
           <Text style={styles.emptyHint}>
-            Denetimler tamamlandikca burada raporlar gorunecek
+            Denetimler tamamlandıkça burada raporlar görünecek
           </Text>
         </View>
       )}

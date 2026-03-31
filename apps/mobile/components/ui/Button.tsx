@@ -1,6 +1,10 @@
 import React from 'react';
-import { TouchableOpacity, Text, ActivityIndicator, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { Text, ActivityIndicator, StyleSheet, ViewStyle, Pressable } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Colors } from '@/constants/colors';
+import { haptic } from '@/lib/haptics';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface ButtonProps {
   title: string;
@@ -13,6 +17,8 @@ interface ButtonProps {
 }
 
 export function Button({ title, onPress, variant = 'primary', size = 'md', loading, disabled, style }: ButtonProps) {
+  const scale = useSharedValue(1);
+
   const bgColor = {
     primary: Colors.primary,
     secondary: Colors.primaryLight,
@@ -26,9 +32,28 @@ export function Button({ title, onPress, variant = 'primary', size = 'md', loadi
   const paddingV = { sm: 8, md: 14, lg: 18 }[size];
   const fontSize = { sm: 14, md: 16, lg: 18 }[size];
 
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.96, { damping: 15, stiffness: 300 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+  };
+
+  const handlePress = () => {
+    haptic.light();
+    onPress();
+  };
+
   return (
-    <TouchableOpacity
-      onPress={onPress}
+    <AnimatedPressable
+      onPress={handlePress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       disabled={disabled || loading}
       style={[
         styles.button,
@@ -37,17 +62,22 @@ export function Button({ title, onPress, variant = 'primary', size = 'md', loadi
           paddingVertical: paddingV,
           borderColor,
           borderWidth: variant === 'outline' ? 2 : 0,
+          shadowColor: variant !== 'outline' ? Colors.black : 'transparent',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: variant !== 'outline' ? 0.15 : 0,
+          shadowRadius: 4,
+          elevation: variant !== 'outline' ? 3 : 0,
         },
+        animatedStyle,
         style,
       ]}
-      activeOpacity={0.7}
     >
       {loading ? (
         <ActivityIndicator color={textColor} size="small" />
       ) : (
         <Text style={[styles.text, { color: textColor, fontSize }]}>{title}</Text>
       )}
-    </TouchableOpacity>
+    </AnimatedPressable>
   );
 }
 

@@ -79,8 +79,14 @@ export default function ReportsPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Date filter state
-  const [startDate, setStartDate] = useState("2026-01-01");
-  const [endDate, setEndDate] = useState("2026-03-29");
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 90);
+    return d.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => {
+    return new Date().toISOString().split('T')[0];
+  });
 
   const fetchData = useCallback(async () => {
     try {

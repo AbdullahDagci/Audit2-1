@@ -162,7 +162,7 @@ export const api = {
       body: formData,
     });
 
-    if (!res.ok) throw new Error('Kanit yuklenemedi');
+    if (!res.ok) throw new Error('Kanıt yüklenemedi');
     return res.json();
   },
 
@@ -186,7 +186,7 @@ export const api = {
       body: formData,
     });
 
-    if (!res.ok) throw new Error('Fotograf yuklenemedi');
+    if (!res.ok) throw new Error('Fotoğraf yüklenemedi');
     return res.json();
   },
 

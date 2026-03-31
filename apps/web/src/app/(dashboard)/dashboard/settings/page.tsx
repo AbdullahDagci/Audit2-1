@@ -20,7 +20,7 @@ const SETTINGS_KEY = "user-settings";
 const defaultSettings: UserSettings = {
   companyName: "ERTANSA",
   defaultRadius: "200",
-  language: "Turkce",
+  language: "Türkçe",
   emailNotif: true,
   pushNotif: true,
   criticalAlert: true,
@@ -107,7 +107,7 @@ export default function SettingsPage() {
         if (user.overdueReminder !== undefined) setOverdueReminder(user.overdueReminder);
       })
       .catch(() => {
-        // API'den yuklenemezse localStorage'dan yükle
+        // API'den yüklenemezse localStorage'dan yükle
         const saved = loadSettings();
         setEmailNotif(saved.emailNotif);
         setPushNotif(saved.pushNotif);
@@ -125,7 +125,7 @@ export default function SettingsPage() {
         setManagementEmails(res.emails || []);
       })
       .catch(() => {
-        setErrorMsg("Email listesi yuklenemedi");
+        setErrorMsg("Email listesi yüklenemedi");
       })
       .finally(() => setEmailsLoading(false));
   }, []);
@@ -163,7 +163,7 @@ export default function SettingsPage() {
     } catch {
       // Hata olursa geri al
       setter(currentValue);
-      setErrorMsg("Tercih guncellenemedi");
+      setErrorMsg("Tercih güncellenemedi");
     } finally {
       setPrefsSaving(false);
     }
@@ -181,44 +181,44 @@ export default function SettingsPage() {
       overdueReminder,
     };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    setSuccessMsg("Ayarlar basariyla kaydedildi");
+    setSuccessMsg("Ayarlar başarıyla kaydedildi");
   };
 
   const handleChangePassword = async () => {
     setPasswordError(null);
 
     if (!currentPassword) {
-      setPasswordError("Mevcut sifrenizi girin");
+      setPasswordError("Mevcut şifrenizi girin");
       return;
     }
     if (!newPassword) {
-      setPasswordError("Yeni sifrenizi girin");
+      setPasswordError("Yeni şifrenizi girin");
       return;
     }
     if (newPassword.length < 6) {
-      setPasswordError("Yeni sifre en az 6 karakter olmalidir");
+      setPasswordError("Yeni şifre en az 6 karakter olmalıdır");
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordError("Yeni sifreler eslesmiyor");
+      setPasswordError("Yeni şifreler eşleşmiyor");
       return;
     }
 
     const userId = getUserId();
     if (!userId) {
-      setPasswordError("Kullanici bilgisi bulunamadi. Tekrar giris yapin.");
+      setPasswordError("Kullanıcı bilgisi bulunamadı. Tekrar giriş yapın.");
       return;
     }
 
     setPasswordChanging(true);
     try {
       await api.changePassword(userId, currentPassword, newPassword);
-      setSuccessMsg("Sifreniz basariyla guncellendi");
+      setSuccessMsg("Şifreniz başarıyla güncellendi");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err: any) {
-      setPasswordError(err.message || "Sifre degistirilemedi");
+      setPasswordError(err.message || "Şifre değiştirilemedi");
     } finally {
       setPasswordChanging(false);
     }
@@ -229,11 +229,11 @@ export default function SettingsPage() {
     setEmailError(null);
 
     if (!email) {
-      setEmailError("Email adresi bos olamaz");
+      setEmailError("Email adresi boş olamaz");
       return;
     }
     if (!EMAIL_REGEX.test(email)) {
-      setEmailError("Gecerli bir email adresi girin");
+      setEmailError("Geçerli bir email adresi girin");
       return;
     }
     if (managementEmails.includes(email)) {
@@ -249,7 +249,7 @@ export default function SettingsPage() {
       setNewEmail("");
       setSuccessMsg("Email adresi eklendi");
     } catch (err: any) {
-      setErrorMsg(err.message || "Email eklenirken hata olustu");
+      setErrorMsg(err.message || "Email eklenirken hata oluştu");
     } finally {
       setEmailSaving(false);
     }
@@ -261,9 +261,9 @@ export default function SettingsPage() {
     try {
       await api.updateManagementEmails(updated);
       setManagementEmails(updated);
-      setSuccessMsg("Email adresi kaldirildi");
+      setSuccessMsg("Email adresi kaldırıldı");
     } catch (err: any) {
-      setErrorMsg(err.message || "Email kaldirilamadi");
+      setErrorMsg(err.message || "Email kaldırılamadı");
     } finally {
       setEmailSaving(false);
     }
@@ -273,9 +273,9 @@ export default function SettingsPage() {
     setTestingSendTo(email);
     try {
       await api.sendTestEmail(email);
-      setSuccessMsg(`Test maili ${email} adresine gonderildi`);
+      setSuccessMsg(`Test maili ${email} adresine gönderildi`);
     } catch (err: any) {
-      setErrorMsg(err.message || "Test maili gonderilemedi");
+      setErrorMsg(err.message || "Test maili gönderilemedi");
     } finally {
       setTestingSendTo(null);
     }
@@ -320,23 +320,23 @@ export default function SettingsPage() {
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
         <div className="flex items-center gap-2 mb-1">
           <Mail size={20} className="text-primary-800" />
-          <h3 className="text-lg font-semibold text-gray-900">Yonetim Email Adresleri</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Yönetim Email Adresleri</h3>
         </div>
         <p className="text-sm text-gray-500 mb-5">
-          Denetim raporlari ve bildirimler asagidaki adreslere gonderilir.
+          Denetim raporları ve bildirimler aşağıdaki adreslere gönderilir.
         </p>
 
         {emailsLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 size={24} className="animate-spin text-gray-400" />
-            <span className="ml-2 text-sm text-gray-400">Yukleniyor...</span>
+            <span className="ml-2 text-sm text-gray-400">Yükleniyor...</span>
           </div>
         ) : (
           <>
             {/* Email list */}
             {managementEmails.length === 0 ? (
               <div className="text-center py-6 text-gray-400 text-sm border border-dashed border-gray-200 rounded-lg mb-4">
-                Henuz email adresi eklenmemis
+                Henüz email adresi eklenmemiş
               </div>
             ) : (
               <div className="flex flex-wrap gap-2 mb-4">
@@ -351,7 +351,7 @@ export default function SettingsPage() {
                       onClick={() => handleTestEmail(email)}
                       disabled={testingSendTo === email}
                       className="ml-1 p-0.5 rounded hover:bg-blue-100 text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50"
-                      title="Test maili gonder"
+                      title="Test maili gönder"
                     >
                       {testingSendTo === email ? (
                         <Loader2 size={14} className="animate-spin" />
@@ -363,7 +363,7 @@ export default function SettingsPage() {
                       onClick={() => handleRemoveEmail(email)}
                       disabled={emailSaving}
                       className="p-0.5 rounded hover:bg-red-100 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
-                      title="Kaldir"
+                      title="Kaldır"
                     >
                       <X size={14} />
                     </button>
@@ -413,16 +413,16 @@ export default function SettingsPage() {
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
         <div className="flex items-center gap-2 mb-1">
           <Lock size={20} className="text-primary-800" />
-          <h3 className="text-lg font-semibold text-gray-900">Sifre Degistir</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Şifre Değiştir</h3>
         </div>
         <p className="text-sm text-gray-500 mb-5">
-          Hesabinizin sifresini guncelleyin.
+          Hesabınızın şifresini güncelleyin.
         </p>
 
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mevcut Sifre
+              Mevcut Şifre
             </label>
             <div className="relative">
               <input
@@ -432,7 +432,7 @@ export default function SettingsPage() {
                   setCurrentPassword(e.target.value);
                   setPasswordError(null);
                 }}
-                placeholder="Mevcut sifrenizi girin"
+                placeholder="Mevcut şifrenizi girin"
                 className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none text-sm"
               />
               <button
@@ -447,7 +447,7 @@ export default function SettingsPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Yeni Sifre
+              Yeni Şifre
             </label>
             <div className="relative">
               <input
@@ -457,7 +457,7 @@ export default function SettingsPage() {
                   setNewPassword(e.target.value);
                   setPasswordError(null);
                 }}
-                placeholder="Yeni sifrenizi girin"
+                placeholder="Yeni şifrenizi girin"
                 className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none text-sm"
               />
               <button
@@ -472,7 +472,7 @@ export default function SettingsPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Yeni Sifre Tekrar
+              Yeni Şifre Tekrar
             </label>
             <div className="relative">
               <input
@@ -482,7 +482,7 @@ export default function SettingsPage() {
                   setConfirmPassword(e.target.value);
                   setPasswordError(null);
                 }}
-                placeholder="Yeni sifrenizi tekrar girin"
+                placeholder="Yeni şifrenizi tekrar girin"
                 className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none text-sm"
               />
               <button
@@ -512,7 +512,7 @@ export default function SettingsPage() {
             ) : (
               <Lock size={16} />
             )}
-            Sifreyi Guncelle
+            Şifreyi Güncelle
           </button>
         </div>
       </div>
@@ -522,7 +522,7 @@ export default function SettingsPage() {
         <div className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Sirket Adi
+              Şirket Adı
             </label>
             <input
               type="text"
@@ -533,7 +533,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Varsayilan Geofence Yaricapi (metre)
+              Varsayılan Geofence Yarıçapı (metre)
             </label>
             <input
               type="number"
@@ -542,19 +542,19 @@ export default function SettingsPage() {
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
             />
             <p className="text-xs text-gray-400 mt-1">
-              Denetim lokasyon dogrulamasi icin kullanilir
+              Denetim lokasyon doğrulaması için kullanılır
             </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Varsayilan Dil
+              Varsayılan Dil
             </label>
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
             >
-              <option>Turkce</option>
+              <option>Türkçe</option>
               <option>English</option>
             </select>
           </div>
@@ -567,7 +567,7 @@ export default function SettingsPage() {
           <label className="flex items-center justify-between cursor-pointer">
             <div>
               <p className="text-sm font-medium text-gray-700">E-posta Bildirimleri</p>
-              <p className="text-xs text-gray-400">Denetim sonuclari ve raporlar</p>
+              <p className="text-xs text-gray-400">Denetim sonuçları ve raporlar</p>
             </div>
             <button
               onClick={() => handleTogglePreference("emailNotifications", emailNotif, setEmailNotif)}
@@ -586,7 +586,7 @@ export default function SettingsPage() {
           <label className="flex items-center justify-between cursor-pointer">
             <div>
               <p className="text-sm font-medium text-gray-700">Push Bildirimleri</p>
-              <p className="text-xs text-gray-400">Anlik bildirimler</p>
+              <p className="text-xs text-gray-400">Anlık bildirimler</p>
             </div>
             <button
               onClick={() => handleTogglePreference("pushNotifications", pushNotif, setPushNotif)}
@@ -605,7 +605,7 @@ export default function SettingsPage() {
           <label className="flex items-center justify-between cursor-pointer">
             <div>
               <p className="text-sm font-medium text-gray-700">Kritik Bulgu Uyarilari</p>
-              <p className="text-xs text-gray-400">Kritik bulgularda aninda bildirim</p>
+              <p className="text-xs text-gray-400">Kritik bulgularda anında bildirim</p>
             </div>
             <button
               onClick={() => handleTogglePreference("criticalAlerts", criticalAlert, setCriticalAlert)}
@@ -624,7 +624,7 @@ export default function SettingsPage() {
           <label className="flex items-center justify-between cursor-pointer">
             <div>
               <p className="text-sm font-medium text-gray-700">Haftalik Rapor</p>
-              <p className="text-xs text-gray-400">Her pazartesi haftalik ozet</p>
+              <p className="text-xs text-gray-400">Her pazartesi haftalık özet</p>
             </div>
             <button
               onClick={() => handleTogglePreference("weeklyReport", weeklyReport, setWeeklyReport)}
@@ -642,8 +642,8 @@ export default function SettingsPage() {
           </label>
           <label className="flex items-center justify-between cursor-pointer">
             <div>
-              <p className="text-sm font-medium text-gray-700">Gecikme Hatirlatmalari</p>
-              <p className="text-xs text-gray-400">Planlanmis denetimlerin gecikme uyarilari</p>
+              <p className="text-sm font-medium text-gray-700">Gecikme Hatırlatmaları</p>
+              <p className="text-xs text-gray-400">Planlanmış denetimlerin gecikme uyarıları</p>
             </div>
             <button
               onClick={() => handleTogglePreference("overdueReminder", overdueReminder, setOverdueReminder)}

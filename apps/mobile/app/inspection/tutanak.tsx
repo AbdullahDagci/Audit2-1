@@ -6,6 +6,8 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
+import ToastMessage from 'react-native-toast-message';
+import { haptic } from '@/lib/haptics';
 
 const LABEL_SUGGESTIONS = [
   'Konu',
@@ -105,7 +107,8 @@ export default function TutanakScreen() {
     try {
       if (existingId) {
         await api.updateTutanak(existingId, { title, content });
-        Alert.alert('Kaydedildi', 'Tutanak taslak olarak güncellendi.');
+        haptic.success();
+        ToastMessage.show({ type: 'success', text1: 'Kaydedildi', text2: 'Tutanak taslak olarak güncellendi.' });
       } else {
         const created = await api.createTutanak({
           inspectionId: inspectionId!,
@@ -113,10 +116,12 @@ export default function TutanakScreen() {
           content,
         });
         setExistingId(created.id);
-        Alert.alert('Kaydedildi', 'Tutanak taslak olarak kaydedildi.');
+        haptic.success();
+        ToastMessage.show({ type: 'success', text1: 'Kaydedildi', text2: 'Tutanak taslak olarak kaydedildi.' });
       }
     } catch (err: any) {
-      Alert.alert('Hata', err.message || 'Tutanak kaydedilemedi.');
+      haptic.error();
+      ToastMessage.show({ type: 'error', text1: 'Hata', text2: err.message || 'Tutanak kaydedilemedi.' });
     }
     setSaving(false);
   };
@@ -156,11 +161,12 @@ export default function TutanakScreen() {
               // Sonra gonder
               await api.sendTutanak(id!);
               setIsSent(true);
-              Alert.alert('Gönderildi', 'Tutanak başarıyla gönderildi.', [
-                { text: 'Tamam', onPress: () => router.back() },
-              ]);
+              haptic.success();
+              ToastMessage.show({ type: 'success', text1: 'Gonderildi', text2: 'Tutanak başarıyla gönderildi.' });
+              setTimeout(() => router.back(), 1500);
             } catch (err: any) {
-              Alert.alert('Hata', err.message || 'Tutanak gönderilemedi.');
+              haptic.error();
+              ToastMessage.show({ type: 'error', text1: 'Hata', text2: err.message || 'Tutanak gönderilemedi.' });
             }
             setSending(false);
           },

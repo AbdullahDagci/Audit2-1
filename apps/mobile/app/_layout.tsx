@@ -3,6 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
 import { useAuthStore } from '@/stores/auth-store';
+import { Toast } from '@/components/ui/Toast';
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, initialize } = useAuthStore();
@@ -58,6 +59,7 @@ export default function RootLayout() {
         <Stack.Screen name="notifications" options={{ title: 'Bildirimler' }} />
         <Stack.Screen name="settings" options={{ title: 'Ayarlar' }} />
       </Stack>
+      <Toast />
     </AuthGuard>
   );
 }

@@ -61,9 +61,9 @@ export function formatScore(value: number): string {
 }
 
 export function getScoreLabel(percentage: number): string {
-  if (percentage >= 90) return 'Mukemmel';
-  if (percentage >= 75) return 'Iyi';
+  if (percentage >= 90) return 'Mükemmel';
+  if (percentage >= 75) return 'İyi';
   if (percentage >= 50) return 'Orta';
-  if (percentage >= 25) return 'Zayif';
+  if (percentage >= 25) return 'Zayıf';
   return 'Kritik';
 }

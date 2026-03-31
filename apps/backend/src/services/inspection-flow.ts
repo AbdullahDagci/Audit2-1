@@ -1,10 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../index';
 import { generateInspectionPdfBuffer } from './pdf-generator';
 import { sendEmail, getManagementEmails } from './email';
 import { logActivity } from './activity-logger';
 import { createAndPushNotification } from './push-notification';
-
-const prisma = new PrismaClient();
 
 // Tek fonksiyon: Kritik eksiklikleri tespit et (duplicated kod birleşti)
 function detectCriticalDeficiencies(responses: any[]): any[] {
@@ -22,7 +20,7 @@ function detectCriticalDeficiencies(responses: any[]): any[] {
   });
 }
 
-export async function checkAndFinalizeInspection(inspectionId: string): Promise<boolean> {
+export async function checkAndFinalizeInspection(inspectionId: string, nonCriticalCount?: number): Promise<boolean> {
   const inspection = await prisma.inspection.findUnique({
     where: { id: inspectionId },
     include: {
@@ -94,13 +92,18 @@ export async function checkAndFinalizeInspection(inspectionId: string): Promise<
         ? new Date(inspection.completedAt).toLocaleDateString('tr-TR')
         : new Date().toLocaleDateString('tr-TR');
 
+      const deficiencyNote = nonCriticalCount && nonCriticalCount > 0
+        ? ` (${nonCriticalCount} eksiklik mevcut)`
+        : '';
+
       await sendEmail({
         to: managementEmails,
-        subject: `ERTANSA Denetim Raporu - ${inspection.branch.name} - ${completedDate}`,
+        subject: `ERTANSA Denetim Raporu - ${inspection.branch.name} - ${completedDate}${deficiencyNote}`,
         html: `
           <h2>Denetim Raporu</h2>
           <p><strong>${inspection.branch.name}</strong> şubesinde yapılan denetim tamamlanmıştır.</p>
           <p>Genel Puan: <strong>%${Math.round(Number(inspection.scorePercentage || 0))}</strong></p>
+          ${nonCriticalCount && nonCriticalCount > 0 ? `<p style="color:#E65100;"><strong>⚠ ${nonCriticalCount} adet kritik olmayan eksiklik tespit edilmiştir.</strong></p>` : ''}
           <p>Detaylı rapor ekte sunulmuştur.</p>
           <br>
           <p style="color:#999;font-size:12px;">Bu e-posta ERTANSA Denetim Sistemi tarafından otomatik olarak gönderilmiştir.</p>
@@ -185,9 +188,28 @@ export async function handleInspectionCompleted(inspectionId: string): Promise<v
 
   const criticalDeficiencies = detectCriticalDeficiencies(inspection.responses);
 
+  // Kritik olmayan eksiklikleri de tespit et
+  const nonCriticalDeficiencies = inspection.responses.filter(r => {
+    const item = r.checklistItem;
+    if (!item || item.isCritical) return false;
+    if (item.itemType === 'boolean' && (r.passed === false || r.passed === null)) return true;
+    if (item.itemType === 'score' && (r.score === null || r.score === undefined || r.score < item.maxScore * 0.5)) return true;
+    return false;
+  });
+
   if (criticalDeficiencies.length === 0) {
     // Kritik eksik yok -> hemen finalize et
-    await checkAndFinalizeInspection(inspectionId);
+    await checkAndFinalizeInspection(inspectionId, nonCriticalDeficiencies.length);
+
+    // Kritik olmayan eksiklikler varsa müdürü bilgilendir
+    if (nonCriticalDeficiencies.length > 0 && inspection.branch.managerId) {
+      await createAndPushNotification(
+        inspection.branch.managerId,
+        'Denetim Tamamlandı - Eksiklikler Mevcut',
+        `${inspection.branch.name} şubesindeki denetim tamamlandı ancak ${nonCriticalDeficiencies.length} adet kritik olmayan eksiklik tespit edildi. İncelemenizi rica ederiz.`,
+        { inspectionId, type: 'non_critical_deficiencies', deficiencyCount: nonCriticalDeficiencies.length },
+      );
+    }
   } else {
     // Durumu pending_action yap
     await prisma.inspection.update({

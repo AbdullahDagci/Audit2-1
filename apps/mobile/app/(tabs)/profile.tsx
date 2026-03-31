@@ -24,7 +24,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Sifre degistirme state
+  // Şifre değiştirme state
   const [passwordModal, setPasswordModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -58,15 +58,15 @@ export default function ProfileScreen() {
   useEffect(() => { fetchStats(); }, [fetchStats]);
   const onRefresh = () => { setRefreshing(true); fetchStats(); };
 
-  const name = user?.fullName || 'Kullanici';
+  const name = user?.fullName || 'Kullanıcı';
   const initials = name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
-  const role = user?.role === 'admin' ? 'Yonetici' : user?.role === 'manager' ? 'Mudur' : 'Denetci';
+  const role = user?.role === 'admin' ? 'Yönetici' : user?.role === 'manager' ? 'Müdür' : 'Denetçi';
 
   const handleSignOut = () => {
-    Alert.alert('Cikis', 'Cikis yapmak istediginize emin misiniz?', [
-      { text: 'Iptal', style: 'cancel' },
+    Alert.alert('Çıkış', 'Çıkış yapmak istediğinize emin misiniz?', [
+      { text: 'İptal', style: 'cancel' },
       {
-        text: 'Cikis Yap',
+        text: 'Çıkış Yap',
         style: 'destructive',
         onPress: async () => {
           await signOut();
@@ -78,32 +78,32 @@ export default function ProfileScreen() {
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert('Hata', 'Tum alanlari doldurun');
+      Alert.alert('Hata', 'Tüm alanları doldurun');
       return;
     }
     if (newPassword.length < 6) {
-      Alert.alert('Hata', 'Yeni sifre en az 6 karakter olmalidir');
+      Alert.alert('Hata', 'Yeni şifre en az 6 karakter olmalıdır');
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert('Hata', 'Yeni sifreler eslesmedi');
+      Alert.alert('Hata', 'Yeni şifreler eşleşmedi');
       return;
     }
     if (!user?.id) {
-      Alert.alert('Hata', 'Kullanici bilgisi bulunamadi');
+      Alert.alert('Hata', 'Kullanıcı bilgisi bulunamadı');
       return;
     }
 
     setChangingPassword(true);
     try {
       await api.changePassword(user.id, currentPassword, newPassword);
-      Alert.alert('Basarili', 'Sifreniz basariyla degistirildi');
+      Alert.alert('Başarılı', 'Şifreniz başarıyla değiştirildi');
       setPasswordModal(false);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (e: any) {
-      Alert.alert('Hata', e.message || 'Sifre degistirilemedi');
+      Alert.alert('Hata', e.message || 'Şifre değiştirilemedi');
     }
     setChangingPassword(false);
   };
@@ -155,7 +155,7 @@ export default function ProfileScreen() {
 
         <TouchableOpacity style={styles.row} onPress={openPasswordModal}>
           <MaterialIcons name="lock" size={22} color={TEXT2} />
-          <Text style={styles.rowText}>Sifre Degistir</Text>
+          <Text style={styles.rowText}>Şifre Değiştir</Text>
           <MaterialIcons name="chevron-right" size={22} color={BORDER} />
         </TouchableOpacity>
 
@@ -179,47 +179,47 @@ export default function ProfileScreen() {
 
       <TouchableOpacity style={styles.logoutBtn} onPress={handleSignOut}>
         <MaterialIcons name="logout" size={20} color={WHITE} />
-        <Text style={styles.logoutText}>Cikis Yap</Text>
+        <Text style={styles.logoutText}>Çıkış Yap</Text>
       </TouchableOpacity>
 
-      {/* Sifre Degistirme Modal */}
+      {/* Şifre Değiştirme Modal */}
       <Modal visible={passwordModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Sifre Degistir</Text>
+              <Text style={styles.modalTitle}>Şifre Değiştir</Text>
               <TouchableOpacity onPress={() => setPasswordModal(false)}>
                 <MaterialIcons name="close" size={24} color={TEXT2} />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.inputLabel}>Mevcut Sifre</Text>
+            <Text style={styles.inputLabel}>Mevcut Şifre</Text>
             <TextInput
               style={styles.input}
               value={currentPassword}
               onChangeText={setCurrentPassword}
               secureTextEntry
-              placeholder="Mevcut sifrenizi girin"
+              placeholder="Mevcut şifrenizi girin"
               placeholderTextColor="#999"
             />
 
-            <Text style={styles.inputLabel}>Yeni Sifre</Text>
+            <Text style={styles.inputLabel}>Yeni Şifre</Text>
             <TextInput
               style={styles.input}
               value={newPassword}
               onChangeText={setNewPassword}
               secureTextEntry
-              placeholder="Yeni sifrenizi girin"
+              placeholder="Yeni şifrenizi girin"
               placeholderTextColor="#999"
             />
 
-            <Text style={styles.inputLabel}>Yeni Sifre (Tekrar)</Text>
+            <Text style={styles.inputLabel}>Yeni Şifre (Tekrar)</Text>
             <TextInput
               style={styles.input}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
-              placeholder="Yeni sifrenizi tekrar girin"
+              placeholder="Yeni şifrenizi tekrar girin"
               placeholderTextColor="#999"
             />
 

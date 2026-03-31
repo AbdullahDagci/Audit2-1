@@ -64,7 +64,7 @@ export async function sendEmail(params: SendEmailParams): Promise<{ success: boo
       console.log('Email onizleme URL:', previewUrl);
     }
 
-    console.log('Email gonderildi:', info.messageId);
+    console.log('Email gönderildi:', info.messageId);
     return { success: true, messageId: info.messageId, previewUrl: previewUrl || undefined };
   } catch (error) {
     console.error('Email gonderme hatasi:', error);
@@ -75,10 +75,8 @@ export async function sendEmail(params: SendEmailParams): Promise<{ success: boo
 export async function getManagementEmails(): Promise<string[]> {
   try {
     // Oncelik: DB'den oku
-    const { PrismaClient } = require('@prisma/client');
-    const prisma = new PrismaClient();
+    const { prisma } = require('../index');
     const setting = await prisma.systemSetting.findUnique({ where: { key: 'management_emails' } });
-    await prisma.$disconnect();
     if (setting) {
       const dbEmails: string[] = JSON.parse(setting.value);
       if (dbEmails.length > 0) return dbEmails;

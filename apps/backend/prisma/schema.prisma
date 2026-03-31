@@ -188,6 +188,10 @@ model Inspection {
   actions    CorrectiveAction[]
   tutanaklar Tutanak[]
 
+  @@index([branchId])
+  @@index([inspectorId])
+  @@index([status])
+  @@index([completedAt])
   @@map("inspections")
 }
 

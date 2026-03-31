@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import compression from 'compression';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/auth';
@@ -16,10 +18,21 @@ import correctiveActionRoutes from './routes/corrective-actions';
 import tutanakRoutes from './routes/tutanak';
 import activityLogRoutes from './routes/activity-logs';
 import settingsRoutes from './routes/settings';
+import { startReminderScheduler } from './services/reminder-scheduler';
 
 export const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 4000;
+
+// Security
+app.use(helmet());
+
+// Auth rate limiter
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin.' },
+});
 
 // CORS
 app.use(cors({
@@ -48,7 +61,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
 }));
 
 // Routes
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/branches', branchRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/inspections', inspectionRoutes);
@@ -63,10 +76,22 @@ app.use('/api/activity-logs', activityLogRoutes);
 app.use('/api/settings', settingsRoutes);
 
 // Health check
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/api/health', async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'ok', db: 'connected', timestamp: new Date().toISOString() });
+  } catch {
+    res.status(503).json({ status: 'error', db: 'disconnected', timestamp: new Date().toISOString() });
+  }
 });
 
 app.listen(PORT, () => {
   console.log(`ERTANSA Audit API http://localhost:${PORT} aktif`);
+  startReminderScheduler();
+});
+
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM alındı, kapatılıyor...');
+  await prisma.$disconnect();
+  process.exit(0);
 });

@@ -21,11 +21,11 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
       where.inspectorId = req.userId;
     } else if (req.userRole === 'manager') {
       // Manager sadece yonettigi subelerin denetimlerini gorur
-      where.branch = { ...where.branch, managerId: req.userId };
+      where.branch = { managerId: req.userId };
     }
     if (branchId) where.branchId = branchId;
     if (status) where.status = status;
-    if (facilityType) where.branch = { facilityType };
+    if (facilityType) where.branch = { ...where.branch, facilityType };
 
     const skip = (page - 1) * limit;
     const [inspections, total] = await Promise.all([
@@ -239,7 +239,11 @@ router.post('/:id/complete', authenticate, async (req: AuthRequest, res: Respons
     // Yeni akış: kritik eksik yoksa otomatik tamamla, varsa şube sorumlusuna bildir
     await handleInspectionCompleted(req.params.id as string);
 
-    res.json(updated);
+    // Güncel status'u DB'den çek (handleInspectionCompleted status'u değiştirmiş olabilir)
+    const finalInspection = await prisma.inspection.findUnique({
+      where: { id: req.params.id as string },
+    });
+    res.json(finalInspection);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -257,6 +261,18 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     // Sadece kendi denetimini güncelleyebilir (admin haric)
     if (req.userRole !== 'admin' && inspection.inspectorId !== req.userId) {
       return res.status(403).json({ error: 'Bu denetimi güncelleme yetkiniz yok' });
+    }
+
+    // Durum geçiş kontrolü (state machine)
+    const validTransitions: Record<string, string[]> = {
+      scheduled: ['in_progress', 'draft'],
+      draft: ['in_progress', 'scheduled'],
+      in_progress: ['completed'],
+    };
+    if (req.body.status && validTransitions[inspection.status]) {
+      if (!validTransitions[inspection.status].includes(req.body.status)) {
+        return res.status(400).json({ error: `${inspection.status} durumundan ${req.body.status} durumuna geçiş yapılamaz` });
+      }
     }
 
     // Sadece scheduled veya draft durumdaki denetimler güncellenebilir

@@ -40,10 +40,10 @@ interface Template {
 }
 
 const ITEM_TYPES = [
-  { value: "boolean", label: "Evet/Hayir" },
+  { value: "boolean", label: "Evet/Hayır" },
   { value: "score", label: "Puan (0-10)" },
   { value: "text", label: "Metin" },
-  { value: "photo_required", label: "Fotograf Zorunlu" },
+  { value: "photo_required", label: "Fotoğraf Zorunlu" },
 ];
 
 export default function TemplateDetailPage() {
@@ -202,7 +202,7 @@ export default function TemplateDetailPage() {
   }
 
   if (!template) {
-    return <div className="text-center py-24 text-red-600">Sablon bulunamadı</div>;
+    return <div className="text-center py-24 text-red-600">Şablon bulunamadı</div>;
   }
 
   const totalItems = template.categories.reduce((s, c) => s + c.items.length, 0);
@@ -257,7 +257,7 @@ export default function TemplateDetailPage() {
                   <div className="flex-1">
                     <span className="font-medium text-gray-900">{category.name}</span>
                     <span className="text-xs text-gray-500 ml-2">
-                      ({category.items.length} madde · agirlik: {Number(category.weight).toFixed(1)})
+                      ({category.items.length} madde · ağırlık: {Number(category.weight).toFixed(1)})
                     </span>
                   </div>
                   <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
@@ -349,7 +349,7 @@ export default function TemplateDetailPage() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Kategori Adi</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Kategori Adı</label>
             <input
               type="text"
               value={catForm.name}
@@ -359,7 +359,7 @@ export default function TemplateDetailPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Agirlik</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Ağırlık</label>
             <input
               type="number"
               step="0.1"
@@ -368,7 +368,7 @@ export default function TemplateDetailPage() {
               onChange={(e) => setCatForm({ ...catForm, weight: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
-            <p className="text-xs text-gray-400 mt-1">Yuksek agirlik = puanlamada daha etkili</p>
+            <p className="text-xs text-gray-400 mt-1">Yüksek ağırlık = puanlamada daha etkili</p>
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <button onClick={() => setCatModal({ open: false })} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
@@ -404,7 +404,7 @@ export default function TemplateDetailPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Yanit Tipi</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Yanıt Tipi</label>
               <select
                 value={itemForm.itemType}
                 onChange={(e) => setItemForm({ ...itemForm, itemType: e.target.value })}
@@ -444,11 +444,11 @@ export default function TemplateDetailPage() {
                 onChange={(e) => setItemForm({ ...itemForm, photoRequired: e.target.checked })}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              <span className="text-blue-700 font-medium">Fotograf Zorunlu</span>
+              <span className="text-blue-700 font-medium">Fotoğraf Zorunlu</span>
             </label>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Yardim Metni (opsiyonel)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Yardım Metni (opsiyonel)</label>
             <input
               type="text"
               value={itemForm.helpText}
@@ -479,7 +479,7 @@ export default function TemplateDetailPage() {
         title={deleteTarget?.type === "category" ? "Kategoriyi Sil" : "Maddeyi Sil"}
       >
         <p className="text-sm text-gray-600 mb-6">
-          <strong>{deleteTarget?.name}</strong> {deleteTarget?.type === "category" ? "kategorisini ve içindeki tum maddeleri" : "maddesini"} silmek istediğinize emin misiniz?
+          <strong>{deleteTarget?.name}</strong> {deleteTarget?.type === "category" ? "kategorisini ve içindeki tüm maddeleri" : "maddesini"} silmek istediğinize emin misiniz?
         </p>
         <div className="flex justify-end gap-3">
           <button onClick={() => setDeleteTarget(null)} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">

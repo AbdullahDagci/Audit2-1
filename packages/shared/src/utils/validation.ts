@@ -82,9 +82,9 @@ export function formatRelativeDate(dateStr: string): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return 'Az once';
-  if (diffMins < 60) return `${diffMins} dakika once`;
-  if (diffHours < 24) return `${diffHours} saat once`;
-  if (diffDays < 7) return `${diffDays} gun once`;
+  if (diffMins < 1) return 'Az önce';
+  if (diffMins < 60) return `${diffMins} dakika önce`;
+  if (diffHours < 24) return `${diffHours} saat önce`;
+  if (diffDays < 7) return `${diffDays} gün önce`;
   return formatDateTR(dateStr);
 }

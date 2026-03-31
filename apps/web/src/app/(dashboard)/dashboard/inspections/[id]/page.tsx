@@ -892,7 +892,7 @@ export default function InspectionDetailPage() {
                             >
                               <img
                                 src={photoUrl(existingAction.evidence_photo_path)}
-                                alt="Kanit"
+                                alt="Kanıt"
                                 className="h-24 w-auto object-cover rounded-lg"
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).style.display = "none";
