@@ -218,40 +218,43 @@ export default function NewInspectionScreen() {
         />
       )}
 
-      {/* Alt bar */}
-      {selectedBranch && (
+      {/* Sablon secimi - sube secildiginde gorunur */}
+      {selectedBranch && templates.length > 0 && (
+        <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#424242', marginBottom: 8 }}>Denetim Sablonu</Text>
+          {templates.map((t: any) => (
+            <TouchableOpacity
+              key={t.id}
+              style={[
+                styles.branchCard,
+                { marginBottom: 8, borderWidth: 2 },
+                selectedTemplate?.id === t.id
+                  ? { borderColor: '#2E7D32', backgroundColor: '#F1F8E9' }
+                  : { borderColor: 'transparent' },
+              ]}
+              onPress={() => setSelectedTemplate(t)}
+            >
+              <View style={styles.branchRow}>
+                <View style={[styles.radioOuter, selectedTemplate?.id === t.id && { borderColor: '#2E7D32' }]}>
+                  {selectedTemplate?.id === t.id && <View style={styles.radioInner} />}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.branchName}>{t.name}</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {/* Alt bar - sube ve sablon secildiginde gorunur */}
+      {selectedBranch && selectedTemplate && (
         <View style={styles.bottomBar}>
           <View style={styles.selectedInfo}>
             <MaterialIcons name="store" size={18} color="#2E7D32" />
             <Text style={styles.selectedName}>{selectedBranch.name}</Text>
+            <Text style={{ fontSize: 12, color: '#757575', marginLeft: 4 }}>• {selectedTemplate.name}</Text>
           </View>
-
-          {/* Sablon secimi */}
-          {templates.length > 1 && (
-            <View style={{ marginBottom: 8 }}>
-              <Text style={{ fontSize: 12, color: '#757575', marginBottom: 6 }}>Sablon Secin</Text>
-              {templates.map((t: any) => (
-                <TouchableOpacity
-                  key={t.id}
-                  style={[
-                    styles.branchCard,
-                    { marginBottom: 6, padding: 10, borderWidth: 2 },
-                    selectedTemplate?.id === t.id
-                      ? { borderColor: '#2E7D32', backgroundColor: '#F1F8E9' }
-                      : { borderColor: 'transparent' },
-                  ]}
-                  onPress={() => setSelectedTemplate(t)}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <View style={[styles.radioOuter, selectedTemplate?.id === t.id && { borderColor: '#2E7D32' }]}>
-                      {selectedTemplate?.id === t.id && <View style={styles.radioInner} />}
-                    </View>
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#212121' }}>{t.name}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
 
           {/* Tarih secici */}
           <TouchableOpacity style={styles.dateRow} onPress={() => setShowDatePicker(true)}>

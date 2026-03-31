@@ -193,55 +193,57 @@ export default function NewInspectionPage() {
         )}
       </div>
 
-      {/* Alt bar - sube secildiginde gorunur */}
-      {selectedBranch && (
+      {/* Sablon secimi - sube secildiginde gorunur */}
+      {selectedBranch && templates.length > 0 && (
+        <div>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Denetim Sablonu</h3>
+          <div className="grid gap-3">
+            {templates.map((t: any) => {
+              const isSelected = selectedTemplate?.id === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setSelectedTemplate(t)}
+                  className={`flex items-center gap-4 p-4 rounded-2xl text-left transition-all duration-300 ease-ios ${
+                    isSelected
+                      ? "bg-primary-50 border-2 border-primary-800 shadow-soft"
+                      : "bg-white border-2 border-transparent shadow-soft hover:border-primary-200"
+                  }`}
+                >
+                  <div
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                      isSelected ? "border-primary-800" : "border-gray-300"
+                    }`}
+                  >
+                    {isSelected && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-primary-800" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900">{t.name}</p>
+                    {t.facilityType && (
+                      <p className="text-xs text-gray-500 mt-0.5">{t.facilityType}</p>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Alt bar - sube ve sablon secildiginde gorunur */}
+      {selectedBranch && selectedTemplate && (
         <div className="sticky bottom-0 bg-white/95 backdrop-blur-sm border-t border-gray-100 -mx-6 px-6 py-4 mt-6 rounded-b-2xl">
-          {/* Secili sube bilgisi */}
+          {/* Secili bilgiler */}
           <div className="flex items-center gap-2 mb-3">
             <Store size={16} className="text-primary-800" />
             <span className="text-sm font-semibold text-primary-800">
               {selectedBranch.name}
             </span>
+            <span className="text-xs text-gray-400">•</span>
+            <span className="text-xs text-gray-500">{selectedTemplate.name}</span>
           </div>
-
-          {/* Sablon secimi */}
-          {templates.length > 1 ? (
-            <div className="mb-3">
-              <label className="text-xs font-medium text-gray-500 mb-1.5 block">
-                Sablon Secin
-              </label>
-              <div className="grid gap-2">
-                {templates.map((t: any) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setSelectedTemplate(t)}
-                    className={`flex items-center gap-3 p-3 rounded-xl text-left text-sm transition-all duration-200 ${
-                      selectedTemplate?.id === t.id
-                        ? "bg-primary-50 border-2 border-primary-800"
-                        : "bg-gray-50 border-2 border-transparent hover:border-gray-200"
-                    }`}
-                  >
-                    <div
-                      className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                        selectedTemplate?.id === t.id
-                          ? "border-primary-800"
-                          : "border-gray-300"
-                      }`}
-                    >
-                      {selectedTemplate?.id === t.id && (
-                        <div className="w-2 h-2 rounded-full bg-primary-800" />
-                      )}
-                    </div>
-                    <span className="font-medium text-gray-800">{t.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : selectedTemplate ? (
-            <div className="mb-3 text-xs text-gray-400">
-              Sablon: {selectedTemplate.name}
-            </div>
-          ) : null}
 
           {/* Tarih secici */}
           <div className="flex items-center gap-3 bg-blue-50 rounded-xl px-4 py-3 mb-3">
