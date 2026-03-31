@@ -30,7 +30,7 @@ app.use(helmet());
 // Auth rate limiter
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 15,
   message: { error: 'Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin.' },
 });
 

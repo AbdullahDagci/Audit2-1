@@ -7,7 +7,7 @@ async function main() {
   console.log('Seed başlatıyor...');
 
   // Admin kullanıcı oluştur
-  const adminPassword = await bcrypt.hash('admin123', 10);
+  const adminPassword = await bcrypt.hash('123456', 10);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@ertansa.com' },
     update: {},
@@ -21,7 +21,7 @@ async function main() {
   });
 
   // Denetçi kullanıcı
-  const inspectorPassword = await bcrypt.hash('denetci123', 10);
+  const inspectorPassword = await bcrypt.hash('123456', 10);
   const inspector = await prisma.user.upsert({
     where: { email: 'denetci@ertansa.com' },
     update: {},
@@ -35,7 +35,7 @@ async function main() {
   });
 
   // Şube sorumlusu (manager) kullanıcı
-  const managerPassword = await bcrypt.hash('mudur123', 10);
+  const managerPassword = await bcrypt.hash('123456', 10);
   const manager = await prisma.user.upsert({
     where: { email: 'mudur@ertansa.com' },
     update: {},
@@ -196,6 +196,170 @@ async function main() {
       ]},
     },
   });
+
+  // AHIR DENETİM ŞABLONU
+  await prisma.checklistTemplate.create({
+    data: {
+      facilityType: 'ahir', name: 'Ahır Genel Denetim', totalMaxScore: 250,
+      categories: { create: [
+        { name: 'Hayvan Sağlığı', sortOrder: 1, weight: 2.0, items: { create: [
+          { questionText: 'Hayvanların genel sağlık durumu iyi mi?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 1 },
+          { questionText: 'Hasta veya yaralı hayvan var mı?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 2 },
+          { questionText: 'Hayvanların hareket alanı yeterli mi?', maxScore: 10, sortOrder: 3 },
+          { questionText: 'Hayvan bakım programı uygulanıyor mu?', maxScore: 10, sortOrder: 4 },
+          { questionText: 'Aşı ve ilaç kayıtları düzenli tutuluyor mu?', maxScore: 10, isCritical: true, sortOrder: 5 },
+        ]}},
+        { name: 'Temizlik ve Bakım', sortOrder: 2, weight: 1.5, items: { create: [
+          { questionText: 'Ahır zemini temiz mi?', maxScore: 10, photoRequired: true, sortOrder: 1 },
+          { questionText: 'Altlık malzemesi yeterli ve temiz mi?', maxScore: 10, sortOrder: 2 },
+          { questionText: 'Dışkı temizliği düzenli yapılıyor mu?', maxScore: 10, sortOrder: 3 },
+          { questionText: 'Havalandırma yeterli mi?', maxScore: 10, sortOrder: 4 },
+          { questionText: 'Koku problemi var mı?', maxScore: 10, sortOrder: 5 },
+        ]}},
+        { name: 'Yem ve Su Düzeni', sortOrder: 3, weight: 2.0, items: { create: [
+          { questionText: 'Yem kalitesi uygun mu?', maxScore: 10, isCritical: true, sortOrder: 1 },
+          { questionText: 'Yemliklerin temizliği yapılmış mı?', maxScore: 10, photoRequired: true, sortOrder: 2 },
+          { questionText: 'Temiz su sürekli erişilebilir mi?', maxScore: 10, isCritical: true, sortOrder: 3 },
+          { questionText: 'Suluklar temiz ve çalışır durumda mı?', maxScore: 10, sortOrder: 4 },
+          { questionText: 'Yem stoku yeterli mi?', maxScore: 10, sortOrder: 5 },
+        ]}},
+        { name: 'Alan Yoğunluğu', sortOrder: 4, weight: 1.5, items: { create: [
+          { questionText: 'Hayvan başına düşen alan yeterli mi?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 1 },
+          { questionText: 'Sıkışıklık veya stres belirtisi var mı?', maxScore: 10, sortOrder: 2 },
+          { questionText: 'Bölümleme (yaş/cinsiyet ayrımı) yapılmış mı?', maxScore: 10, sortOrder: 3 },
+          { questionText: 'Karantina alanı mevcut mu?', maxScore: 10, sortOrder: 4 },
+        ]}},
+        { name: 'Veteriner Kontrol', sortOrder: 5, weight: 2.0, items: { create: [
+          { questionText: 'Düzenli veteriner ziyareti yapılıyor mu?', maxScore: 10, isCritical: true, sortOrder: 1 },
+          { questionText: 'Son veteriner kontrol tarihi uygun mu?', maxScore: 10, isCritical: true, sortOrder: 2 },
+          { questionText: 'Veteriner raporları dosyalanmış mı?', maxScore: 10, photoRequired: true, sortOrder: 3 },
+          { questionText: 'İlaç ve tedavi kayıtları tutulmuş mu?', maxScore: 10, sortOrder: 4 },
+          { questionText: 'Acil müdahale planı mevcut mu?', maxScore: 10, sortOrder: 5 },
+        ]}},
+      ]},
+    },
+  });
+
+  // YUFKA ÜRETİM DENETİM ŞABLONU
+  await prisma.checklistTemplate.create({
+    data: {
+      facilityType: 'yufka', name: 'Yufka Üretim Denetimi', totalMaxScore: 280,
+      categories: { create: [
+        { name: 'Üretim Hijyeni', sortOrder: 1, weight: 2.0, items: { create: [
+          { questionText: 'Üretim alanı hijyen standartlarına uygun mu?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 1 },
+          { questionText: 'Üretim ekipmanları sterilize edilmiş mi?', maxScore: 10, isCritical: true, sortOrder: 2 },
+          { questionText: 'Üretim sırasında kontaminasyon riski var mı?', maxScore: 10, isCritical: true, sortOrder: 3 },
+          { questionText: 'Üretim ortam sıcaklığı uygun mu?', maxScore: 10, sortOrder: 4 },
+          { questionText: 'Haşere kontrolü yapılıyor mu?', maxScore: 10, isCritical: true, sortOrder: 5 },
+        ]}},
+        { name: 'Kullanılan Malzemeler', sortOrder: 2, weight: 2.0, items: { create: [
+          { questionText: 'Hammadde kalite kontrolü yapılmış mı?', maxScore: 10, isCritical: true, sortOrder: 1 },
+          { questionText: 'Malzeme son kullanma tarihleri kontrol edilmiş mi?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 2 },
+          { questionText: 'Malzeme depolama koşulları uygun mu?', maxScore: 10, sortOrder: 3 },
+          { questionText: 'Tedarikçi sertifikaları mevcut mu?', maxScore: 10, sortOrder: 4 },
+          { questionText: 'Su kalitesi analiz edilmiş mi?', maxScore: 10, sortOrder: 5 },
+        ]}},
+        { name: 'Personel Hijyen Kuralları', sortOrder: 3, weight: 1.5, items: { create: [
+          { questionText: 'Personel bone/kep takıyor mu?', maxScore: 10, photoRequired: true, sortOrder: 1 },
+          { questionText: 'Personel eldiven kullanıyor mu?', maxScore: 10, photoRequired: true, sortOrder: 2 },
+          { questionText: 'El yıkama prosedürüne uyuluyor mu?', maxScore: 10, isCritical: true, sortOrder: 3 },
+          { questionText: 'Personel sağlık muayeneleri güncel mi?', maxScore: 10, isCritical: true, sortOrder: 4 },
+          { questionText: 'Personel kıyafetleri temiz ve uygun mu?', maxScore: 10, sortOrder: 5 },
+        ]}},
+        { name: 'Üretim Alanı Temizliği', sortOrder: 4, weight: 1.5, items: { create: [
+          { questionText: 'Zemin temiz ve kuru mu?', maxScore: 10, photoRequired: true, sortOrder: 1 },
+          { questionText: 'Tezgahlar ve yüzeyler dezenfekte edilmiş mi?', maxScore: 10, isCritical: true, sortOrder: 2 },
+          { questionText: 'Atık ve çöp düzeni sağlanmış mı?', maxScore: 10, sortOrder: 3 },
+          { questionText: 'Temizlik malzemeleri uygun yerde mi?', maxScore: 10, sortOrder: 4 },
+          { questionText: 'Temizlik programı/takvimi mevcut mu?', maxScore: 10, sortOrder: 5 },
+        ]}},
+        { name: 'Paketleme Düzeni', sortOrder: 5, weight: 1.5, items: { create: [
+          { questionText: 'Paketleme malzemesi hijyenik mi?', maxScore: 10, isCritical: true, sortOrder: 1 },
+          { questionText: 'Etiketleme doğru yapılmış mı?', maxScore: 10, sortOrder: 2 },
+          { questionText: 'Paketleme alanı temiz ve düzenli mi?', maxScore: 10, photoRequired: true, sortOrder: 3 },
+          { questionText: 'Ürün gramajları kontrol edilmiş mi?', maxScore: 10, sortOrder: 4 },
+          { questionText: 'Paketlenmiş ürünlerin depolanması uygun mu?', maxScore: 10, sortOrder: 5 },
+        ]}},
+      ]},
+    },
+  });
+
+  // DEPO DENETİM ŞABLONU
+  await prisma.checklistTemplate.create({
+    data: {
+      facilityType: 'depo', name: 'Depo Genel Denetim', totalMaxScore: 300,
+      categories: { create: [
+        { name: 'Ürün Yerleşim Düzeni', sortOrder: 1, weight: 1.5, items: { create: [
+          { questionText: 'Ürünler kategorilerine göre düzenli yerleştirilmiş mi?', maxScore: 10, photoRequired: true, sortOrder: 1 },
+          { questionText: 'Raf etiketleri doğru ve güncel mi?', maxScore: 10, sortOrder: 2 },
+          { questionText: 'Yürüme yolları açık ve engelsiz mi?', maxScore: 10, sortOrder: 3 },
+          { questionText: 'Ağır ürünler alt raflarda mı?', maxScore: 10, sortOrder: 4 },
+          { questionText: 'Depo kapasitesi aşılmış mı?', maxScore: 10, sortOrder: 5 },
+        ]}},
+        { name: 'FIFO Kontrolü', sortOrder: 2, weight: 2.0, items: { create: [
+          { questionText: 'İlk giren ilk çıkar kuralına uyuluyor mu?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 1 },
+          { questionText: 'Ürün tarihleri kontrol edilmiş mi?', maxScore: 10, isCritical: true, sortOrder: 2 },
+          { questionText: 'Eski tarihli ürünler öne alınmış mı?', maxScore: 10, sortOrder: 3 },
+          { questionText: 'Son kullanma tarihi geçmiş ürün var mı?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 4 },
+          { questionText: 'FIFO etiketleme sistemi kullanılıyor mu?', maxScore: 10, sortOrder: 5 },
+        ]}},
+        { name: 'Sıcaklık ve Nem Kontrolü', sortOrder: 3, weight: 2.0, items: { create: [
+          { questionText: 'Depo sıcaklığı uygun aralıkta mı?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 1 },
+          { questionText: 'Sıcaklık kayıtları düzenli tutuluyor mu?', maxScore: 10, isCritical: true, sortOrder: 2 },
+          { questionText: 'Nem oranı kontrol ediliyor mu?', maxScore: 10, sortOrder: 3 },
+          { questionText: 'Soğuk hava deposu çalışır durumda mı?', maxScore: 10, isCritical: true, sortOrder: 4 },
+          { questionText: 'Havalandırma sistemi yeterli mi?', maxScore: 10, sortOrder: 5 },
+        ]}},
+        { name: 'Hasarlı Ürün Kontrolü', sortOrder: 4, weight: 1.5, items: { create: [
+          { questionText: 'Hasarlı/ezik ürün var mı?', maxScore: 10, photoRequired: true, sortOrder: 1 },
+          { questionText: 'Hasarlı ürünler ayrılmış mı?', maxScore: 10, sortOrder: 2 },
+          { questionText: 'İade/imha prosedürü uygulanıyor mu?', maxScore: 10, sortOrder: 3 },
+          { questionText: 'Hasar kayıtları tutuluyor mu?', maxScore: 10, sortOrder: 4 },
+          { questionText: 'Ambalaj bütünlüğü kontrol edilmiş mi?', maxScore: 10, sortOrder: 5 },
+        ]}},
+        { name: 'Stok Doğruluğu', sortOrder: 5, weight: 1.5, items: { create: [
+          { questionText: 'Fiziksel stok ile sistem stoku uyumlu mu?', maxScore: 10, isCritical: true, sortOrder: 1 },
+          { questionText: 'Sayım kayıtları güncel mi?', maxScore: 10, sortOrder: 2 },
+          { questionText: 'Eksik/fazla stok tespit edilmiş mi?', maxScore: 10, sortOrder: 3 },
+          { questionText: 'Stok giriş/çıkış kayıtları düzenli mi?', maxScore: 10, sortOrder: 4 },
+          { questionText: 'Kritik stok seviyesi takip ediliyor mu?', maxScore: 10, sortOrder: 5 },
+        ]}},
+      ]},
+    },
+  });
+
+  // KESİMHANE - Eksik kategori ekle (Kesim Standartları)
+  const kesimhaneTemplate = await prisma.checklistTemplate.findFirst({ where: { facilityType: 'kesimhane' } });
+  if (kesimhaneTemplate) {
+    await prisma.checklistCategory.create({
+      data: {
+        templateId: kesimhaneTemplate.id, name: 'Kesim Standartları', sortOrder: 4, weight: 2.0,
+        items: { create: [
+          { questionText: 'Kesim öncesi hayvan dinlendirme süresi uygun mu?', maxScore: 10, isCritical: true, sortOrder: 1 },
+          { questionText: 'Kesim işlemi standartlara uygun yapılıyor mu?', maxScore: 10, isCritical: true, photoRequired: true, sortOrder: 2 },
+          { questionText: 'Kesim sonrası muayene yapılıyor mu?', maxScore: 10, isCritical: true, sortOrder: 3 },
+          { questionText: 'Kesim aletleri sterilize ediliyor mu?', maxScore: 10, sortOrder: 4 },
+        ]},
+      },
+    });
+  }
+
+  // İSG - Eksik kategori ekle (Kaygan Zemin / Riskli Alanlar)
+  const isgTemplate = await prisma.checklistTemplate.findFirst({ where: { name: { contains: 'ISG' } } });
+  if (isgTemplate) {
+    await prisma.checklistCategory.create({
+      data: {
+        templateId: isgTemplate.id, name: 'Kaygan Zemin ve Riskli Alanlar', sortOrder: 6, weight: 1.5,
+        items: { create: [
+          { questionText: 'Kaygan zemin uyarı işaretleri mevcut mu?', maxScore: 10, photoRequired: true, sortOrder: 1 },
+          { questionText: 'Islak/kaygan alanlar için önlem alınmış mı?', maxScore: 10, isCritical: true, sortOrder: 2 },
+          { questionText: 'Riskli alanlar işaretlenmiş mi?', maxScore: 10, photoRequired: true, sortOrder: 3 },
+          { questionText: 'Merdiven ve rampa güvenliği sağlanmış mı?', maxScore: 10, sortOrder: 4 },
+          { questionText: 'Zemin kaplaması uygun durumda mı?', maxScore: 10, sortOrder: 5 },
+        ]},
+      },
+    });
+  }
 
   console.log('Şablonlar oluşturuldu');
 
@@ -482,9 +646,9 @@ async function main() {
 
   console.log('---');
   console.log('Giriş bilgileri:');
-  console.log('  Admin:    admin@ertansa.com / admin123');
-  console.log('  Müdür:    mudur@ertansa.com / mudur123');
-  console.log('  Denetçi:  denetci@ertansa.com / denetci123');
+  console.log('  Admin:    admin@ertansa.com / 123456');
+  console.log('  Müdür:    mudur@ertansa.com / 123456');
+  console.log('  Denetçi:  denetci@ertansa.com / 123456');
 }
 
 main()

@@ -18,13 +18,13 @@ import {
 
 const MONTH_LABELS: Record<number, string> = {
   0: "Oca",
-  1: "Şub",
+  1: "Sub",
   2: "Mar",
   3: "Nis",
   4: "May",
   5: "Haz",
   6: "Tem",
-  7: "Ağu",
+  7: "Agu",
   8: "Eyl",
   9: "Eki",
   10: "Kas",
@@ -135,8 +135,8 @@ export default function ReportsPage() {
       // Category analysis placeholder
       setCategoryData([]);
     } catch (err: any) {
-      console.error("Rapor verileri yüklenirken hata:", err);
-      setError(err.message || "Veriler yüklenirken bir hata oluştu");
+      console.error("Rapor verileri yuklenirken hata:", err);
+      setError(err.message || "Veriler yuklenirken bir hata olustu");
     } finally {
       setLoading(false);
     }
@@ -152,10 +152,10 @@ export default function ReportsPage() {
 
     if (activeTab === "comparison") {
       dataToExport = branches.map((b) => ({
-        "Şube Adı": b.name,
+        "Sube Adi": b.name,
         "Puan": b.score,
       }));
-      filename = `sube-karsilastirma_${startDate}_${endDate}.csv`; // dosya adi ASCII kalmali
+      filename = `sube-karsilastirma_${startDate}_${endDate}.csv`;
     } else if (activeTab === "trend") {
       dataToExport = trendData.map((t) => ({
         "Ay": t.month,
@@ -171,7 +171,7 @@ export default function ReportsPage() {
     }
 
     if (dataToExport.length === 0) {
-      alert("Dışarı aktarılacak veri bulunamadı");
+      alert("Disari aktarilacak veri bulunamadi");
       return;
     }
 
@@ -180,7 +180,7 @@ export default function ReportsPage() {
   };
 
   const tabs: { key: TabType; label: string }[] = [
-    { key: "comparison", label: "Şube Karşılaştırma" },
+    { key: "comparison", label: "Sube Karsilastirma" },
     { key: "trend", label: "Trend Analizi" },
     { key: "category", label: "Kategori Analizi" },
   ];
@@ -189,7 +189,7 @@ export default function ReportsPage() {
     return (
       <div className="flex items-center justify-center h-96">
         <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
-        <span className="ml-3 text-gray-600">Rapor verileri yükleniyor...</span>
+        <span className="ml-3 text-gray-600">Rapor verileri yukleniyor...</span>
       </div>
     );
   }
@@ -212,25 +212,25 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-4">
-          <div>
-            <label className="text-sm text-gray-500 mr-2">Başlangıç:</label>
+        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <label className="text-sm text-gray-500 hidden sm:inline">Baslangic:</label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
+              className="px-2 sm:px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
             />
           </div>
-          <div>
-            <label className="text-sm text-gray-500 mr-2">Bitiş:</label>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <label className="text-sm text-gray-500 hidden sm:inline">Bitis:</label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
+              className="px-2 sm:px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
             />
           </div>
         </div>
@@ -240,17 +240,18 @@ export default function ReportsPage() {
             className="flex items-center gap-2 px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800 transition-colors"
           >
             <Download size={16} />
-            Dışarı Aktar (CSV)
+            <span className="hidden sm:inline">Disari Aktar (CSV)</span>
+            <span className="sm:hidden">CSV</span>
           </button>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 border-b border-gray-200">
+      <div className="flex items-center gap-2 border-b border-gray-200 overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeTab === tab.key
                 ? "border-primary-800 text-primary-800"
                 : "border-transparent text-gray-500 hover:text-gray-700"
@@ -261,30 +262,30 @@ export default function ReportsPage() {
         ))}
       </div>
 
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100">
         {activeTab === "comparison" && (
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Şube Karşılaştırma</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Sube Karsilastirma</h3>
             <BranchComparison branches={branches} />
           </div>
         )}
 
         {activeTab === "trend" && (
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Trend Analizi</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Trend Analizi</h3>
             <TrendAnalysis data={trendData} />
           </div>
         )}
 
         {activeTab === "category" && (
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Kategori Analizi</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Kategori Analizi</h3>
             {categoryData.length === 0 ? (
-              <div className="flex items-center justify-center h-64 text-gray-500">
-                Kategori analizi için yeterli veri bulunmuyor.
+              <div className="flex items-center justify-center h-48 sm:h-64 text-gray-500">
+                Kategori analizi icin yeterli veri bulunmuyor.
               </div>
             ) : (
-              <div className="h-96">
+              <div className="h-64 sm:h-80 lg:h-96">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={categoryData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />

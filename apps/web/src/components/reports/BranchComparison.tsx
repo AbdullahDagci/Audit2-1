@@ -22,8 +22,8 @@ interface BranchComparisonProps {
 export default function BranchComparison({ branches }: BranchComparisonProps) {
   if (branches.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-500">
-        Karşılaştırılacak şube verisi bulunamadı.
+      <div className="flex items-center justify-center h-48 sm:h-64 text-gray-500">
+        Karsilastirilacak sube verisi bulunamadi.
       </div>
     );
   }
@@ -31,7 +31,7 @@ export default function BranchComparison({ branches }: BranchComparisonProps) {
   const sorted = [...branches].sort((a, b) => b.score - a.score);
 
   return (
-    <div className="h-96">
+    <div className="h-64 sm:h-80 lg:h-96">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={sorted}

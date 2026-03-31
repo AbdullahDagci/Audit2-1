@@ -1,7 +1,6 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Bell } from "lucide-react";
 import Sidebar from "@/components/ui/Sidebar";
 
 const pageTitles: Record<string, string> = {
@@ -15,6 +14,7 @@ const pageTitles: Record<string, string> = {
   "/dashboard/settings": "Ayarlar",
   "/dashboard/manager": "Şube Paneli",
   "/dashboard/activity-logs": "Aktivite Kayıtları",
+  "/dashboard/notifications": "Bildirimler",
 };
 
 export default function DashboardLayout({
@@ -32,22 +32,15 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="ml-64">
-        <header className="sticky top-0 z-30 bg-white border-b border-gray-200 px-8 py-4">
+      {/* lg: sidebar 256px açık, mobilde sidebar overlay */}
+      <div className="lg:ml-64">
+        <header className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
-            <div className="flex items-center gap-4">
-              <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <Bell size={20} className="text-gray-600" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-              </button>
-              <div className="w-9 h-9 rounded-full bg-primary-800 flex items-center justify-center text-white text-sm font-bold">
-                AY
-              </div>
-            </div>
+            {/* Mobilde hamburger için boşluk */}
+            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 pl-10 lg:pl-0">{title}</h1>
           </div>
         </header>
-        <main className="p-8">{children}</main>
+        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );

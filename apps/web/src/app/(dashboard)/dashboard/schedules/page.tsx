@@ -63,16 +63,16 @@ function getStatusInfo(daysRemaining: number): {
   variant: "danger" | "warning" | "success";
 } {
   if (daysRemaining < 0) {
-    return { label: "Gecikmiş", variant: "danger" };
+    return { label: "Gecikmis", variant: "danger" };
   }
   if (daysRemaining <= 7) {
-    return { label: "Yaklaşan", variant: "warning" };
+    return { label: "Yaklasan", variant: "warning" };
   }
-  return { label: "Zamanında", variant: "success" };
+  return { label: "Zamaninda", variant: "success" };
 }
 
 function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "—";
+  if (!dateStr) return "\u2014";
   const d = new Date(dateStr);
   return d.toLocaleDateString("tr-TR");
 }
@@ -108,7 +108,7 @@ export default function SchedulesPage() {
         setError(null);
       })
       .catch((err) => {
-        setError(err.message || "Planlar yüklenirken hata oluştu");
+        setError(err.message || "Planlar yuklenirken hata olustu");
       })
       .finally(() => {
         setLoading(false);
@@ -136,7 +136,7 @@ export default function SchedulesPage() {
         )
       );
     } catch {
-      setFormError("Form verileri yüklenemedi");
+      setFormError("Form verileri yuklenemedi");
     } finally {
       setDropdownsLoading(false);
     }
@@ -184,12 +184,12 @@ export default function SchedulesPage() {
       !formData.inspectorId ||
       !formData.nextDueDate
     ) {
-      setFormError("Lütfen tüm alanları doldurun");
+      setFormError("Lutfen tum alanlari doldurun");
       return;
     }
 
     if (formData.frequencyDays < 1) {
-      setFormError("Periyot en az 1 gün olmalıdır");
+      setFormError("Periyot en az 1 gun olmalidir");
       return;
     }
 
@@ -204,7 +204,7 @@ export default function SchedulesPage() {
       fetchSchedules();
     } catch (err: any) {
       setFormError(
-        err.message || "Kayıt sırasında hata oluştu"
+        err.message || "Kayit sirasinda hata olustu"
       );
     } finally {
       setSubmitting(false);
@@ -219,7 +219,7 @@ export default function SchedulesPage() {
       setDeleteTarget(null);
       fetchSchedules();
     } catch (err: any) {
-      setError(err.message || "Silme işlemi başarısız oldu");
+      setError(err.message || "Silme islemi basarisiz oldu");
       setDeleteTarget(null);
     } finally {
       setDeleting(false);
@@ -228,7 +228,7 @@ export default function SchedulesPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div className="flex items-center justify-end">
           <div className="h-10 w-28 bg-gray-200 rounded-lg animate-pulse" />
         </div>
@@ -254,7 +254,7 @@ export default function SchedulesPage() {
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
               />
             </svg>
-            <span className="text-sm">Planlar yükleniyor...</span>
+            <span className="text-sm">Planlar yukleniyor...</span>
           </div>
         </div>
       </div>
@@ -263,7 +263,7 @@ export default function SchedulesPage() {
 
   if (error) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
           <p className="text-red-700 text-sm">{error}</p>
         </div>
@@ -274,7 +274,7 @@ export default function SchedulesPage() {
   const activeSchedules = schedules.filter((s) => s.isActive);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-end">
         <button
           onClick={openCreateModal}
@@ -285,33 +285,33 @@ export default function SchedulesPage() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
-              <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">
-                Şube
+              <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
+                Sube
               </th>
-              <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">
-                Şablon
+              <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
+                Sablon
               </th>
-              <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">
-                Denetçi
+              <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
+                Denetci
               </th>
-              <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">
-                Periyot (Gün)
+              <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
+                Periyot (Gun)
               </th>
-              <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">
+              <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
                 Sonraki Tarih
               </th>
-              <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">
-                Kalan Gün
+              <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
+                Kalan Gun
               </th>
-              <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">
+              <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
                 Durum
               </th>
-              <th className="text-right text-xs font-medium text-gray-500 uppercase py-3 px-4">
-                İşlemler
+              <th className="text-right text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
+                Islemler
               </th>
             </tr>
           </thead>
@@ -322,7 +322,7 @@ export default function SchedulesPage() {
                   colSpan={8}
                   className="py-8 text-center text-sm text-gray-500"
                 >
-                  Henüz denetim planı bulunmuyor.
+                  Henuz denetim plani bulunmuyor.
                 </td>
               </tr>
             ) : (
@@ -337,22 +337,22 @@ export default function SchedulesPage() {
                       status.variant === "danger" ? "bg-red-50/50" : ""
                     }`}
                   >
-                    <td className="py-3 px-4 text-sm font-medium text-gray-900">
+                    <td className="py-3 px-4 text-sm font-medium text-gray-900 whitespace-nowrap">
                       {schedule.branch.name}
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">
+                    <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">
                       {schedule.template.name}
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">
+                    <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">
                       {schedule.inspector.fullName}
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">
-                      {schedule.frequencyDays} gün
+                    <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">
+                      {schedule.frequencyDays} gun
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">
+                    <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">
                       {formatDate(schedule.nextDueDate)}
                     </td>
-                    <td className="py-3 px-4 text-sm font-medium">
+                    <td className="py-3 px-4 text-sm font-medium whitespace-nowrap">
                       <span
                         className={
                           status.variant === "danger"
@@ -363,21 +363,21 @@ export default function SchedulesPage() {
                         }
                       >
                         {daysRemaining < 0
-                          ? `${Math.abs(daysRemaining)} gün gecikmiş`
+                          ? `${Math.abs(daysRemaining)} gun gecikmis`
                           : daysRemaining === 0
-                          ? "Bugün"
-                          : `${daysRemaining} gün`}
+                          ? "Bugun"
+                          : `${daysRemaining} gun`}
                       </span>
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 whitespace-nowrap">
                       <Badge variant={status.variant}>{status.label}</Badge>
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => openEditModal(schedule)}
                           className="p-1.5 rounded-lg text-gray-400 hover:text-primary-700 hover:bg-primary-50 transition-colors"
-                          title="Düzenle"
+                          title="Duzenle"
                         >
                           <Pencil size={15} />
                         </button>
@@ -402,12 +402,12 @@ export default function SchedulesPage() {
       <Modal
         isOpen={modalOpen}
         onClose={closeModal}
-        title={editingSchedule ? "Planı Düzenle" : "Yeni Plan Oluştur"}
+        title={editingSchedule ? "Plani Duzenle" : "Yeni Plan Olustur"}
       >
         {dropdownsLoading ? (
           <div className="flex items-center justify-center gap-3 py-8 text-gray-500">
             <Loader2 size={20} className="animate-spin" />
-            <span className="text-sm">Veriler yükleniyor...</span>
+            <span className="text-sm">Veriler yukleniyor...</span>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -420,7 +420,7 @@ export default function SchedulesPage() {
             {/* Branch Select */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Şube
+                Sube
               </label>
               <select
                 value={formData.branchId}
@@ -430,7 +430,7 @@ export default function SchedulesPage() {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 disabled={submitting}
               >
-                <option value="">Şube seçin</option>
+                <option value="">Sube secin</option>
                 {branches.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}
@@ -442,7 +442,7 @@ export default function SchedulesPage() {
             {/* Template Select */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Şablon
+                Sablon
               </label>
               <select
                 value={formData.templateId}
@@ -452,7 +452,7 @@ export default function SchedulesPage() {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 disabled={submitting}
               >
-                <option value="">Şablon seçin</option>
+                <option value="">Sablon secin</option>
                 {templates.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name}
@@ -464,7 +464,7 @@ export default function SchedulesPage() {
             {/* Inspector Select */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Denetçi
+                Denetci
               </label>
               <select
                 value={formData.inspectorId}
@@ -474,7 +474,7 @@ export default function SchedulesPage() {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 disabled={submitting}
               >
-                <option value="">Denetçi seçin</option>
+                <option value="">Denetci secin</option>
                 {inspectors.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.fullName}
@@ -486,7 +486,7 @@ export default function SchedulesPage() {
             {/* Frequency */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Periyot (Gün)
+                Periyot (Gun)
               </label>
               <input
                 type="number"
@@ -527,7 +527,7 @@ export default function SchedulesPage() {
                 disabled={submitting}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
               >
-                İptal
+                Iptal
               </button>
               <button
                 type="submit"
@@ -535,7 +535,7 @@ export default function SchedulesPage() {
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-800 rounded-lg hover:bg-primary-900 transition-colors disabled:opacity-50"
               >
                 {submitting && <Loader2 size={16} className="animate-spin" />}
-                {editingSchedule ? "Güncelle" : "Oluştur"}
+                {editingSchedule ? "Guncelle" : "Olustur"}
               </button>
             </div>
           </form>
@@ -546,15 +546,15 @@ export default function SchedulesPage() {
       <Modal
         isOpen={!!deleteTarget}
         onClose={() => !deleting && setDeleteTarget(null)}
-        title="Planı Sil"
+        title="Plani Sil"
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
             <span className="font-semibold text-gray-900">
               {deleteTarget?.branch.name}
             </span>{" "}
-            şubesine ait bu denetim planını silmek istediğinize emin misiniz? Bu
-            işlem geri alınamaz.
+            subesine ait bu denetim planini silmek istediginize emin misiniz? Bu
+            islem geri alinamaz.
           </p>
           <div className="flex items-center justify-end gap-3">
             <button
@@ -562,7 +562,7 @@ export default function SchedulesPage() {
               disabled={deleting}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
             >
-              Vazgeç
+              Vazgec
             </button>
             <button
               onClick={handleDelete}

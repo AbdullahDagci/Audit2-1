@@ -292,12 +292,16 @@ export default function TemplateDetailScreen() {
             />
             <TextInput
               style={S.input}
-              placeholder="Ağırlık (örn. 1.0)"
+              placeholder="Ağırlık (0.5 - 3.0)"
               value={catForm.weight}
-              onChangeText={t => setCatForm({ ...catForm, weight: t })}
+              onChangeText={t => {
+                let v = parseFloat(t);
+                if (!isNaN(v) && v > 3.0) t = '3.0';
+                setCatForm({ ...catForm, weight: t });
+              }}
               keyboardType="decimal-pad"
             />
-            <Text style={S.helpText}>Yüksek ağırlık = puanlamada daha etkili</Text>
+            <Text style={S.helpText}>Min: 0.5 · Max: 3.0 · Yüksek ağırlık = puanlamada daha etkili</Text>
             <View style={S.modalBtns}>
               <TouchableOpacity onPress={() => setCatModal(false)} style={S.cancelBtn}>
                 <Text style={S.cancelText}>Iptal</Text>

@@ -22,23 +22,23 @@ interface BranchPerformanceProps {
 export default function BranchPerformance({ branches }: BranchPerformanceProps) {
   if (!branches || branches.length === 0) {
     return (
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Şube Performansı
+      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
+          Sube Performansi
         </h3>
         <p className="text-sm text-gray-500 text-center py-10">
-          Henüz şube verisi bulunmuyor.
+          Henuz sube verisi bulunmuyor.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        Şube Performansı
+    <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100">
+      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
+        Sube Performansi
       </h3>
-      <div className="h-80">
+      <div className="h-64 sm:h-80">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={branches} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />

@@ -29,12 +29,12 @@ async function sendPushToDevice(tokens: any[], title: string, body: string, data
       body: JSON.stringify(messages),
     });
 
-    const result = await response.json();
+    const result: any = await response.json();
 
     // Başarısız token'ları temizle
-    if (result.data) {
+    if (result?.data && Array.isArray(result.data)) {
       for (let i = 0; i < result.data.length; i++) {
-        if (result.data[i].status === 'error' && result.data[i].details?.error === 'DeviceNotRegistered') {
+        if (result.data[i]?.status === 'error' && result.data[i]?.details?.error === 'DeviceNotRegistered') {
           await prisma.pushToken.delete({ where: { id: tokens[i].id } }).catch(() => {});
         }
       }

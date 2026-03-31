@@ -125,7 +125,7 @@ router.post('/:id/categories', authenticate, requireRole('admin'), async (req: A
       data: {
         templateId: req.params.id as string,
         name,
-        weight: weight || 1.0,
+        weight: Math.min(3.0, Math.max(0.5, weight || 1.0)),
         sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
       },
       include: { items: true },
@@ -142,7 +142,7 @@ router.put('/categories/:categoryId', authenticate, requireRole('admin'), async 
     const { name, weight, sortOrder } = req.body;
     const data: any = {};
     if (name !== undefined) data.name = name;
-    if (weight !== undefined) data.weight = weight;
+    if (weight !== undefined) data.weight = Math.min(3.0, Math.max(0.5, weight));
     if (sortOrder !== undefined) data.sortOrder = sortOrder;
 
     const category = await prisma.checklistCategory.update({

@@ -45,13 +45,13 @@ export default function Modal({
     >
       <div
         className={cn(
-          "bg-white rounded-2xl shadow-xl max-w-lg w-full mx-4 max-h-[85vh] overflow-y-auto",
+          "bg-white rounded-2xl shadow-xl max-w-[calc(100%-2rem)] sm:max-w-lg w-full mx-4 max-h-[85vh] overflow-y-auto",
           className
         )}
       >
         {title && (
-          <div className="flex items-center justify-between p-6 border-b border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900">{title}</h2>
             <button
               onClick={onClose}
               className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
@@ -60,7 +60,7 @@ export default function Modal({
             </button>
           </div>
         )}
-        <div className="p-6">{children}</div>
+        <div className="p-4 sm:p-6">{children}</div>
       </div>
     </div>
   );

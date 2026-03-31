@@ -93,7 +93,7 @@ export default function LoginPage() {
           </form>
 
           <p className="text-center text-xs text-gray-400 mt-6">
-            admin@ertansa.com / admin123
+            ERTANSA Denetim Yönetim Sistemi
           </p>
         </div>
       </div>

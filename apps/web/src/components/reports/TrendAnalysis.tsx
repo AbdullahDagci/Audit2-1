@@ -23,14 +23,14 @@ interface TrendAnalysisProps {
 export default function TrendAnalysis({ data }: TrendAnalysisProps) {
   if (data.length < 2) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-500">
+      <div className="flex items-center justify-center h-48 sm:h-64 text-gray-500">
         Trend analizi icin yeterli veri bulunmuyor. En az 2 aylik denetim verisi gereklidir.
       </div>
     );
   }
 
   return (
-    <div className="h-96">
+    <div className="h-64 sm:h-80 lg:h-96">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />

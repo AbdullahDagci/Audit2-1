@@ -8,20 +8,20 @@ import { api } from "@/lib/api";
 
 // Map API status values to Turkish display labels
 const STATUS_MAP: Record<string, string> = {
-  all: "Tümü",
-  scheduled: "Planlanmış",
+  all: "Tumu",
+  scheduled: "Planlanmis",
   draft: "Taslak",
   in_progress: "Devam Ediyor",
-  completed: "Gönderildi",
-  pending_action: "İşlem Bekliyor",
-  reviewed: "Onaylandı",
+  completed: "Gonderildi",
+  pending_action: "Islem Bekliyor",
+  reviewed: "Onaylandi",
 };
 
 const STATUS_CHIPS = Object.entries(STATUS_MAP);
 
 // Map API facilityType values to Turkish labels
 const FACILITY_TYPES: Record<string, string> = {
-  all: "Tüm Türler",
+  all: "Tum Turler",
   restaurant: "Restoran",
   cafe: "Kafe",
   hotel: "Otel",
@@ -104,7 +104,7 @@ export default function InspectionsPage() {
       setInspections(result.data);
       setTotal(result.total);
     } catch (err) {
-      console.error("Denetimler yüklenirken hata oluştu:", err);
+      console.error("Denetimler yuklenirken hata olustu:", err);
       setInspections([]);
       setTotal(0);
     } finally {
@@ -127,13 +127,13 @@ export default function InspectionsPage() {
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!confirm("Bu denetimi silmek istediğinizden emin misiniz?")) return;
+    if (!confirm("Bu denetimi silmek istediginizden emin misiniz?")) return;
     setDeleting(id);
     try {
       await api.deleteInspection(id);
       await fetchInspections();
     } catch (err) {
-      console.error("Denetim silinirken hata oluştu:", err);
+      console.error("Denetim silinirken hata olustu:", err);
       alert("Denetim silinemedi.");
     } finally {
       setDeleting(null);
@@ -144,7 +144,7 @@ export default function InspectionsPage() {
     status === "scheduled" || status === "draft";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Filters */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3 flex-wrap">
@@ -156,7 +156,7 @@ export default function InspectionsPage() {
             />
             <input
               type="text"
-              placeholder="Şube ara..."
+              placeholder="Sube ara..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
@@ -182,7 +182,7 @@ export default function InspectionsPage() {
 
         <button className="flex items-center gap-2 px-4 py-2 bg-primary-800 text-white rounded-lg text-sm font-medium hover:bg-primary-900 transition-colors">
           <Download size={16} />
-          Dışarı Aktar
+          <span className="hidden sm:inline">Disari Aktar</span>
         </button>
       </div>
 
@@ -207,41 +207,41 @@ export default function InspectionsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 size={32} className="animate-spin text-primary-800" />
-            <span className="ml-3 text-sm text-gray-500">Yükleniyor...</span>
+            <span className="ml-3 text-sm text-gray-500">Yukleniyor...</span>
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex items-center justify-center py-20">
-            <span className="text-sm text-gray-500">Denetim bulunamadı.</span>
+            <span className="text-sm text-gray-500">Denetim bulunamadi.</span>
           </div>
         ) : (
           <>
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
                     Tarih
                   </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">
-                    Şube
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
+                    Sube
                   </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">
-                    Denetçi
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
+                    Denetci
                   </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">
-                    Şablon
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
+                    Sablon
                   </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
                     Puan
                   </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
                     Durum
                   </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4">
-                    İşlem
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-3 px-4 whitespace-nowrap">
+                    Islem
                   </th>
                 </tr>
               </thead>
@@ -254,25 +254,25 @@ export default function InspectionsPage() {
                     }
                     className="border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer"
                   >
-                    <td className="py-3 px-4 text-sm text-gray-600">
+                    <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">
                       {formatDate(item.scheduledDate || item.createdAt)}
                     </td>
-                    <td className="py-3 px-4 text-sm font-medium text-gray-900">
+                    <td className="py-3 px-4 text-sm font-medium text-gray-900 whitespace-nowrap">
                       {item.branch?.name || "-"}
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">
+                    <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">
                       {item.inspector?.fullName || "-"}
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">
+                    <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">
                       {item.template?.name || "-"}
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 whitespace-nowrap">
                       {getScoreBadge(item.scorePercentage)}
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 whitespace-nowrap">
                       {getStatusBadge(item.status)}
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-primary-800 hover:text-primary-900 font-medium">
                           Detay
@@ -299,11 +299,11 @@ export default function InspectionsPage() {
             </table>
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 flex-wrap gap-2">
                 <p className="text-sm text-gray-500">
-                  Toplam {total} kayıttan{" "}
+                  Toplam {total} kayittan{" "}
                   {(page - 1) * pageSize + 1}-
-                  {Math.min(page * pageSize, total)} arası
+                  {Math.min(page * pageSize, total)} arasi
                 </p>
                 <div className="flex items-center gap-1">
                   <button

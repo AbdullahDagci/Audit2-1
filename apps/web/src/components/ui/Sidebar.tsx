@@ -16,6 +16,8 @@ import {
   Bell,
   LogOut,
   History,
+  Menu,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +41,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -46,6 +49,11 @@ export default function Sidebar() {
       if (u) setUser(JSON.parse(u));
     } catch {}
   }, []);
+
+  // Sayfa değiştiğinde mobilde menüyü kapat
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   const initials = user?.fullName?.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) || '?';
 
@@ -57,41 +65,37 @@ export default function Sidebar() {
     router.push("/login");
   };
 
-  return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-primary-900 text-white flex flex-col z-50">
-      <div className="p-6 border-b border-white/10 flex items-center gap-3">
-        <img src="/logo.png" alt="ERTANSA" className="h-10 w-10 rounded" />
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">ERTANSA</h1>
-          <p className="text-xs text-primary-300 mt-0.5 uppercase tracking-widest">
-            Denetim Sistemi
-          </p>
+  const sidebarContent = (
+    <>
+      <div className="p-5 border-b border-white/10 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center text-lg font-bold">E</div>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl font-bold tracking-tight">ERTANSA</h1>
+          <p className="text-[10px] text-primary-300 uppercase tracking-widest">Denetim Sistemi</p>
         </div>
+        {/* Mobilde kapat butonu */}
+        <button onClick={() => setOpen(false)} className="lg:hidden p-1 hover:bg-white/10 rounded">
+          <X size={20} />
+        </button>
       </div>
 
-      <nav className="flex-1 py-4 overflow-y-auto scrollbar-thin">
-        <ul className="space-y-1 px-3">
+      <nav className="flex-1 py-3 overflow-y-auto">
+        <ul className="space-y-0.5 px-2">
           {navItems
-            .filter((item) => {
-              if (!item.roles) return true;
-              return user?.role && item.roles.includes(user.role);
-            })
+            .filter((item) => user?.role && item.roles.includes(user.role))
             .map((item) => {
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/dashboard" && pathname?.startsWith(item.href));
+              const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname?.startsWith(item.href));
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
+                    onClick={() => setOpen(false)}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                      isActive
-                        ? "bg-primary-600 text-white"
-                        : "text-primary-100 hover:bg-white/10"
+                      isActive ? "bg-primary-600 text-white" : "text-primary-100 hover:bg-white/10"
                     )}
                   >
-                    <item.icon size={20} />
+                    <item.icon size={18} />
                     {item.label}
                   </Link>
                 </li>
@@ -100,24 +104,50 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      <div className="p-4 border-t border-white/10">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-full bg-primary-600 flex items-center justify-center text-sm font-bold">
-            {initials}
-          </div>
+      <div className="p-3 border-t border-white/10">
+        <div className="flex items-center gap-3 mb-2 px-1">
+          <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-xs font-bold">{initials}</div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{user?.fullName || 'Kullanıcı'}</p>
-            <p className="text-xs text-primary-300 truncate">{ROLE_LABELS[user?.role] || user?.role || ''}</p>
+            <p className="text-xs text-primary-300 truncate">{ROLE_LABELS[user?.role] || ''}</p>
           </div>
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium transition-colors"
         >
-          <LogOut size={16} />
+          <LogOut size={14} />
           Çıkış Yap
         </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Hamburger butonu - sadece mobilde görünür */}
+      <button
+        onClick={() => setOpen(true)}
+        className="lg:hidden fixed top-3 left-3 z-[60] p-2 bg-primary-900 text-white rounded-lg shadow-lg"
+        aria-label="Menü"
+      >
+        <Menu size={22} />
+      </button>
+
+      {/* Masaüstü sidebar - lg ve üstü */}
+      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-primary-900 text-white flex-col z-50">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobil sidebar - overlay */}
+      {open && (
+        <>
+          <div className="lg:hidden fixed inset-0 bg-black/50 z-[55]" onClick={() => setOpen(false)} />
+          <aside className="lg:hidden fixed left-0 top-0 h-screen w-72 bg-primary-900 text-white flex flex-col z-[56] shadow-2xl animate-in slide-in-from-left duration-200">
+            {sidebarContent}
+          </aside>
+        </>
+      )}
+    </>
   );
 }

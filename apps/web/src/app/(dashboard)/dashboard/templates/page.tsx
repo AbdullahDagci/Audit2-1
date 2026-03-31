@@ -33,9 +33,9 @@ interface TemplateFormData {
 }
 
 const FACILITY_TYPES = [
-  { value: "magaza", label: "Mağaza" },
+  { value: "magaza", label: "Magaza" },
   { value: "kesimhane", label: "Kesimhane" },
-  { value: "ahir", label: "Ahır" },
+  { value: "ahir", label: "Ahir" },
   { value: "yufka", label: "Yufka" },
   { value: "depo", label: "Depo" },
 ];
@@ -212,7 +212,7 @@ export default function TemplatesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-end">
         <button
@@ -220,23 +220,23 @@ export default function TemplatesPage() {
           className="flex items-center gap-2 px-4 py-2 bg-primary-800 text-white rounded-lg text-sm font-medium hover:bg-primary-900 transition-colors"
         >
           <Plus size={16} />
-          Yeni Şablon
+          Yeni Sablon
         </button>
       </div>
 
       {/* Empty state */}
       {templates.length === 0 && (
         <div className="text-center py-16 text-gray-500 text-sm">
-          Henüz şablon bulunmuyor. Yeni bir şablon oluşturun.
+          Henuz sablon bulunmuyor. Yeni bir sablon olusturun.
         </div>
       )}
 
       {/* Template cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {templates.map((template) => (
           <div
             key={template.id}
-            className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+            className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
           >
             <div className="flex items-start justify-between mb-4">
               <div className="w-12 h-12 rounded-lg bg-primary-50 flex items-center justify-center">
@@ -254,30 +254,30 @@ export default function TemplatesPage() {
             <p className="text-sm text-gray-500 mb-4">
               {facilityLabel(template.facility_type)}
             </p>
-            <div className="flex items-center gap-4 text-xs text-gray-400">
+            <div className="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
               <span>v{template.version}</span>
               <span>{itemCount(template)} madde</span>
               <span>{categoryCount(template)} kategori</span>
             </div>
             <p className="text-xs text-gray-400 mt-2">
-              Son güncelleme: {formatDate(template.updated_at)}
+              Son guncelleme: {formatDate(template.updated_at)}
             </p>
 
             {/* Actions */}
-            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-100 flex-wrap">
               <button
                 onClick={() => router.push(`/dashboard/templates/${template.id}`)}
                 className="flex items-center gap-1 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
               >
                 <Eye size={14} />
-                Detay / Düzenle
+                Detay / Duzenle
               </button>
               <button
                 onClick={() => openEdit(template)}
                 className="flex items-center gap-1 px-3 py-1.5 text-xs text-primary-800 hover:bg-primary-50 rounded-lg transition-colors"
               >
                 <Pencil size={14} />
-                Düzenle
+                Duzenle
               </button>
               <button
                 onClick={() => setDeleteConfirm(template)}
@@ -295,7 +295,7 @@ export default function TemplatesPage() {
       <Modal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        title="Yeni Şablon Oluştur"
+        title="Yeni Sablon Olustur"
       >
         <TemplateForm
           form={form}
@@ -303,7 +303,7 @@ export default function TemplatesPage() {
           onSubmit={handleCreate}
           onCancel={() => setShowCreateModal(false)}
           saving={saving}
-          submitLabel="Oluştur"
+          submitLabel="Olustur"
         />
       </Modal>
 
@@ -311,7 +311,7 @@ export default function TemplatesPage() {
       <Modal
         isOpen={!!editingTemplate}
         onClose={() => setEditingTemplate(null)}
-        title="Şablonu Düzenle"
+        title="Sablonu Duzenle"
       >
         <TemplateForm
           form={form}
@@ -327,11 +327,11 @@ export default function TemplatesPage() {
       <Modal
         isOpen={!!deleteConfirm}
         onClose={() => setDeleteConfirm(null)}
-        title="Şablonu Sil"
+        title="Sablonu Sil"
       >
         <p className="text-sm text-gray-600 mb-6">
-          <strong>{deleteConfirm?.name}</strong> şablonunu silmek istediğinize
-          emin misiniz? Bu işlem geri alınamaz ve şablona bağlı tüm kategoriler
+          <strong>{deleteConfirm?.name}</strong> sablonunu silmek istediginize
+          emin misiniz? Bu islem geri alinamaz ve sablona bagli tum kategoriler
           ve maddeler de silinecektir.
         </p>
         <div className="flex justify-end gap-3">
@@ -339,7 +339,7 @@ export default function TemplatesPage() {
             onClick={() => setDeleteConfirm(null)}
             className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            İptal
+            Iptal
           </button>
           <button
             onClick={handleDelete}
@@ -356,13 +356,13 @@ export default function TemplatesPage() {
         isOpen={!!detailTemplate}
         onClose={() => setDetailTemplate(null)}
         title={detailTemplate?.name}
-        className="max-w-2xl"
+        className="max-w-[calc(100%-2rem)] sm:max-w-2xl"
       >
         {detailTemplate && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-gray-500">Tesis Türü:</span>{" "}
+                <span className="text-gray-500">Tesis Turu:</span>{" "}
                 <span className="font-medium">
                   {facilityLabel(detailTemplate.facility_type)}
                 </span>
@@ -393,7 +393,7 @@ export default function TemplatesPage() {
               </h4>
               {detailTemplate.checklist_categories?.length === 0 && (
                 <p className="text-xs text-gray-400">
-                  Bu şablonda henüz kategori bulunmuyor.
+                  Bu sablonda henuz kategori bulunmuyor.
                 </p>
               )}
               <div className="space-y-2">
@@ -408,7 +408,7 @@ export default function TemplatesPage() {
                         {cat.name}
                       </span>
                       <span className="text-xs text-gray-500">
-                        {cat.checklist_items?.length ?? 0} madde · ağırlık{" "}
+                        {cat.checklist_items?.length ?? 0} madde / agirlik{" "}
                         {cat.weight}
                       </span>
                     </div>
@@ -442,19 +442,19 @@ function TemplateForm({
     <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Şablon Adı
+          Sablon Adi
         </label>
         <input
           type="text"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
-          placeholder="örn. Mağaza Genel Denetim"
+          placeholder="orn. Magaza Genel Denetim"
           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
         />
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Tesis Türü
+          Tesis Turu
         </label>
         <select
           value={form.facility_type}
@@ -485,7 +485,7 @@ function TemplateForm({
           onClick={onCancel}
           className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
         >
-          İptal
+          Iptal
         </button>
         <button
           onClick={onSubmit}

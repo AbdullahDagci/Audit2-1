@@ -93,8 +93,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <StatCard
           icon={ClipboardCheck}
           label="Toplam Denetim"
@@ -123,7 +123,7 @@ export default function DashboardPage() {
 
       <BranchPerformance branches={branches} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <RecentInspections inspections={inspections} />
         <CriticalAlerts inspections={allInspections} />
       </div>

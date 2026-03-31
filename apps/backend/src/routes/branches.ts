@@ -50,12 +50,12 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
 router.post('/', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
-    const { name, facilityType, address, city, latitude, longitude, geofenceRadius, managerId } = req.body;
+    const { name, facilityType, address, city, latitude, longitude, geofenceRadiusMeters, managerId } = req.body;
     if (!name || !facilityType) {
       return res.status(400).json({ error: 'Şube adı ve tesis tipi gerekli' });
     }
     const branch = await prisma.branch.create({
-      data: { name, facilityType, address, city, latitude, longitude, geofenceRadius, managerId },
+      data: { name, facilityType, address, city, latitude, longitude, geofenceRadiusMeters, managerId },
     });
     res.status(201).json(branch);
   } catch (err: any) {
@@ -65,7 +65,7 @@ router.post('/', authenticate, requireRole('admin', 'manager'), async (req: Auth
 
 router.put('/:id', authenticate, requireRole('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
-    const { name, facilityType, address, city, latitude, longitude, geofenceRadius, managerId, isActive } = req.body;
+    const { name, facilityType, address, city, latitude, longitude, geofenceRadiusMeters, managerId, isActive } = req.body;
     const data: any = {};
     if (name !== undefined) data.name = name;
     if (facilityType !== undefined) data.facilityType = facilityType;
@@ -73,7 +73,7 @@ router.put('/:id', authenticate, requireRole('admin', 'manager'), async (req: Au
     if (city !== undefined) data.city = city;
     if (latitude !== undefined) data.latitude = latitude;
     if (longitude !== undefined) data.longitude = longitude;
-    if (geofenceRadius !== undefined) data.geofenceRadius = geofenceRadius;
+    if (geofenceRadiusMeters !== undefined) data.geofenceRadiusMeters = geofenceRadiusMeters;
     if (managerId !== undefined) data.managerId = managerId;
     if (isActive !== undefined) data.isActive = isActive;
 

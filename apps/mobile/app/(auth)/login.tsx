@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/stores/auth-store';
 
 const QUICK_USERS = [
-  { label: 'Admin', email: 'admin@ertansa.com', password: 'admin123', color: '#1B5E20' },
-  { label: 'Denetçi', email: 'denetci@ertansa.com', password: 'denetci123', color: '#E65100' },
-  { label: 'Müdür', email: 'mudur@ertansa.com', password: 'mudur123', color: '#1565C0' },
+  { label: 'Admin', email: 'admin@ertansa.com', password: '123456', color: '#1B5E20' },
+  { label: 'Denetçi', email: 'denetci@ertansa.com', password: '123456', color: '#E65100' },
+  { label: 'Müdür', email: 'mudur@ertansa.com', password: '123456', color: '#1565C0' },
 ];
 
 export default function LoginScreen() {
